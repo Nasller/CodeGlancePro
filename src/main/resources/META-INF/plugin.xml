@@ -4,7 +4,20 @@
 	<version>1.0.0</version>
 	<vendor email="nasller@qq.com" url="https://github.com/Nasller">Nasller</vendor>
 
-	<description>Rework on codeGlance support two type minimap</description>
+	<description><![CDATA[
+		IntelliJ plugin that displays a zoomed out overview or minimap similar to the one found in Sublime into the editor pane.
+		The minimap allows for quick scrolling letting you jump straight to sections of code.
+		Rework on CodeGlance,support two type minimap to choose
+
+		<ul>
+		<li>Works with both light and dark themes using your customized colors for syntax highlighting.</li>
+		<li>Embedded into editor window.Support markdown file.</li>
+		<li>Color rendering using IntelliJ's tokenizer.</li>
+		<li>Show Git Line.</li>
+		<li>Ctrl-Shift-G to toggle Glance.</li>
+		</ul>
+
+	]]></description>
 
 	<change-notes><![CDATA[
 		<h3>1.0.0</h3>
