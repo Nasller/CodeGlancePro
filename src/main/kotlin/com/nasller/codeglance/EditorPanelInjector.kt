@@ -21,11 +21,11 @@ import javax.swing.JPanel
 /**
  * Injects a panel into any newly created editors.
  */
-class EditorPanelInjector(private val project: Project) : FileEditorManagerListener,SettingsChangeListener{
+class EditorPanelInjector(private val project: Project) : FileEditorManagerListener,SettingsChangeListener,Disposable{
     private val logger = Logger.getInstance(javaClass)
     private val config: Config = ConfigInstance.state
     init{
-        ApplicationManager.getApplication().messageBus.connect().subscribe(SettingsChangeListener.TOPIC, this)
+        ApplicationManager.getApplication().messageBus.connect(project).subscribe(SettingsChangeListener.TOPIC, this)
     }
 
     override fun fileOpened(fem: FileEditorManager, virtualFile: VirtualFile) {
@@ -118,5 +118,9 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         }catch (e:Exception){
             logger.error(e)
         }
+    }
+
+    override fun dispose() {
+        TODO("Not yet implemented")
     }
 }
