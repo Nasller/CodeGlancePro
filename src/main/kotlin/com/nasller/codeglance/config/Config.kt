@@ -15,20 +15,12 @@ class Config {
     }
     var jumpOnMouseDown: Boolean = true
     var width: Int = 110
-    var viewportColor: String by Delegates.observable("A0A0A0") { _, oldValue: String, newValue: String ->
-        if (oldValue != newValue) {
-            SettingsChangePublisher.onColorChanged(newValue)
-        }
-    }
+    var viewportColor: String = "A0A0A0"
     var clean: Boolean = false
     var isRightAligned: Boolean = true
     var minWindowWidth: Int = 0
     var locked: Boolean = false
-    var oldGlance: Boolean by Delegates.observable(false) { _, oldValue: Boolean, newValue: Boolean ->
-        if (oldValue != newValue) {
-            SettingsChangePublisher.onRefreshChanged(disabled,null)
-        }
-    }
+    var oldGlance: Boolean = false
 }
 
 val SettingsChangePublisher: SettingsChangeListener =
