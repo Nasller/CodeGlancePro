@@ -51,7 +51,7 @@ class OldGlancePanel(project: Project, textEditor: TextEditor) : AbstractGlanceP
                     scrollState.computeDimensions(editor, config)
                     ApplicationManager.getApplication().invokeLater {
                         scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
-                        parent.repaint()
+                        repaint()
                     }
                 }finally {
                     renderLock.release()
