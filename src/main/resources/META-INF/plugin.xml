@@ -1,30 +1,27 @@
-<idea-plugin url="https://github.com/ranbest/CodeGlance">
+<idea-plugin require-restart="true">
 	<id>com.nasller.CodeGlancePro</id>
 	<name>CodeGlance Pro</name>
 	<version>1.0.0</version>
-	<vendor email="nasller@qq.com" url="https://github.com/nasller/CodeGlance">nasller</vendor>
+	<vendor email="nasller@qq.com" url="https://github.com/Nasller">Nasller</vendor>
 
-	<description>
-		CodeGlance Pro (Merge CodeGlance And CodeGlance3)
-	</description>
+	<description>Rework on codeGlance support two type minimap</description>
 
 	<change-notes><![CDATA[
 		<h3>1.0.0</h3>
 		<ul>
 			<li>fix markdown file</li>
+			<li>fix some bug</li>
 			<li>feature: show git line</li>
 			<li>feature: support old minimap</li>
 		</ul>
 	]]></change-notes>
 
 	<depends>com.intellij.modules.lang</depends>
-	<depends>com.intellij.modules.vcs</depends>
 
-	<projectListeners>
+	<applicationListeners>
 		<listener topic="com.intellij.openapi.project.ProjectManagerListener"
-		          class="com.nasller.codeglance.CodeGlancePlugin"
-		          activeInHeadlessMode="false"/>
-	</projectListeners>
+		          class="com.nasller.codeglance.CodeGlancePlugin"/>
+	</applicationListeners>
 
 	<actions>
 		<action id="CodeGlance.toggle" text="Toggle CodeGlance" class="com.nasller.codeglance.actions.ShowHideGlanceAction" description="Toggles CodeGlance on and off">
