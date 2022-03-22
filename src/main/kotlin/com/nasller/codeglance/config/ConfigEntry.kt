@@ -1,5 +1,6 @@
 package com.nasller.codeglance.config
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.ConfigurationException
 import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
@@ -49,18 +50,18 @@ class ConfigEntry : Configurable {
         config.oldGlance = form!!.isOldGlance
         config.jumpOnMouseDown = form!!.jumpOnMouseDown()
         config.width = form!!.width.coerceAtLeast(50)
-
         if (form!!.viewportColor.length == 6 && form!!.viewportColor.matches("^[a-fA-F0-9]*$".toRegex())) {
             config.viewportColor = form!!.viewportColor
         } else {
             config.viewportColor = "A0A0A0"
         }
-
         config.minLineCount = form!!.minLinesCount
         config.minWindowWidth = form!!.minWindowWidth
         config.clean = form!!.cleanStyle
         config.isRightAligned = form!!.isRightAligned
-        SettingsChangePublisher.onRefreshChanged(config.disabled,null)
+        ApplicationManager.getApplication().invokeLater{
+            SettingsChangePublisher.onRefreshChanged(config.disabled,null)
+        }
     }
 
     override fun reset() {

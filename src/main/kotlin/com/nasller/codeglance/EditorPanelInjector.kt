@@ -88,31 +88,35 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
     override fun fileClosed(source: FileEditorManager, file: VirtualFile) {}
 
     override fun onRefreshChanged(disable: Boolean,ignore: TextEditor?) {
-        for (editor in FileEditorManager.getInstance(project).allEditors.filterIsInstance<TextEditor>()) {
-            if(ignore == null || ignore.file?.name != editor.file?.name){
-                val panel = getPanel(editor) ?: continue
-                val innerLayout = panel.layout as BorderLayout
-                val where = if (config.isRightAligned)
-                    BorderLayout.LINE_END
-                else
-                    BorderLayout.LINE_START
-                val layoutComponent = innerLayout.getLayoutComponent(where)
-                if(disable){
-                    if(layoutComponent != null && layoutComponent is AbstractGlancePanel<*>){
-                        Disposer.dispose(layoutComponent as Disposable)
-                        panel.remove(layoutComponent)
+        try {
+            for (editor in FileEditorManager.getInstance(project).allEditors.filterIsInstance<TextEditor>()) {
+                if(ignore == null || ignore.file?.path != editor.file?.path){
+                    val panel = getPanel(editor) ?: continue
+                    val innerLayout = panel.layout as BorderLayout
+                    val where = if (config.isRightAligned)
+                        BorderLayout.LINE_END
+                    else
+                        BorderLayout.LINE_START
+                    val layoutComponent = innerLayout.getLayoutComponent(where)
+                    if(disable){
+                        if(layoutComponent != null && layoutComponent is AbstractGlancePanel<*>){
+                            Disposer.dispose(layoutComponent as Disposable)
+                            panel.remove(layoutComponent)
+                        }
+                    }else {
+                        if (layoutComponent != null && layoutComponent is AbstractGlancePanel<*>) {
+                            Disposer.dispose(layoutComponent as Disposable)
+                            panel.remove(layoutComponent)
+                        }
+                        val glancePanel = if (config.oldGlance) {
+                            OldGlancePanel(project, editor)
+                        } else GlancePanel(project, editor)
+                        panel.add(glancePanel, where)
                     }
-                }else {
-                    if (layoutComponent != null && layoutComponent is AbstractGlancePanel<*>) {
-                        Disposer.dispose(layoutComponent as Disposable)
-                        panel.remove(layoutComponent)
-                    }
-                    val glancePanel = if (config.oldGlance) {
-                        OldGlancePanel(project, editor)
-                    } else GlancePanel(project, editor)
-                    panel.add(glancePanel, where)
                 }
             }
+        }catch (e:Exception){
+            logger.error(e)
         }
     }
 }
