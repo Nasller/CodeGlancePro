@@ -1,11 +1,8 @@
 package com.nasller.codeglance.panel
 
-import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.TextEditor
 import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
-import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.config.SettingsChangePublisher
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
@@ -16,7 +13,7 @@ import javax.swing.JPanel
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-class Scrollbar(textEditor: TextEditor, private val scrollstate : ScrollState, private val panel: AbstractGlancePanel<*>) : JPanel(),Disposable, SettingsChangeListener {
+class Scrollbar(textEditor: TextEditor, private val scrollstate : ScrollState, private val panel: AbstractGlancePanel<*>) : JPanel() {
     private val editor = textEditor.editor as EditorEx
     private val defaultCursor = Cursor(Cursor.DEFAULT_CURSOR)
 
@@ -30,13 +27,11 @@ class Scrollbar(textEditor: TextEditor, private val scrollstate : ScrollState, p
 
     private val config = ConfigInstance.state
 
-    private lateinit var visibleRectColor: Color
+    private var visibleRectColor: Color = Color.decode("#"+config.viewportColor)
     private val vOffset: Int
         get() = scrollstate.viewportStart - scrollstate.visibleStart
 
     init {
-        ApplicationManager.getApplication().messageBus.connect(this).subscribe(SettingsChangeListener.TOPIC,this)
-        onColorChanged(config.viewportColor)
         val mouseHandler = MouseHandler(textEditor)
         addMouseListener(mouseHandler)
         addMouseWheelListener(mouseHandler)
@@ -160,16 +155,9 @@ class Scrollbar(textEditor: TextEditor, private val scrollstate : ScrollState, p
         }
     }
 
-    override fun onColorChanged(newValue: String) {
-        visibleRectColor = Color.decode("#$newValue")
-    }
-
     private companion object {
         const val DEFAULT_ALPHA = 0.15f
         const val HOVER_ALPHA = 0.25f
         const val DRAG_ALPHA = 0.35f
-    }
-
-    override fun dispose() {
     }
 }

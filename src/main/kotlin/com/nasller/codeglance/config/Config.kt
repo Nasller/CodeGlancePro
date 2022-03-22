@@ -30,8 +30,6 @@ interface SettingsChangeListener {
 
     fun onRefreshChanged(disable:Boolean,ignore: TextEditor?) {}
 
-    fun onColorChanged(newValue:String) {}
-
     companion object {
         val TOPIC: Topic<SettingsChangeListener> =
             Topic.create("CodeGlanceSettingsChanged", SettingsChangeListener::class.java)

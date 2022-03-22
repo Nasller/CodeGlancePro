@@ -11,7 +11,6 @@ import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.progress.util.ProgressIndicatorUtils
 import com.intellij.openapi.progress.util.ReadTask
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vcs.changes.ChangeListManagerImpl
 import com.intellij.openapi.vcs.ex.LocalRange
 import com.intellij.openapi.vcs.impl.LineStatusTrackerManager
@@ -222,10 +221,7 @@ abstract class AbstractGlancePanel<T>(private val project: Project, textEditor: 
         editor.document.removeDocumentListener(documentListener)
         editor.scrollingModel.removeVisibleAreaListener(areaListener)
         editor.selectionModel.removeSelectionListener(selectionListener)
-        scrollbar?.let {
-            Disposer.dispose(it)
-            remove(it)
-        }
+        scrollbar?.let {remove(it)}
         mapRef.clear()
     }
 }
