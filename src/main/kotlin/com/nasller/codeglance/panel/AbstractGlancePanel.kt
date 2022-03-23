@@ -2,17 +2,13 @@ package com.nasller.codeglance.panel
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.diff.LineStatusMarkerDrawUtil
-import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.ex.EditorEx
-import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.progress.util.ProgressIndicatorUtils
 import com.intellij.openapi.progress.util.ReadTask
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.ChangeListManagerImpl
-import com.intellij.openapi.vcs.ex.LocalRange
 import com.intellij.openapi.vcs.impl.LineStatusTrackerManager
 import com.intellij.openapi.vfs.PersistentFSConstants
 import com.intellij.util.ui.ImageUtil
@@ -37,8 +33,8 @@ abstract class AbstractGlancePanel<T>(private val project: Project, textEditor: 
     protected val scrollState = ScrollState()
     private var buf: BufferedImage? = null
     protected var scrollbar:Scrollbar? = null
-    private val changeListManager = ChangeListManagerImpl.getInstanceImpl(curProject)
-    private val trackerManager = LineStatusTrackerManager.getInstance(curProject)
+    protected val changeListManager: ChangeListManagerImpl = ChangeListManagerImpl.getInstanceImpl(curProject)
+    protected val trackerManager = LineStatusTrackerManager.getInstance(curProject)
     abstract val updateTask: ReadTask
 
     // Anonymous Listeners that should be cleaned up.
@@ -122,54 +118,9 @@ abstract class AbstractGlancePanel<T>(private val project: Project, textEditor: 
         scrollbar!!.paint(gfx)
     }
 
-    private fun paintVcs(g: Graphics2D) {
-        trackerManager.getLineStatusTracker(editor.document)?.getRanges()?.forEach {
-            if (it !is LocalRange || it.changelistId == changeListManager.defaultChangeList.id) {
-                g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
-                g.color = LineStatusMarkerDrawUtil.getGutterColor(it.type, editor)
-                val start =
-                    EditorUtil.logicalToVisualLine(editor, it.line1) * config.pixelsPerLine - scrollState.visibleStart
-                val end =
-                    EditorUtil.logicalToVisualLine(editor, it.line2) * config.pixelsPerLine - scrollState.visibleStart
-                g.fillRect(0, start, width, config.pixelsPerLine)
-                g.fillRect(0, end, 0, config.pixelsPerLine)
-                g.fillRect(0, start, width, end - start - config.pixelsPerLine)
-            }
-        }
-    }
+    abstract fun paintVcs(g: Graphics2D)
 
-    private fun paintSelection(g: Graphics2D, startByte: Int, endByte: Int) {
-        val start = editor.offsetToVisualPosition(startByte)
-        val end = editor.offsetToVisualPosition(endByte)
-        val sX = start.column
-        val sY = start.line * config.pixelsPerLine - scrollState.visibleStart
-        val eX = end.column + 1
-        val eY = end.line * config.pixelsPerLine - scrollState.visibleStart
-
-        g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
-        g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
-
-        // Single line is real easy
-        if (start.line == end.line) {
-            g.fillRect(
-                sX,
-                sY,
-                eX - sX,
-                config.pixelsPerLine
-            )
-        } else {
-            // Draw the line leading in
-            g.fillRect(sX, sY, width - sX, config.pixelsPerLine)
-
-            // Then the line at the end
-            g.fillRect(0, eY, eX, config.pixelsPerLine)
-
-            if (eY + config.pixelsPerLine != sY) {
-                // And if there is anything in between, fill it in
-                g.fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
-            }
-        }
-    }
+    abstract fun paintSelection(g: Graphics2D, startByte: Int, endByte: Int)
 
     private fun paintSelections(g: Graphics2D) {
         for ((index, start) in editor.selectionModel.blockSelectionStarts.withIndex()) {

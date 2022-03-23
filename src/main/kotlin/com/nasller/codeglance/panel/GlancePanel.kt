@@ -1,14 +1,20 @@
 package com.nasller.codeglance.panel
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diff.LineStatusMarkerDrawUtil
 import com.intellij.openapi.editor.FoldRegion
+import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.ex.FoldingListener
+import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.ReadTask
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.vcs.ex.LocalRange
 import com.nasller.codeglance.render.Minimap
+import java.awt.AlphaComposite
+import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.lang.ref.SoftReference
 
@@ -55,6 +61,55 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
                 }
             }
         }
+
+    override fun paintVcs(g: Graphics2D) {
+        trackerManager.getLineStatusTracker(editor.document)?.getRanges()?.forEach {
+            if (it !is LocalRange || it.changelistId == changeListManager.defaultChangeList.id) {
+                g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
+                g.color = LineStatusMarkerDrawUtil.getGutterColor(it.type, editor)
+                val start =
+                    EditorUtil.logicalToVisualLine(editor, it.line1) * config.pixelsPerLine - scrollState.visibleStart
+                val end =
+                    EditorUtil.logicalToVisualLine(editor, it.line2) * config.pixelsPerLine - scrollState.visibleStart
+                g.fillRect(0, start, width, config.pixelsPerLine)
+                g.fillRect(0, end, 0, config.pixelsPerLine)
+                g.fillRect(0, start, width, end - start - config.pixelsPerLine)
+            }
+        }
+    }
+
+    override fun paintSelection(g: Graphics2D, startByte: Int, endByte: Int) {
+        val start = editor.offsetToVisualPosition(startByte)
+        val end = editor.offsetToVisualPosition(endByte)
+        val sX = start.column
+        val sY = start.line * config.pixelsPerLine - scrollState.visibleStart
+        val eX = end.column + 1
+        val eY = end.line * config.pixelsPerLine - scrollState.visibleStart
+
+        g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
+        g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
+
+        // Single line is real easy
+        if (start.line == end.line) {
+            g.fillRect(
+                sX,
+                sY,
+                eX - sX,
+                config.pixelsPerLine
+            )
+        } else {
+            // Draw the line leading in
+            g.fillRect(sX, sY, width - sX, config.pixelsPerLine)
+
+            // Then the line at the end
+            g.fillRect(0, eY, eX, config.pixelsPerLine)
+
+            if (eY + config.pixelsPerLine != sY) {
+                // And if there is anything in between, fill it in
+                g.fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
+            }
+        }
+    }
 
     // the minimap is held by a soft reference so the GC can delete it at any time.
     // if its been deleted and we want it again (active tab) we recreate it.
