@@ -5,7 +5,9 @@ import com.intellij.openapi.diff.LineStatusMarkerDrawUtil
 import com.intellij.openapi.editor.FoldRegion
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.ex.FoldingListener
+import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
+import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileTypes.SyntaxHighlighterFactory
 import com.intellij.openapi.progress.ProgressIndicator
@@ -34,6 +36,17 @@ class OldGlancePanel(project: Project, textEditor: TextEditor) : AbstractGlanceP
             override fun onFoldRegionStateChange(region: FoldRegion) = updateImage()
         }
         editor.foldingModel.addListener(foldListener, this)
+        val myMarkupModelListener = object : MarkupModelListener {
+            override fun afterAdded(highlighter: RangeHighlighterEx) = updateImage()
+
+            override fun beforeRemoved(highlighter: RangeHighlighterEx) = updateImage()
+
+            override fun attributesChanged(highlighter: RangeHighlighterEx,
+                renderersChanged: Boolean, fontStyleChanged: Boolean, foregroundColorChanged: Boolean
+            ) = updateImage()
+        }
+        editor.filteredDocumentMarkupModel.addMarkupModelListener(this, myMarkupModelListener)
+        editor.markupModel.addMarkupModelListener(this, myMarkupModelListener)
         add(scrollbar)
         refresh()
     }
@@ -53,7 +66,8 @@ class OldGlancePanel(project: Project, textEditor: TextEditor) : AbstractGlanceP
                     val hl = SyntaxHighlighterFactory.getSyntaxHighlighter(file.language, curProject, file.virtualFile)
                     val text = editor.document.text
                     val folds = Folds(editor.foldingModel.allFoldRegions)
-                    map.update(text, editor.colorsScheme, hl, folds)
+                    val markupModelEx = editor.filteredDocumentMarkupModel
+                    map.update(text, editor.colorsScheme, hl, folds,markupModelEx)
                     scrollState.computeDimensions(editor, config)
                     ApplicationManager.getApplication().invokeLater {
                         scrollState.recomputeVisible(editor.scrollingModel.visibleArea)

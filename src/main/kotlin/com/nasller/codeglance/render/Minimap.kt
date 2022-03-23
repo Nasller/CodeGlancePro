@@ -97,10 +97,25 @@ class Minimap(private val config: Config) {
             }
 
             // Render whole token, make sure multi lines are handled gracefully.
+            val processRangeHighlighters =
+                editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(hlIter.start, hlIter.end) {
+                    val textAttributes = it.getTextAttributes(editor.colorsScheme)
+                    if (textAttributes != null) {
+                        textAttributes.foregroundColor?.getRGBComponents(colorBuffer)
+                        false
+                    } else true
+                }
             try {
-                (hlIter.textAttributes.foregroundColor ?: defaultForeground).getRGBComponents(colorBuffer)
+                val foregroundColor = hlIter.textAttributes.foregroundColor
+                if(foregroundColor == null && processRangeHighlighters){
+                    defaultForeground.getRGBComponents(colorBuffer)
+                }else{
+                    foregroundColor.getRGBComponents(colorBuffer)
+                }
             }catch (e:Exception){
-                defaultForeground.getRGBComponents(colorBuffer)
+                if(processRangeHighlighters){
+                    defaultForeground.getRGBComponents(colorBuffer)
+                }
             }
             while (i < hlIter.end) {
                 if (checkFold())

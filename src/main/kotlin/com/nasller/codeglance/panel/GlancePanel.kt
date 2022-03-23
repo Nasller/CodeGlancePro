@@ -5,7 +5,9 @@ import com.intellij.openapi.diff.LineStatusMarkerDrawUtil
 import com.intellij.openapi.editor.FoldRegion
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.ex.FoldingListener
+import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
+import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.ReadTask
@@ -31,6 +33,18 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
             override fun onFoldRegionStateChange(region: FoldRegion) = updateImage()
         }
         editor.foldingModel.addListener(foldListener, this)
+        val myMarkupModelListener = object : MarkupModelListener {
+            override fun afterAdded(highlighter: RangeHighlighterEx) = updateImage()
+
+            override fun beforeRemoved(highlighter: RangeHighlighterEx) = updateImage()
+
+            override fun attributesChanged(
+                highlighter: RangeHighlighterEx,
+                renderersChanged: Boolean, fontStyleChanged: Boolean, foregroundColorChanged: Boolean
+            ) = updateImage()
+        }
+        editor.filteredDocumentMarkupModel.addMarkupModelListener(this, myMarkupModelListener)
+        editor.markupModel.addMarkupModelListener(this, myMarkupModelListener)
         add(scrollbar)
         refresh()
     }

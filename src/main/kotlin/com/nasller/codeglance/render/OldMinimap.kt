@@ -1,13 +1,14 @@
 package com.nasller.codeglance.render
 
+import com.intellij.lexer.Lexer
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.colors.EditorColorsScheme
+import com.intellij.openapi.editor.ex.MarkupModelEx
 import com.intellij.openapi.fileTypes.SyntaxHighlighter
 import com.intellij.psi.tree.IElementType
 import com.intellij.util.ui.ImageUtil
 import com.nasller.codeglance.config.Config
 import java.awt.AlphaComposite
-import java.awt.Color
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import kotlin.math.floor
@@ -133,18 +134,30 @@ class OldMinimap(private val config: Config) {
 	 * *
 	 * @return the RGB color to use for the given element
 	 */
-	private fun getColorForElementType(element: IElementType, hl: SyntaxHighlighter, colorScheme: EditorColorsScheme): Int {
+	private fun getColorForElementType(lexer: Lexer, hl: SyntaxHighlighter, colorScheme: EditorColorsScheme, markupModelEx: MarkupModelEx): Int {
 		var color = colorScheme.defaultForeground.rgb
-		var tmp: Color?
-		val attributes = hl.getTokenHighlights(element)
-		for (attribute in attributes) {
-			val attr = colorScheme.getAttributes(attribute)
-			if (attr != null) {
-				tmp = attr.foregroundColor
-				if (tmp != null) color = tmp.rgb
+		val tokenType = lexer.tokenType
+		val attributes = hl.getTokenHighlights(tokenType)
+		try{
+			if(attributes.isEmpty()){
+				markupModelEx.processRangeHighlightersOverlappingWith(lexer.tokenStart,lexer.tokenEnd) {
+					val textAttributes = it.getTextAttributes(colorScheme)
+					if(textAttributes != null){
+						textAttributes.foregroundColor?.let{ it1 -> color = it1.rgb}
+						false
+					}else true
+				}
+			}else{
+				for (attribute in attributes) {
+					val attr = colorScheme.getAttributes(attribute)
+					if (attr != null) {
+						attr.foregroundColor?.let{color = it.rgb}
+					}
+				}
 			}
+		}catch (e:Exception){
+			logger.error(e)
 		}
-
 		return color
 	}
 
@@ -157,7 +170,7 @@ class OldMinimap(private val config: Config) {
 	 * @param hl            The syntax highlighter to use for the language this document is in.
 	 */
 	@Synchronized
-	fun update(text: CharSequence, colorScheme: EditorColorsScheme, hl: SyntaxHighlighter, folds: Folds) {
+	fun update(text: CharSequence, colorScheme: EditorColorsScheme, hl: SyntaxHighlighter, folds: Folds,markupModelEx: MarkupModelEx) {
 		logger.debug("Updating file image.")
 		updateDimensions(text, folds)
 
@@ -181,7 +194,7 @@ class OldMinimap(private val config: Config) {
 			startLine = getLine(start)
 			y = startLine.number * config.pixelsPerLine
 
-			color = getColorForElementType(tokenType, hl, colorScheme)
+			color = getColorForElementType(lexer, hl, colorScheme,markupModelEx)
 
 			// Pre-loop to count whitespace from start of line.
 			x = 0
