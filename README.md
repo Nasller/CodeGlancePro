@@ -7,6 +7,7 @@ CodeGlance Pro (Merge CodeGlance And CodeGlance3)
 - Two MiniMap Support
 - Config Change Right
 - Git Line Support
+- ColorScheme Support
 
 Show/Hide or Enable/Disable Minimap
 ===================
