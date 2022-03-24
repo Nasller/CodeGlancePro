@@ -100,13 +100,13 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
                     val layoutComponent = innerLayout.getLayoutComponent(where)
                     if(disable){
                         if(layoutComponent != null && layoutComponent is AbstractGlancePanel<*>){
-                            Disposer.dispose(layoutComponent as Disposable)
                             panel.remove(layoutComponent)
+                            Disposer.dispose(layoutComponent as Disposable)
                         }
                     }else {
                         if (layoutComponent != null && layoutComponent is AbstractGlancePanel<*>) {
-                            Disposer.dispose(layoutComponent as Disposable)
                             panel.remove(layoutComponent)
+                            Disposer.dispose(layoutComponent as Disposable)
                         }
                         val glancePanel = if (config.oldGlance) {
                             OldGlancePanel(project, editor)
