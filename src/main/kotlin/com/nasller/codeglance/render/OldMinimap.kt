@@ -142,8 +142,8 @@ class OldMinimap(private val config: Config) {
 			if(attributes.isEmpty()){
 				markupModelEx.processRangeHighlightersOverlappingWith(lexer.tokenStart,lexer.tokenEnd) {
 					val textAttributes = it.getTextAttributes(colorScheme)
-					if(textAttributes != null){
-						textAttributes.foregroundColor?.let{ it1 -> color = it1}
+					if(textAttributes != null && textAttributes.foregroundColor != null){
+						color = textAttributes.foregroundColor
 						false
 					}else true
 				}

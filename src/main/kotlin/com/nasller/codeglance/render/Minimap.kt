@@ -100,8 +100,8 @@ class Minimap(private val config: Config) {
             val processRangeHighlighters by lazy{
                 editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(hlIter.start, hlIter.end) {
                     val textAttributes = it.getTextAttributes(editor.colorsScheme)
-                    if (textAttributes != null) {
-                        textAttributes.foregroundColor?.getRGBComponents(colorBuffer)
+                    if (textAttributes != null && textAttributes.foregroundColor != null) {
+                        textAttributes.foregroundColor.getRGBComponents(colorBuffer)
                         false
                     } else true
                 }
