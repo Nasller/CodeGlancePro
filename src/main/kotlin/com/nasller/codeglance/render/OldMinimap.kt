@@ -135,7 +135,7 @@ class OldMinimap(private val config: Config) {
 	 * @return the RGB color to use for the given element
 	 */
 	private fun getColorForElementType(lexer: Lexer, hl: SyntaxHighlighter, colorScheme: EditorColorsScheme, markupModelEx: MarkupModelEx): Int {
-		var color = colorScheme.defaultForeground.rgb
+		var color = colorScheme.defaultForeground
 		val tokenType = lexer.tokenType
 		val attributes = hl.getTokenHighlights(tokenType)
 		try{
@@ -143,7 +143,7 @@ class OldMinimap(private val config: Config) {
 				markupModelEx.processRangeHighlightersOverlappingWith(lexer.tokenStart,lexer.tokenEnd) {
 					val textAttributes = it.getTextAttributes(colorScheme)
 					if(textAttributes != null){
-						textAttributes.foregroundColor?.let{ it1 -> color = it1.rgb}
+						textAttributes.foregroundColor?.let{ it1 -> color = it1}
 						false
 					}else true
 				}
@@ -151,14 +151,14 @@ class OldMinimap(private val config: Config) {
 				for (attribute in attributes) {
 					val attr = colorScheme.getAttributes(attribute)
 					if (attr != null) {
-						attr.foregroundColor?.let{color = it.rgb}
+						attr.foregroundColor?.let{color = it}
 					}
 				}
 			}
 		}catch (e:Exception){
 			logger.error(e)
 		}
-		return color
+		return color.rgb
 	}
 
 	/**

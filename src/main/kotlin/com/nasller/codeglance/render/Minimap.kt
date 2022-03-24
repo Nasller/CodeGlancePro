@@ -97,7 +97,7 @@ class Minimap(private val config: Config) {
             }
 
             // Render whole token, make sure multi lines are handled gracefully.
-            val processRangeHighlighters =
+            val processRangeHighlighters by lazy{
                 editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(hlIter.start, hlIter.end) {
                     val textAttributes = it.getTextAttributes(editor.colorsScheme)
                     if (textAttributes != null) {
@@ -105,6 +105,7 @@ class Minimap(private val config: Config) {
                         false
                     } else true
                 }
+            }
             try {
                 val foregroundColor = hlIter.textAttributes.foregroundColor
                 if(foregroundColor == null && processRangeHighlighters){

@@ -21,7 +21,7 @@ import javax.swing.JPanel
 /**
  * Injects a panel into any newly created editors.
  */
-class EditorPanelInjector(private val project: Project) : FileEditorManagerListener,SettingsChangeListener,Disposable{
+class EditorPanelInjector(private val project: Project) : FileEditorManagerListener,SettingsChangeListener{
     private val logger = Logger.getInstance(javaClass)
     private val config: Config = ConfigInstance.state
     init{
@@ -118,9 +118,5 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         }catch (e:Exception){
             logger.error(e)
         }
-    }
-
-    override fun dispose() {
-        TODO("Not yet implemented")
     }
 }
