@@ -15,6 +15,8 @@ import com.intellij.util.ui.ImageUtil
 import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.Config
 import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
+import com.nasller.codeglance.render.Minimap
+import com.nasller.codeglance.render.OldMinimap
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
 import java.awt.event.ComponentAdapter
@@ -24,18 +26,17 @@ import java.awt.image.BufferedImage
 import java.lang.ref.SoftReference
 import javax.swing.JPanel
 
-abstract class AbstractGlancePanel<T>(private val project: Project, textEditor: TextEditor) : JPanel(), Disposable {
-    protected val curProject = project
+sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: TextEditor) : JPanel(), Disposable {
     protected val editor = textEditor.editor as EditorEx
     protected var mapRef = SoftReference<T>(null)
     protected val config: Config = ConfigInstance.state
     protected val renderLock = DirtyLock()
     protected val scrollState = ScrollState()
+    protected val changeListManager: ChangeListManagerImpl = ChangeListManagerImpl.getInstanceImpl(project)
+    protected val trackerManager = LineStatusTrackerManager.getInstance(project)
     private var buf: BufferedImage? = null
     protected var scrollbar:Scrollbar? = null
-    protected val changeListManager: ChangeListManagerImpl = ChangeListManagerImpl.getInstanceImpl(curProject)
-    protected val trackerManager = LineStatusTrackerManager.getInstance(curProject)
-    abstract val updateTask: ReadTask
+    protected var updateTask: ReadTask? = null
 
     // Anonymous Listeners that should be cleaned up.
     private val componentListener: ComponentListener
@@ -99,7 +100,7 @@ abstract class AbstractGlancePanel<T>(private val project: Project, textEditor: 
         if (project.isDisposed) return
         if (!renderLock.acquire()) return
 
-        ProgressIndicatorUtils.scheduleWithWriteActionPriority(updateTask)
+        ProgressIndicatorUtils.scheduleWithWriteActionPriority(updateTask!!)
     }
 
     protected fun updateImageSoon() = ApplicationManager.getApplication().invokeLater(this::updateImage)
@@ -128,15 +129,15 @@ abstract class AbstractGlancePanel<T>(private val project: Project, textEditor: 
         }
     }
 
-    abstract fun getImgBuff() : BufferedImage
+    abstract fun getOrCreateMap() : T
 
     override fun paint(gfx: Graphics?) {
         if (renderLock.locked) {
             paintLast(gfx)
             return
         }
-
-        if (mapRef.get() == null) {
+        val get = mapRef.get()
+        if (get == null) {
             updateImageSoon()
             paintLast(gfx)
             return
@@ -155,7 +156,11 @@ abstract class AbstractGlancePanel<T>(private val project: Project, textEditor: 
 
         if (editor.document.textLength != 0) {
             g.drawImage(
-                getImgBuff(),
+                when (get) {
+                    is OldMinimap -> {get.img!!}
+                    is Minimap -> {get.img!!}
+                    else -> throw RuntimeException("error img")
+                },
                 0, 0, scrollState.documentWidth, scrollState.drawHeight,
                 0, scrollState.visibleStart, scrollState.documentWidth, scrollState.visibleEnd,
                 null

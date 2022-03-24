@@ -17,7 +17,6 @@ import com.intellij.openapi.vcs.ex.LocalRange
 import com.nasller.codeglance.render.Minimap
 import java.awt.AlphaComposite
 import java.awt.Graphics2D
-import java.awt.image.BufferedImage
 import java.lang.ref.SoftReference
 
 /**
@@ -25,8 +24,9 @@ import java.lang.ref.SoftReference
  */
 class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePanel<Minimap>(project,textEditor) {
     init {
-        scrollbar = Scrollbar(textEditor, scrollState,this)
         Disposer.register(textEditor, this)
+        scrollbar = Scrollbar(textEditor, scrollState,this)
+        add(scrollbar)
         val foldListener = object : FoldingListener {
             override fun onFoldProcessingEnd() = updateImage()
 
@@ -34,23 +34,14 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         }
         editor.foldingModel.addListener(foldListener, this)
         val myMarkupModelListener = object : MarkupModelListener {
-            override fun afterAdded(highlighter: RangeHighlighterEx) = updateImage()
-
-            override fun beforeRemoved(highlighter: RangeHighlighterEx) = updateImage()
-
             override fun attributesChanged(
                 highlighter: RangeHighlighterEx,
                 renderersChanged: Boolean, fontStyleChanged: Boolean, foregroundColorChanged: Boolean
-            ) = updateImage()
+            ) = if(renderersChanged || foregroundColorChanged)updateImage() else Unit
         }
         editor.filteredDocumentMarkupModel.addMarkupModelListener(this, myMarkupModelListener)
         editor.markupModel.addMarkupModelListener(this, myMarkupModelListener)
-        add(scrollbar)
-        refresh()
-    }
-
-    override val updateTask: ReadTask
-        get() = object :ReadTask() {
+        updateTask = object :ReadTask() {
             override fun onCanceled(indicator: ProgressIndicator) {
                 renderLock.release()
                 renderLock.clean()
@@ -75,6 +66,8 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
                 }
             }
         }
+        refresh()
+    }
 
     override fun paintVcs(g: Graphics2D) {
         trackerManager.getLineStatusTracker(editor.document)?.getRanges()?.forEach {
@@ -127,16 +120,12 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
 
     // the minimap is held by a soft reference so the GC can delete it at any time.
     // if its been deleted and we want it again (active tab) we recreate it.
-    private fun getOrCreateMap() : Minimap {
+    override fun getOrCreateMap() : Minimap {
         var map = mapRef.get()
         if (map == null) {
             map = Minimap(config)
             mapRef = SoftReference(map)
         }
         return map
-    }
-
-    override fun getImgBuff(): BufferedImage {
-        return getOrCreateMap().img!!
     }
 }
