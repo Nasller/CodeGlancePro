@@ -139,21 +139,16 @@ class OldMinimap(private val config: Config) {
 		val tokenType = lexer.tokenType
 		val attributes = hl.getTokenHighlights(tokenType)
 		try{
-			if(attributes.isEmpty()){
-				markupModelEx.processRangeHighlightersOverlappingWith(lexer.tokenStart,lexer.tokenEnd) {
-					val textAttributes = it.getTextAttributes(colorScheme)
-					if(textAttributes != null && textAttributes.foregroundColor != null){
-						color = textAttributes.foregroundColor
-						false
-					}else true
-				}
-			}else{
-				for (attribute in attributes) {
-					val attr = colorScheme.getAttributes(attribute)
-					if (attr != null) {
-						attr.foregroundColor?.let{color = it}
-					}
-				}
+			attributes
+				.asSequence()
+				.mapNotNull { colorScheme.getAttributes(it) }
+				.forEach { attr -> attr.foregroundColor?.let { color = it } }
+			markupModelEx.processRangeHighlightersOverlappingWith(lexer.tokenStart, lexer.tokenEnd) {
+				val textAttributes = it.getTextAttributes(colorScheme)
+				if (textAttributes != null && textAttributes.foregroundColor != null){
+					color = textAttributes.foregroundColor
+					false
+				}else true
 			}
 		}catch (e:Exception){
 			logger.error(e)

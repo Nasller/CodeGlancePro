@@ -97,26 +97,17 @@ class Minimap(private val config: Config) {
             }
 
             // Render whole token, make sure multi lines are handled gracefully.
-            val processRangeHighlighters by lazy{
-                editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(hlIter.start, hlIter.end) {
-                    val textAttributes = it.getTextAttributes(editor.colorsScheme)
-                    if (textAttributes != null && textAttributes.foregroundColor != null) {
-                        textAttributes.foregroundColor.getRGBComponents(colorBuffer)
-                        false
-                    } else true
-                }
-            }
             try {
-                val foregroundColor = hlIter.textAttributes.foregroundColor
-                if(foregroundColor == null && processRangeHighlighters){
-                    defaultForeground.getRGBComponents(colorBuffer)
-                }else{
-                    foregroundColor.getRGBComponents(colorBuffer)
-                }
+                (hlIter.textAttributes.foregroundColor ?: defaultForeground).getRGBComponents(colorBuffer)
             }catch (e:Exception){
-                if(processRangeHighlighters){
-                    defaultForeground.getRGBComponents(colorBuffer)
-                }
+                defaultForeground.getRGBComponents(colorBuffer)
+            }
+            editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(hlIter.start, hlIter.end) {
+                val textAttributes = it.getTextAttributes(editor.colorsScheme)
+                if (textAttributes != null && textAttributes.foregroundColor != null) {
+                    textAttributes.foregroundColor.getRGBComponents(colorBuffer)
+                    false
+                } else true
             }
             while (i < hlIter.end) {
                 if (checkFold())
