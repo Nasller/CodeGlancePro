@@ -20,6 +20,11 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.1.0</h3>
+		<ul>
+			<li>fix oldGlance selection position</li>
+			<li>feature: Support your language colorScheme</li>
+		</ul>
 		<h3>1.0.0</h3>
 		<ul>
 			<li>fix markdown file</li>
