@@ -54,6 +54,7 @@ class OldGlancePanel(private val project: Project, textEditor: TextEditor) : Abs
                 val map = getOrCreateMap()
                 try {
                     val file = PsiDocumentManager.getInstance(project).getPsiFile(editor.document) ?: return
+//                    DocumentationManager.getProviderFromElement(file).findDocComment(file, TextRange(1,2)).generateRenderedDoc
                     val folds = Folds(editor.foldingModel.allFoldRegions)
                     val hl = SyntaxHighlighterFactory.getSyntaxHighlighter(file.language, project, file.virtualFile)
                     map.update(editor, folds,hl)
