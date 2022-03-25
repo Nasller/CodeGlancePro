@@ -196,7 +196,14 @@ class OldMinimap(private val config: Config) {
 			for (i in startLine.begin until start) {
 				// Don't count lines inside folded regions.
 				if (folds.isFolded(i)) {
-					continue
+					//TODO CAN FIX?
+//					folds.customFolds[i]?.let {
+//						it.renderer.paint(it,img!!.createGraphics(), Rectangle2D.Double(
+//							i.toDouble(),
+//							y.toDouble(), it.getWidthInPixels().toDouble(), it.getHeightInPixels().toDouble()
+//						), TextAttributes())
+//					}
+					break
 				}
 
 				x += if (text[i] == '\t') {
@@ -212,7 +219,7 @@ class OldMinimap(private val config: Config) {
 			// Render whole token, make sure multi lines are handled gracefully.
 			for (i in start until lexer.tokenEnd) {
 				// Don't render folds.
-				if (folds.isFolded(i)) continue
+				if (folds.isFolded(i)) break
 				// Watch out for tokens that extend past the document... bad plugins? see issue #138
 				if (i >= text.length) return
 

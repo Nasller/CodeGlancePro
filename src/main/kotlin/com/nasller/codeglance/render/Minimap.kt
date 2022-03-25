@@ -43,7 +43,7 @@ class Minimap(private val config: Config) {
         val colorBuffer = FloatArray(4)
         val scaleBuffer = FloatArray(4)
 
-        val text = editor.document.text
+        val text = editor.document.charsSequence
         val line = editor.document.createLineIterator()
         val hlIter = editor.highlighter.createIterator(0)
         val defaultForeground = editor.colorsScheme.defaultForeground
@@ -82,7 +82,7 @@ class Minimap(private val config: Config) {
                 i = line.start
                 while (i < tokenStart) {
                     if (checkFold())
-                        continue
+                        break
 
                     x += if (text[i++] == '\t') {
                         4
@@ -111,7 +111,7 @@ class Minimap(private val config: Config) {
             }
             while (i < hlIter.end) {
                 if (checkFold())
-                    continue
+                    break
 
                 // Watch out for tokens that extend past the document... bad plugins? see issue #138
                 if (i >= text.length)
