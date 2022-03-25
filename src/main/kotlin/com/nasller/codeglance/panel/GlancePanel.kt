@@ -34,7 +34,14 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         }
         editor.foldingModel.addListener(foldListener, this)
         val myMarkupModelListener = object : MarkupModelListener {
-            override fun afterAdded(highlighter: RangeHighlighterEx) = updateImage()
+            override fun afterAdded(highlighter: RangeHighlighterEx) {
+                val attributes = highlighter.getTextAttributes(editor.colorsScheme)
+                val fontStyle = EditorUtil.attributesImpactFontStyle(attributes)
+                val foregroundColor = EditorUtil.attributesImpactForegroundColor(attributes)
+                if(fontStyle || foregroundColor){
+                    updateImage()
+                }
+            }
             override fun attributesChanged(
                 highlighter: RangeHighlighterEx,
                 renderersChanged: Boolean, fontStyleChanged: Boolean, foregroundColorChanged: Boolean

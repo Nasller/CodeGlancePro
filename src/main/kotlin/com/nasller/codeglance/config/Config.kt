@@ -16,7 +16,7 @@ class Config {
     var jumpOnMouseDown: Boolean = true
     var width: Int = 110
     var viewportColor: String = "A0A0A0"
-    var clean: Boolean = false
+    var clean: Boolean = true
     var isRightAligned: Boolean = true
     var minWindowWidth: Int = 0
     var locked: Boolean = false
