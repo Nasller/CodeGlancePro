@@ -3,6 +3,7 @@ package com.nasller.codeglance.render
 import com.intellij.lexer.Lexer
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.colors.EditorColorsScheme
+import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.ex.MarkupModelEx
 import com.intellij.openapi.fileTypes.SyntaxHighlighter
 import com.intellij.psi.tree.IElementType
@@ -24,7 +25,6 @@ class OldMinimap(private val config: Config) {
 
 	/**
 	 * Scans over the entire document once to work out the required dimensions then rebuilds the image if necessary.
-
 	 * Because java chars are UTF-8 16 bit chars this function should be UTF safe in the 2 byte range, which is all intellij
 	 * seems to handle anyway....
 	 */
@@ -165,8 +165,10 @@ class OldMinimap(private val config: Config) {
 	 * @param hl            The syntax highlighter to use for the language this document is in.
 	 */
 	@Synchronized
-	fun update(text: CharSequence, colorScheme: EditorColorsScheme, hl: SyntaxHighlighter, folds: Folds,markupModelEx: MarkupModelEx) {
+	fun update(editor: EditorEx, folds: Folds,hl:SyntaxHighlighter) {
 		logger.debug("Updating file image.")
+		val text = editor.document.charsSequence
+		val markupModelEx = editor.filteredDocumentMarkupModel
 		updateDimensions(text, folds)
 
 		var color: Int
@@ -189,22 +191,13 @@ class OldMinimap(private val config: Config) {
 			startLine = getLine(start)
 			y = startLine.number * config.pixelsPerLine
 
-			color = getColorForElementType(lexer, hl, colorScheme,markupModelEx)
+			color = getColorForElementType(lexer, hl, editor.colorsScheme,markupModelEx)
 
 			// Pre-loop to count whitespace from start of line.
 			x = 0
 			for (i in startLine.begin until start) {
 				// Don't count lines inside folded regions.
-				if (folds.isFolded(i)) {
-					//TODO CAN FIX?
-//					folds.customFolds[i]?.let {
-//						it.renderer.paint(it,img!!.createGraphics(), Rectangle2D.Double(
-//							i.toDouble(),
-//							y.toDouble(), it.getWidthInPixels().toDouble(), it.getHeightInPixels().toDouble()
-//						), TextAttributes())
-//					}
-					break
-				}
+				if (folds.isFolded(i)) break
 
 				x += if (text[i] == '\t') {
 					4
