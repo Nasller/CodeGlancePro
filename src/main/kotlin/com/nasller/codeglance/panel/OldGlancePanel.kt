@@ -3,6 +3,7 @@ package com.nasller.codeglance.panel
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diff.LineStatusMarkerDrawUtil
 import com.intellij.openapi.editor.FoldRegion
+import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
@@ -28,8 +29,6 @@ class OldGlancePanel(private val project: Project, textEditor: TextEditor) : Abs
         scrollbar = Scrollbar(textEditor, scrollState,this)
         add(scrollbar)
         val foldListener = object : FoldingListener {
-            override fun onFoldProcessingEnd() = updateImage()
-
             override fun onFoldRegionStateChange(region: FoldRegion) = updateImage()
         }
         editor.foldingModel.addListener(foldListener, this)
@@ -54,7 +53,6 @@ class OldGlancePanel(private val project: Project, textEditor: TextEditor) : Abs
                 val map = getOrCreateMap()
                 try {
                     val file = PsiDocumentManager.getInstance(project).getPsiFile(editor.document) ?: return
-//                    DocumentationManager.getProviderFromElement(file).findDocComment(file, TextRange(1,2)).generateRenderedDoc
                     val folds = Folds(editor.foldingModel.allFoldRegions)
                     val hl = SyntaxHighlighterFactory.getSyntaxHighlighter(file.language, project, file.virtualFile)
                     map.update(editor, folds,hl)
@@ -80,10 +78,17 @@ class OldGlancePanel(private val project: Project, textEditor: TextEditor) : Abs
             if (it !is LocalRange || it.changelistId == changeListManager.defaultChangeList.id) {
                 g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
                 g.color = LineStatusMarkerDrawUtil.getGutterColor(it.type, editor)
-                val start =
-                    (EditorUtil.logicalToVisualLine(editor, it.line1)+1) * config.pixelsPerLine - scrollState.visibleStart
-                val end =
-                    (EditorUtil.logicalToVisualLine(editor, it.line2)+1) * config.pixelsPerLine - scrollState.visibleStart
+                val documentLine = getDocumentRenderLine(it.line1,it.line2)
+                var visualLine1 = EditorUtil.logicalToVisualLine(editor, it.line1)
+                var visualLine2 = EditorUtil.logicalToVisualLine(editor, it.line2)
+                if(it.line1 != it.line2 && visualLine1 == visualLine2){
+                    val realLine1 = editor.visualToLogicalPosition(VisualPosition(visualLine1,0)).line
+                    val realLine2 = editor.visualToLogicalPosition(VisualPosition(visualLine2,0)).line
+                    visualLine1 += it.line1 - realLine1
+                    visualLine2 += it.line2 - realLine2
+                }
+                val start = (visualLine1+documentLine.first+1) * config.pixelsPerLine - scrollState.visibleStart
+                val end = (visualLine2+documentLine.second+1) * config.pixelsPerLine - scrollState.visibleStart
                 g.fillRect(0, start, width, config.pixelsPerLine)
                 g.fillRect(0, end, 0, config.pixelsPerLine)
                 g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
@@ -94,11 +99,12 @@ class OldGlancePanel(private val project: Project, textEditor: TextEditor) : Abs
     override fun paintSelection(g: Graphics2D, startByte: Int, endByte: Int) {
         val start = editor.offsetToVisualPosition(startByte)
         val end = editor.offsetToVisualPosition(endByte)
+        val documentLine = getDocumentRenderLine(editor.document.getLineNumber(startByte),editor.document.getLineNumber(endByte))
 
         val sX = start.column
-        val sY = (start.line + 1) * config.pixelsPerLine - scrollState.visibleStart
+        val sY = (start.line + documentLine.first + 1) * config.pixelsPerLine - scrollState.visibleStart
         val eX = end.column
-        val eY = (end.line + 1) * config.pixelsPerLine - scrollState.visibleStart
+        val eY = (end.line + documentLine.second + 1) * config.pixelsPerLine - scrollState.visibleStart
 
         g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
         g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)

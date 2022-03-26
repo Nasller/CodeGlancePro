@@ -4,6 +4,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.progress.util.ProgressIndicatorUtils
 import com.intellij.openapi.progress.util.ReadTask
@@ -117,6 +118,23 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
         paintSelections(g)
         paintVcs(g)
         scrollbar!!.paint(gfx)
+    }
+
+    protected fun getDocumentRenderLine(lineStart:Int,lineEnd:Int):Pair<Int,Int>{
+        var startAdd = 0
+        var endAdd = 0
+        editor.foldingModel.allFoldRegions.filter{ it is CustomFoldRegionImpl && !it.isExpanded }.forEach{
+            val start = it.document.getLineNumber(it.startOffset)
+            val end = it.document.getLineNumber(it.endOffset)
+            val i = end - start
+            if(lineStart < start && end < lineEnd){
+                endAdd += i
+            }else if(end < lineEnd){
+                startAdd += i
+                endAdd += i
+            }
+        }
+        return Pair(startAdd,endAdd)
     }
 
     abstract fun paintVcs(g: Graphics2D)
