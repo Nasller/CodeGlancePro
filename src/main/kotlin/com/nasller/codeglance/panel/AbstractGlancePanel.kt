@@ -36,7 +36,7 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
     protected val changeListManager: ChangeListManagerImpl = ChangeListManagerImpl.getInstanceImpl(project)
     protected val trackerManager = LineStatusTrackerManager.getInstance(project)
     private var buf: BufferedImage? = null
-    protected var scrollbar:Scrollbar? = null
+    protected var scrollbar:ScrollBar? = null
     protected var updateTask: ReadTask? = null
 
     // Anonymous Listeners that should be cleaned up.

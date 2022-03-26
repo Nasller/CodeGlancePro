@@ -8,6 +8,7 @@ import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
+import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.progress.ProgressIndicator
@@ -23,7 +24,7 @@ import java.lang.ref.SoftReference
 class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePanel<Minimap>(project,textEditor) {
     init {
         Disposer.register(textEditor, this)
-        scrollbar = Scrollbar(textEditor, scrollState,this)
+        scrollbar = ScrollBar(textEditor, scrollState,this)
         add(scrollbar)
         val foldListener = object : FoldingListener {
             override fun onFoldRegionStateChange(region: FoldRegion) = updateImage()
@@ -69,6 +70,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
     }
 
     override fun paintVcs(g: Graphics2D) {
+        val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> fold !is CustomFoldRegionImpl && !fold.isExpanded }
         trackerManager.getLineStatusTracker(editor.document)?.getRanges()?.forEach {
             if (it !is LocalRange || it.changelistId == changeListManager.defaultChangeList.id) {
                 g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
@@ -76,6 +78,11 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
                 val documentLine = getDocumentRenderLine(it.line1,it.line2)
                 var visualLine1 = EditorUtil.logicalToVisualLine(editor, it.line1)
                 var visualLine2 = EditorUtil.logicalToVisualLine(editor, it.line2)
+                foldRegions.forEach{ fold->
+                    if(editor.document.getLineNumber(fold.startOffset) < it.line1 &&
+                        it.line2 <= editor.document.getLineNumber(fold.endOffset)
+                    ) visualLine2 = visualLine1 + 1
+                }
                 if(it.line1 != it.line2 && visualLine1 == visualLine2){
                     val realLine1 = editor.visualToLogicalPosition(VisualPosition(visualLine1,0)).line
                     val realLine2 = editor.visualToLogicalPosition(VisualPosition(visualLine2,0)).line
