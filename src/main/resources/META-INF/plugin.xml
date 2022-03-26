@@ -20,6 +20,11 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.1.1</h3>
+		<ul>
+			<li>fix reader mode selection and vcs position</li>
+			<li>fix update image times</li>
+		</ul>
 		<h3>1.1.0</h3>
 		<ul>
 			<li>fix oldGlance selection position</li>
