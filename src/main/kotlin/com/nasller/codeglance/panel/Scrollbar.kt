@@ -8,12 +8,14 @@ import com.nasller.codeglance.render.ScrollState
 import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.awt.event.MouseMotionListener
 import java.awt.event.MouseWheelEvent
 import javax.swing.JPanel
+import javax.swing.SwingUtilities
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-class Scrollbar(textEditor: TextEditor, private val scrollstate : ScrollState, private val panel: AbstractGlancePanel<*>) : JPanel() {
+class Scrollbar(textEditor: TextEditor, private val scrollState : ScrollState, private val panel: AbstractGlancePanel<*>) : JPanel() {
     private val editor = textEditor.editor as EditorEx
     private val defaultCursor = Cursor(Cursor.DEFAULT_CURSOR)
 
@@ -28,8 +30,9 @@ class Scrollbar(textEditor: TextEditor, private val scrollstate : ScrollState, p
     private val config = ConfigInstance.state
 
     private var visibleRectColor: Color = Color.decode("#"+config.viewportColor)
+    //矩形y轴
     private val vOffset: Int
-        get() = scrollstate.viewportStart - scrollstate.visibleStart
+        get() = scrollState.viewportStart - scrollState.visibleStart
 
     init {
         val mouseHandler = MouseHandler(textEditor)
@@ -38,7 +41,7 @@ class Scrollbar(textEditor: TextEditor, private val scrollstate : ScrollState, p
         addMouseMotionListener(mouseHandler)
     }
 
-    private fun isInReizeGutter(x: Int): Boolean {
+    private fun isInResizeGutter(x: Int): Boolean {
         if (config.locked) {
             return false
         }
@@ -48,12 +51,12 @@ class Scrollbar(textEditor: TextEditor, private val scrollstate : ScrollState, p
             x in (config.width - 8)..config.width
     }
 
-    private fun isInRect(y: Int): Boolean = y in vOffset..(vOffset + scrollstate.viewportHeight)
+    private fun isInRect(y: Int): Boolean = y in vOffset..(vOffset + scrollState.viewportHeight)
 
     private fun jumpToLineAt(y: Int) {
         val scrollingModel = editor.scrollingModel
-        val line = (y + scrollstate.visibleStart) / config.pixelsPerLine
-        val offset = scrollstate.viewportHeight / config.pixelsPerLine / 2
+        val line = (y + scrollState.visibleStart) / config.pixelsPerLine
+        val offset = scrollState.viewportHeight / config.pixelsPerLine / 2
         scrollingModel.scrollVertically(max(0, line - offset) * editor.lineHeight)
     }
 
@@ -68,7 +71,7 @@ class Scrollbar(textEditor: TextEditor, private val scrollstate : ScrollState, p
         val g = gfx as Graphics2D
         g.color = visibleRectColor
         g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, visibleRectAlpha)
-        g.fillRect(0, vOffset, width, scrollstate.viewportHeight)
+        g.fillRect(0, vOffset, width, scrollState.viewportHeight)
     }
 
     inner class MouseHandler(private val textEditor: TextEditor) : MouseAdapter() {
@@ -86,7 +89,7 @@ class Scrollbar(textEditor: TextEditor, private val scrollstate : ScrollState, p
                 return
 
             when {
-                isInReizeGutter(e.x) -> {
+                isInResizeGutter(e.x) -> {
                     resizing = true
                     resizeStart = e.xOnScreen
                     widthStart = config.width
@@ -95,7 +98,7 @@ class Scrollbar(textEditor: TextEditor, private val scrollstate : ScrollState, p
                     dragging = true
                     visibleRectAlpha = DRAG_ALPHA
                     dragStart = e.y
-                    dragStartDelta = scrollstate.viewportStart - scrollstate.visibleStart
+                    dragStartDelta = scrollState.viewportStart - scrollState.visibleStart
                     // Disable animation when dragging for better experience.
                     editor.scrollingModel.disableAnimation()
                 }
@@ -110,16 +113,16 @@ class Scrollbar(textEditor: TextEditor, private val scrollstate : ScrollState, p
                 panel.refresh()
             } else if (dragging) {
                 val delta = (dragStartDelta + (e!!.y - dragStart)).toFloat()
-                val newPos = if (scrollstate.documentHeight < scrollstate.visibleHeight)
+                val newPos = if (scrollState.documentHeight < scrollState.visibleHeight)
                     // Full doc fits into minimap, use exact value
                     delta
-                else scrollstate.run {
+                else scrollState.run {
                     // Who says algebra is useless?
                     // delta = newPos - ((newPos / (documentHeight - viewportHeight + 1)) * (documentHeight - visibleHeight + 1))
                     // ...Solve for newPos...
                     delta * (documentHeight - viewportHeight + 1) / (visibleHeight - viewportHeight)
                 }
-                editor.scrollingModel.scrollVertically((newPos / scrollstate.scale).roundToInt())
+                editor.scrollingModel.scrollVertically((newPos / scrollState.scale).roundToInt())
             }
         }
 
@@ -136,13 +139,24 @@ class Scrollbar(textEditor: TextEditor, private val scrollstate : ScrollState, p
         }
 
         override fun mouseMoved(e: MouseEvent?) {
-            cursor = if (isInReizeGutter(e!!.x)) {
+            cursor = if (isInResizeGutter(e!!.x)) {
                 if (config.isRightAligned) Cursor(Cursor.W_RESIZE_CURSOR) else Cursor(Cursor.E_RESIZE_CURSOR)
             } else {
                 defaultCursor
             }
-
             updateAlpha(e.y)
+            if (!isInRect(e.y)) {
+                val verticalScrollBar = editor.scrollPane.verticalScrollBar
+                if (verticalScrollBar.ui is MouseMotionListener){
+                    //TODO should fix e.y
+                    val point = SwingUtilities.convertPoint(this@Scrollbar, e.point, verticalScrollBar)
+                    val y = if (scrollState.documentHeight < scrollState.visibleHeight) point.y
+                    else 100
+                    (verticalScrollBar.ui as MouseMotionListener).mouseMoved(MouseEvent(
+                        verticalScrollBar, e.id, e.`when`, e.modifiersEx, 1, y,
+                            e.clickCount, e.isPopupTrigger))
+                }
+            }
         }
 
         override fun mouseExited(e: MouseEvent?) {

@@ -26,6 +26,7 @@ class ScrollState {
 
     var viewportStart: Int = 0
         private set
+    //矩形框高度
     var viewportHeight: Int = 0
         private set
 
