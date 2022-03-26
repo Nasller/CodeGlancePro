@@ -35,6 +35,7 @@ class OldGlancePanel(private val project: Project, textEditor: TextEditor) : Abs
         editor.foldingModel.addListener(foldListener, this)
         val myMarkupModelListener = object : MarkupModelListener {
             override fun afterAdded(highlighter: RangeHighlighterEx) =
+                //Not complete with 2020.3
                 if (EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) updateImage() else Unit
 
             override fun attributesChanged(highlighter: RangeHighlighterEx,
