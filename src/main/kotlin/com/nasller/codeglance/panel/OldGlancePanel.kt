@@ -20,6 +20,7 @@ import com.intellij.openapi.vcs.ex.LocalRange
 import com.intellij.psi.PsiDocumentManager
 import com.nasller.codeglance.render.Folds
 import com.nasller.codeglance.render.OldMinimap
+import com.nasller.codeglance.util.attributesImpactForegroundColor
 import java.awt.AlphaComposite
 import java.awt.Graphics2D
 import java.lang.ref.SoftReference
@@ -35,8 +36,7 @@ class OldGlancePanel(private val project: Project, textEditor: TextEditor) : Abs
         editor.foldingModel.addListener(foldListener, this)
         val myMarkupModelListener = object : MarkupModelListener {
             override fun afterAdded(highlighter: RangeHighlighterEx) =
-                //Not complete with 2020.3
-                if (EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) updateImage() else Unit
+                if (attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) updateImage() else Unit
 
             override fun attributesChanged(highlighter: RangeHighlighterEx,
                 renderersChanged: Boolean, fontStyleChanged: Boolean, foregroundColorChanged: Boolean

@@ -17,6 +17,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vcs.ex.LocalRange
 import com.nasller.codeglance.render.Minimap
+import com.nasller.codeglance.util.attributesImpactForegroundColor
 import java.awt.AlphaComposite
 import java.awt.Graphics2D
 import java.lang.ref.SoftReference
@@ -32,7 +33,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         editor.foldingModel.addListener(foldListener, this)
         val myMarkupModelListener = object : MarkupModelListener {
             override fun afterAdded(highlighter: RangeHighlighterEx) =
-                if (EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) updateImage() else Unit
+                if (attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) updateImage() else Unit
 
             override fun attributesChanged(
                 highlighter: RangeHighlighterEx,
