@@ -2,7 +2,6 @@ package com.nasller.codeglance.panel
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
-import com.intellij.codeInsight.documentation.render.DocRenderManager
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.ex.MarkupModelEx
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
@@ -10,9 +9,9 @@ import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.impl.EditorMarkupModelImpl
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.ui.popup.Balloon
-import com.intellij.openapi.util.Key
 import com.intellij.ui.HintHint
 import com.intellij.util.ui.JBUI
+import com.nasller.codeglance.CodeGlancePlugin.Companion.DocRenderEnabled
 import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.config.SettingsChangePublisher
 import com.nasller.codeglance.render.ScrollState
@@ -158,8 +157,8 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
                 cursor = if (config.isRightAligned) Cursor(Cursor.W_RESIZE_CURSOR) else Cursor(Cursor.E_RESIZE_CURSOR)
             } else {
                 cursor = defaultCursor
-                val enabled = (if(docRenderEnabled != null){
-                    !(editor.getUserData(docRenderEnabled)?:false)
+                val enabled = (if(DocRenderEnabled != null){
+                    !(editor.getUserData(DocRenderEnabled)?:false)
                 }else true) || textEditor.file?.isWritable?:false
                 if (!isInRect(e.y) && enabled && e.y < scrollState.drawHeight && editorFragmentRendererShow != null && myEditorFragmentRenderer != null) {
                     val visualLine = fitLineToEditor(editor,(e.y + scrollState.visibleStart) / config.pixelsPerLine)
@@ -217,8 +216,7 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
         const val DEFAULT_ALPHA = 0.15f
         const val HOVER_ALPHA = 0.25f
         const val DRAG_ALPHA = 0.35f
-        var PREVIEW_LINES = max(2, min(25, Integer.getInteger("preview.lines", 5)))
-        val docRenderEnabled = setDocRenderEnabledKey()
+        val PREVIEW_LINES = max(2, min(25, Integer.getInteger("preview.lines", 5)))
 
         private val editorFragmentRendererShow: Method? = try {
                 val clazz = Class.forName("com.intellij.openapi.editor.impl.EditorFragmentRenderer")
@@ -245,20 +243,6 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
                 shift = if (sequence.isEmpty()) 0 else if (sequence[sequence.length - 1] == '\n') 1 else 0
             }
             return 0.coerceAtLeast((lineCount - shift).coerceAtMost(visualLine))
-        }
-
-        private fun setDocRenderEnabledKey(): Key<Boolean>? {
-            return try {
-                val docRenderManagerClass = DocRenderManager::class.java
-                val field = docRenderManagerClass.getDeclaredField("DOC_RENDER_ENABLED")
-                field.isAccessible = true
-                @Suppress("UNCHECKED_CAST")
-                val key = field.get(null) as? Key<Boolean>
-                field.isAccessible = false
-                key
-            } catch (e: Exception) {
-                null
-            }
         }
     }
 }
