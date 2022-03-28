@@ -265,8 +265,8 @@ class OldMinimap(private val config: Config) {
 	}
 
 	private fun renderAccurate(x: Int, y: Int, char: Int, color: Int) {
-		val topWeight = GetTopWeight(char)
-		val bottomWeight = GetBottomWeight(char)
+		val topWeight = getTopWeight(char)
+		val bottomWeight = getBottomWeight(char)
 		// No point rendering non visible characters.
 		if (topWeight == 0.0f && bottomWeight == 0.0f) return
 
@@ -321,7 +321,12 @@ class OldMinimap(private val config: Config) {
 	companion object {
 		private val CLEAR = AlphaComposite.getInstance(AlphaComposite.CLEAR)
 		private val unpackedColor = IntArray(4)
-
 		private val NO_LINES = LineInfo(1, 0)
+
+		fun clamp(v: Int, min: Int, max: Int): Int {
+			if (v < min) return min
+			if (v > max) return max
+			return v
+		}
 	}
 }

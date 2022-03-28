@@ -4,10 +4,9 @@ import com.intellij.openapi.editor.FoldRegion
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 
 // Is a copy of Array<FoldRegion> that only contains folded folds and can be passed safely to another thread
-class Folds{
+class Folds(allFolds: Array<FoldRegion>) {
     private val foldsSet: HashSet<Int> = hashSetOf()
-
-    constructor(allFolds: Array<FoldRegion>) {
+    init {
         allFolds
             .filterNot { it.isExpanded || it is CustomFoldRegionImpl }
             .forEach { foldRegion ->
@@ -15,9 +14,6 @@ class Folds{
                     foldsSet.add(index)
             }
     }
-
-    // Used by tests that want an empty fold set
-    constructor()
 
     /**
      * Checks if a given position is within a folded region

@@ -20,13 +20,13 @@ class DirtyLock {
         }
     }
 
-    public fun release() {
+    fun release() {
         synchronized(this) {
             locked = false
         }
     }
 
-    public fun clean() {
+    fun clean() {
         synchronized(this) {
             dirty = false
         }

@@ -6,6 +6,7 @@ import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.fileEditor.TextEditor
+import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.ProgressIndicatorUtils
 import com.intellij.openapi.progress.util.ReadTask
 import com.intellij.openapi.project.Project
@@ -35,19 +36,27 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
     protected val scrollState = ScrollState()
     protected val changeListManager: ChangeListManagerImpl = ChangeListManagerImpl.getInstanceImpl(project)
     protected val trackerManager = LineStatusTrackerManager.getInstance(project)
-    private var buf: BufferedImage? = null
-    protected var scrollbar:ScrollBar? = null
-    protected var updateTask: ReadTask? = null
-
     // Anonymous Listeners that should be cleaned up.
     private val componentListener: ComponentListener
     private val documentListener: DocumentListener
     private val areaListener: VisibleAreaListener
     private val selectionListener: SelectionListener
+    private val updateTask: ReadTask = object :ReadTask() {
+        override fun onCanceled(indicator: ProgressIndicator) {
+            renderLock.release()
+            renderLock.clean()
+            updateImageSoon()
+        }
 
+        override fun computeInReadAction(indicator: ProgressIndicator) {
+            this@AbstractGlancePanel.computeInReadAction(indicator)
+        }
+    }
     private val isDisabled: Boolean
         get() = editor.document.textLength > PersistentFSConstants.getMaxIntellisenseFileSize() || editor.document.lineCount < config.minLineCount
                 || (parent != null && (parent.width == 0 || parent.width < config.minWindowWidth))
+    private var buf: BufferedImage? = null
+    protected var scrollbar:ScrollBar? = null
 
     init {
         componentListener = object : ComponentAdapter() {
@@ -137,17 +146,25 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
         return Pair(startAdd,endAdd)
     }
 
+    abstract fun computeInReadAction(indicator: ProgressIndicator)
+
     abstract fun paintVcs(g: Graphics2D)
 
     abstract fun paintSelection(g: Graphics2D, startByte: Int, endByte: Int)
 
-    private fun paintSelections(g: Graphics2D) {
-        for ((index, start) in editor.selectionModel.blockSelectionStarts.withIndex()) {
-            paintSelection(g, start, editor.selectionModel.blockSelectionEnds[index])
-        }
-    }
+    abstract fun paintCaretPosition(g: Graphics2D)
 
     abstract fun getOrCreateMap() : T
+
+    private fun paintSelections(g: Graphics2D) {
+        if(editor.selectionModel.hasSelection()){
+            for ((index, start) in editor.selectionModel.blockSelectionStarts.withIndex()) {
+                paintSelection(g, start, editor.selectionModel.blockSelectionEnds[index])
+            }
+        }else{
+            paintCaretPosition(g)
+        }
+    }
 
     override fun paint(gfx: Graphics?) {
         if (renderLock.locked) {
@@ -157,7 +174,6 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
         val get = mapRef.get()
         if (get == null) {
             updateImageSoon()
-            paintLast(gfx)
             return
         }
 

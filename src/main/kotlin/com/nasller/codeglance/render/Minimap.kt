@@ -177,8 +177,8 @@ class Minimap(private val config: Config) {
     }
 
     private fun renderAccurate(x: Int, y: Int, char: Int, color: FloatArray, buffer: FloatArray) {
-        val topWeight = GetTopWeight(char)
-        val bottomWeight = GetBottomWeight(char)
+        val topWeight = getTopWeight(char)
+        val bottomWeight = getBottomWeight(char)
         // No point rendering non visible characters.
         if (topWeight == 0.0f && bottomWeight == 0.0f) return
 

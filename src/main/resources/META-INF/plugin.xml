@@ -20,6 +20,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.2.1</h3>
+		<ul>
+			<li>feature: support caret line</li>
+		</ul>
 		<h3>1.2.0</h3>
 		<ul>
 			<li>fix vcs fold line</li>

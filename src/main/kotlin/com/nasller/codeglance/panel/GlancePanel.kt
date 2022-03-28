@@ -5,6 +5,8 @@ import com.intellij.openapi.diff.LineStatusMarkerDrawUtil
 import com.intellij.openapi.editor.FoldRegion
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.colors.EditorColors
+import com.intellij.openapi.editor.event.CaretEvent
+import com.intellij.openapi.editor.event.CaretListener
 import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
@@ -12,7 +14,6 @@ import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.util.ReadTask
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vcs.ex.LocalRange
@@ -27,10 +28,9 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         Disposer.register(textEditor, this)
         scrollbar = ScrollBar(textEditor, scrollState,this)
         add(scrollbar)
-        val foldListener = object : FoldingListener {
+        editor.foldingModel.addListener(object : FoldingListener {
             override fun onFoldRegionStateChange(region: FoldRegion) = updateImage()
-        }
-        editor.foldingModel.addListener(foldListener, this)
+        }, this)
         val myMarkupModelListener = object : MarkupModelListener {
             override fun afterAdded(highlighter: RangeHighlighterEx) =
                 if (attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) updateImage() else Unit
@@ -42,32 +42,69 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         }
         editor.filteredDocumentMarkupModel.addMarkupModelListener(this, myMarkupModelListener)
         editor.markupModel.addMarkupModelListener(this, myMarkupModelListener)
-        updateTask = object :ReadTask() {
-            override fun onCanceled(indicator: ProgressIndicator) {
-                renderLock.release()
+        editor.caretModel.addCaretListener(object : CaretListener {
+            override fun caretPositionChanged(event: CaretEvent) = repaint()
+            override fun caretAdded(event: CaretEvent) = repaint()
+            override fun caretRemoved(event: CaretEvent) = repaint()
+        },this)
+        refresh()
+    }
+
+    override fun computeInReadAction(indicator: ProgressIndicator) {
+        val map = getOrCreateMap()
+        try {
+            map.update(editor, scrollState, indicator)
+            scrollState.computeDimensions(editor, config)
+            ApplicationManager.getApplication().invokeLater {
+                scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
+                repaint()
+            }
+        }finally {
+            renderLock.release()
+            if (renderLock.dirty) {
                 renderLock.clean()
                 updateImageSoon()
             }
+        }
+    }
 
-            override fun computeInReadAction(indicator: ProgressIndicator) {
-                val map = getOrCreateMap()
-                try {
-                    map.update(editor, scrollState, indicator)
-                    scrollState.computeDimensions(editor, config)
-                    ApplicationManager.getApplication().invokeLater {
-                        scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
-                        repaint()
-                    }
-                }finally {
-                    renderLock.release()
-                    if (renderLock.dirty) {
-                        renderLock.clean()
-                        updateImageSoon()
-                    }
-                }
+    override fun paintCaretPosition(g: Graphics2D) {
+        editor.caretModel.runForEachCaret{
+            g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
+            g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
+            val start = (it.visualPosition.line) * config.pixelsPerLine
+            val end = (it.visualPosition.line + 1) * config.pixelsPerLine
+            g.fillRect(0, start, width, config.pixelsPerLine)
+            g.fillRect(0, end, 0, config.pixelsPerLine)
+        }
+    }
+
+    override fun paintSelection(g: Graphics2D, startByte: Int, endByte: Int) {
+        val start = editor.offsetToVisualPosition(startByte)
+        val end = editor.offsetToVisualPosition(endByte)
+        val documentLine = getDocumentRenderLine(editor.document.getLineNumber(startByte),editor.document.getLineNumber(endByte))
+
+        val sX = start.column
+        val sY = (start.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
+        val eX = end.column + 1
+        val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
+
+        g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
+        g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
+
+        // Single line is real easy
+        if (start.line == end.line) {
+            g.fillRect(sX, sY, eX - sX, config.pixelsPerLine)
+        } else {
+            // Draw the line leading in
+            g.fillRect(sX, sY, width - sX, config.pixelsPerLine)
+            // Then the line at the end
+            g.fillRect(0, eY, eX, config.pixelsPerLine)
+            if (eY + config.pixelsPerLine != sY) {
+                // And if there is anything in between, fill it in
+                g.fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
             }
         }
-        refresh()
     }
 
     override fun paintVcs(g: Graphics2D) {
@@ -95,41 +132,6 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
                 g.fillRect(0, start, width, config.pixelsPerLine)
                 g.fillRect(0, end, 0, config.pixelsPerLine)
                 g.fillRect(0, start, width, end - start - config.pixelsPerLine)
-            }
-        }
-    }
-
-    override fun paintSelection(g: Graphics2D, startByte: Int, endByte: Int) {
-        val start = editor.offsetToVisualPosition(startByte)
-        val end = editor.offsetToVisualPosition(endByte)
-        val documentLine = getDocumentRenderLine(editor.document.getLineNumber(startByte),editor.document.getLineNumber(endByte))
-
-        val sX = start.column
-        val sY = (start.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
-        val eX = end.column + 1
-        val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
-
-        g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
-        g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
-
-        // Single line is real easy
-        if (start.line == end.line) {
-            g.fillRect(
-                sX,
-                sY,
-                eX - sX,
-                config.pixelsPerLine
-            )
-        } else {
-            // Draw the line leading in
-            g.fillRect(sX, sY, width - sX, config.pixelsPerLine)
-
-            // Then the line at the end
-            g.fillRect(0, eY, eX, config.pixelsPerLine)
-
-            if (eY + config.pixelsPerLine != sY) {
-                // And if there is anything in between, fill it in
-                g.fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
             }
         }
     }

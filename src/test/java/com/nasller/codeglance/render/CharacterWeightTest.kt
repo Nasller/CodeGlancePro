@@ -10,23 +10,23 @@ import org.testng.annotations.Test
 class CharacterWeightTest {
     @Test
     fun test_lower_boundaries() {
-        assertEquals(0.0f, GetTopWeight(0), 0.001f)
-        assertEquals(0.0f, GetTopWeight(1), 0.001f)
-        assertEquals(0.0f, GetTopWeight(32), 0.001f)
-        assertNotEquals(0.0f, GetTopWeight(33))
-        assertNotEquals(0.0f, GetTopWeight(127))
-        assertNotEquals(0.0f, GetTopWeight(128))
+        assertEquals(0.0f, getTopWeight(0), 0.001f)
+        assertEquals(0.0f, getTopWeight(1), 0.001f)
+        assertEquals(0.0f, getTopWeight(32), 0.001f)
+        assertNotEquals(0.0f, getTopWeight(33))
+        assertNotEquals(0.0f, getTopWeight(127))
+        assertNotEquals(0.0f, getTopWeight(128))
     }
 
     @Test(dataProvider = "Test-Relative-Weights")
     fun test_relative_weights_are_sane(a: Char, b: Char) {
-        assertTrue(GetTopWeight(a.toInt()) + GetBottomWeight(a.toInt()) < GetTopWeight(b.toInt()) + GetBottomWeight(b.toInt()))
+        assertTrue(getTopWeight(a.toInt()) + getBottomWeight(a.toInt()) < getTopWeight(b.toInt()) + getBottomWeight(b.toInt()))
     }
 
     @Test
     fun test_known_values() {
-        assertEquals(0.2458f, GetTopWeight('v'.toInt()))
-        assertEquals(0.3538f, GetBottomWeight('v'.toInt()))
+        assertEquals(0.2458f, getTopWeight('v'.toInt()))
+        assertEquals(0.3538f, getBottomWeight('v'.toInt()))
     }
 
     companion object {

@@ -1,6 +1,6 @@
 package com.nasller.codeglance.render
 
-fun GetBottomWeight(c : Int) : Float {
+fun getBottomWeight(c : Int) : Float {
     when (c) {
         in 0..32 -> return 0.0f
 
@@ -102,7 +102,7 @@ fun GetBottomWeight(c : Int) : Float {
     }
 }
 
-fun GetTopWeight(c : Int) : Float {
+fun getTopWeight(c : Int) : Float {
     when (c) {
         in 0..32 -> return 0.0f
         33 -> return 0.2816f // = '!'
