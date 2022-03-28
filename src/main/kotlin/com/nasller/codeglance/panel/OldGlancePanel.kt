@@ -77,10 +77,12 @@ class OldGlancePanel(private val project: Project, textEditor: TextEditor) : Abs
         editor.caretModel.allCarets.forEach{
             g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
             g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
-            val start = (it.visualPosition.line + 1) * config.pixelsPerLine
-            val end = (it.visualPosition.line + 2) * config.pixelsPerLine
+            val documentLine = getDocumentRenderLine(it.logicalPosition.line,it.logicalPosition.line)
+            val start = (it.visualPosition.line + documentLine.first + 1) * config.pixelsPerLine - scrollState.visibleStart
+            val end = (it.visualPosition.line + documentLine.second + 2) * config.pixelsPerLine - scrollState.visibleStart
             g.fillRect(0, start, width, config.pixelsPerLine)
             g.fillRect(0, end, 0, config.pixelsPerLine)
+            g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
         }
     }
 
