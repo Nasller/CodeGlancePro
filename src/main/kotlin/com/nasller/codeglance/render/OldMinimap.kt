@@ -7,9 +7,11 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.ex.MarkupModelEx
 import com.intellij.openapi.fileTypes.SyntaxHighlighter
 import com.intellij.psi.tree.IElementType
+import com.intellij.util.alsoIfNull
 import com.intellij.util.ui.ImageUtil
 import com.nasller.codeglance.config.Config
 import java.awt.AlphaComposite
+import java.awt.Color
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import kotlin.math.floor
@@ -126,25 +128,25 @@ class OldMinimap(private val config: Config) {
 	 * Works out the color a token should be rendered in.
 	 */
 	private fun getColorForElementType(lexer: Lexer, hl: SyntaxHighlighter, colorScheme: EditorColorsScheme, markupModelEx: MarkupModelEx): Int {
-		var color = colorScheme.defaultForeground
+		var color: Color? = null
 		val tokenType = lexer.tokenType
 		val attributes = hl.getTokenHighlights(tokenType)
 		try{
-			attributes
-				.asSequence()
-				.mapNotNull { colorScheme.getAttributes(it) }
+			attributes.asSequence().mapNotNull { colorScheme.getAttributes(it) }
 				.forEach { attr -> attr.foregroundColor?.let { color = it } }
-			markupModelEx.processRangeHighlightersOverlappingWith(lexer.tokenStart, lexer.tokenEnd) {
-				val textAttributes = it.getTextAttributes(colorScheme)
-				if (textAttributes != null && textAttributes.foregroundColor != null){
-					color = textAttributes.foregroundColor
-					false
-				}else true
+			color.alsoIfNull {
+				markupModelEx.processRangeHighlightersOverlappingWith(lexer.tokenStart, lexer.tokenEnd) {
+					val textAttributes = it.getTextAttributes(colorScheme)
+					if (textAttributes != null && textAttributes.foregroundColor != null){
+						color = textAttributes.foregroundColor
+						false
+					}else true
+				}
 			}
 		}catch (e:Exception){
 			logger.error(e)
 		}
-		return color.rgb
+		return color?.rgb?:colorScheme.defaultForeground.rgb
 	}
 
 	/**

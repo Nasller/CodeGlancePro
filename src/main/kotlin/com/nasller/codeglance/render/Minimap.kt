@@ -6,6 +6,7 @@ import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.util.ui.ImageUtil
 import com.nasller.codeglance.config.Config
+import org.jetbrains.kotlin.idea.util.ifTrue
 import java.awt.AlphaComposite
 import java.awt.image.BufferedImage
 import kotlin.math.max
@@ -97,16 +98,19 @@ class Minimap(private val config: Config) {
 
             // Render whole token, make sure multi lines are handled gracefully.
             try {
-                (hlIter.textAttributes.foregroundColor ?: defaultForeground).getRGBComponents(colorBuffer)
+                if(hlIter.textAttributes.foregroundColor != null){
+                    hlIter.textAttributes.foregroundColor.getRGBComponents(colorBuffer)
+                }else{
+                   editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(hlIter.start, hlIter.end) {
+                        val textAttributes = it.getTextAttributes(editor.colorsScheme)
+                        if (textAttributes != null && textAttributes.foregroundColor != null) {
+                            textAttributes.foregroundColor.getRGBComponents(colorBuffer)
+                            false
+                        } else true
+                    }.ifTrue{defaultForeground.getRGBComponents(colorBuffer)}
+                }
             }catch (e:Exception){
                 defaultForeground.getRGBComponents(colorBuffer)
-            }
-            editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(hlIter.start, hlIter.end) {
-                val textAttributes = it.getTextAttributes(editor.colorsScheme)
-                if (textAttributes != null && textAttributes.foregroundColor != null) {
-                    textAttributes.foregroundColor.getRGBComponents(colorBuffer)
-                    false
-                } else true
             }
             while (i < hlIter.end) {
                 if (checkFold())
