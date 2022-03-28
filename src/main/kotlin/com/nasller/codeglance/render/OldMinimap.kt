@@ -70,7 +70,6 @@ class OldMinimap(private val config: Config) {
 		height = (lines + 1) * config.pixelsPerLine
 
 		// If the image is too small to represent the entire document now then regenerate it
-		// TODO: Copy old image when incremental update is added.
 		if (img == null || img!!.height < height || img!!.width < config.width) {
 			if (img != null) img!!.flush()
 			// Create an image that is a bit bigger then the one we need so we don't need to re-create it again soon.
@@ -125,14 +124,6 @@ class OldMinimap(private val config: Config) {
 
 	/**
 	 * Works out the color a token should be rendered in.
-
-	 * @param element       The element to get the color for
-	 * *
-	 * @param hl            the syntax highlighter for this document
-	 * *
-	 * @param colorScheme   the users color scheme
-	 * *
-	 * @return the RGB color to use for the given element
 	 */
 	private fun getColorForElementType(lexer: Lexer, hl: SyntaxHighlighter, colorScheme: EditorColorsScheme, markupModelEx: MarkupModelEx): Int {
 		var color = colorScheme.defaultForeground
@@ -158,11 +149,6 @@ class OldMinimap(private val config: Config) {
 
 	/**
 	 * Internal worker function to update the minimap image
-	 * @param text          The entire text of the document to render
-	 * *
-	 * @param colorScheme   The users color scheme
-	 * *
-	 * @param hl            The syntax highlighter to use for the language this document is in.
 	 */
 	@Synchronized
 	fun update(editor: EditorEx, folds: Folds,hl:SyntaxHighlighter) {
