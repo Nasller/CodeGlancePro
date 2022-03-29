@@ -1,7 +1,6 @@
 <idea-plugin require-restart="true">
 	<id>com.nasller.CodeGlancePro</id>
 	<name>CodeGlance Pro</name>
-	<version>1.0.0</version>
 	<vendor email="nasller@qq.com" url="https://github.com/Nasller">Nasller</vendor>
 
 	<description><![CDATA[
