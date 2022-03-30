@@ -93,7 +93,6 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
 
         g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
         g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
-
         // Single line is real easy
         if (start.line == end.line) {
             g.fillRect(sX, sY, eX - sX, config.pixelsPerLine)
@@ -138,8 +137,6 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         }
     }
 
-    // the minimap is held by a soft reference so the GC can delete it at any time.
-    // if its been deleted and we want it again (active tab) we recreate it.
     override fun getOrCreateMap() : Minimap {
         var map = mapRef.get()
         if (map == null) {

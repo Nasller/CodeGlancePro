@@ -109,8 +109,7 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
         if (isDisabled) return
         if (project.isDisposed) return
         if (!renderLock.acquire()) return
-
-        ProgressIndicatorUtils.scheduleWithWriteActionPriority(updateTask!!)
+        ProgressIndicatorUtils.scheduleWithWriteActionPriority(updateTask)
     }
 
     protected fun updateImageSoon() = ApplicationManager.getApplication().invokeLater(this::updateImage)
@@ -176,17 +175,13 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
             updateImageSoon()
             return
         }
-
         if (buf == null || buf?.width!! < width || buf?.height!! < height) {
             buf = ImageUtil.createImage(width, height, BufferedImage.TYPE_4BYTE_ABGR)
         }
-
         val g = buf!!.createGraphics()
-
         g.composite = AlphaComposite.getInstance(AlphaComposite.CLEAR)
         g.fillRect(0, 0, width, height)
         g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
-
         if (editor.document.textLength != 0) {
             g.drawImage(
                 when (get) {
@@ -199,8 +194,8 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
                 null
             )
         }
-        paintSelections(gfx as Graphics2D)
-        paintVcs(gfx)
+        paintVcs(gfx as Graphics2D)
+        paintSelections(gfx)
         gfx.drawImage(buf, 0, 0, null)
         scrollbar!!.paint(gfx)
     }

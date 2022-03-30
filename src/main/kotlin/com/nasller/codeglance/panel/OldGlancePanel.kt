@@ -98,17 +98,14 @@ class OldGlancePanel(private val project: Project, textEditor: TextEditor) : Abs
 
         g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
         g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
-
         // Single line is real easy
         if (start.line == end.line) {
             g.fillRect(sX, sY, eX - sX, config.pixelsPerLine)
         } else {
             // Draw the line leading in
             g.fillRect(sX, sY, width - sX, config.pixelsPerLine)
-
             // Then the line at the end
             g.fillRect(0, eY, eX, config.pixelsPerLine)
-
             if (eY + config.pixelsPerLine != sY) {
                 // And if there is anything in between, fill it in
                 g.fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
@@ -145,8 +142,6 @@ class OldGlancePanel(private val project: Project, textEditor: TextEditor) : Abs
         }
     }
 
-    // the minimap is held by a soft reference so the GC can delete it at any time.
-    // if its been deleted and we want it again (active tab) we recreate it.
     override fun getOrCreateMap() : OldMinimap {
         var map = mapRef.get()
         if (map == null) {
