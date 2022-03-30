@@ -21,6 +21,7 @@ class ScrollState {
         private set
     var visibleHeight: Int = 0
         private set
+    //当前图片高度
     var drawHeight: Int = 0
         private set
 

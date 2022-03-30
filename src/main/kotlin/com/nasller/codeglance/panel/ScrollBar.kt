@@ -97,8 +97,13 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
 
         private var widthStart: Int = 0
 
-        override fun mousePressed(e: MouseEvent?) {
-            if (e!!.button != MouseEvent.BUTTON1)
+        //视图滚动
+        private var viewing = false
+        private var myWheelAccumulator = 0
+        private var myLastVisualLine = 0
+
+        override fun mousePressed(e: MouseEvent) {
+            if (e.button != MouseEvent.BUTTON1)
                 return
 
             when {
@@ -119,13 +124,13 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
             }
         }
 
-        override fun mouseDragged(e: MouseEvent?) {
+        override fun mouseDragged(e: MouseEvent) {
             if (resizing) {
-                val newWidth = widthStart + if(config.isRightAligned) resizeStart - e!!.xOnScreen else e!!.xOnScreen - resizeStart
+                val newWidth = widthStart + if(config.isRightAligned) resizeStart - e.xOnScreen else e.xOnScreen - resizeStart
                 config.width = newWidth.coerceIn(50, 250)
                 panel.refresh()
             } else if (dragging) {
-                val delta = (dragStartDelta + (e!!.y - dragStart)).toFloat()
+                val delta = (dragStartDelta + (e.y - dragStart)).toFloat()
                 val newPos = if (scrollState.documentHeight < scrollState.visibleHeight)
                     // Full doc fits into minimap, use exact value
                     delta
@@ -139,20 +144,21 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
             }
         }
 
-        override fun mouseReleased(e: MouseEvent?) {
+        override fun mouseReleased(e: MouseEvent) {
             if (!config.jumpOnMouseDown && !dragging && !resizing) {
-                jumpToLineAt(e!!.y)
+                jumpToLineAt(e.y)
             }else if(resizing && !dragging){
                 SettingsChangePublisher.onRefreshChanged(config.disabled,textEditor)
             }
             dragging = false
             resizing = false
-            updateAlpha(e!!.y)
+            updateAlpha(e.y)
             editor.scrollingModel.enableAnimation()
         }
 
-        override fun mouseMoved(e: MouseEvent?) {
-            updateAlpha(e!!.y)
+        override fun mouseMoved(e: MouseEvent) {
+            updateAlpha(e.y)
+            hideMyEditorPreviewHint()
             if (isInResizeGutter(e.x)) {
                 cursor = if (config.isRightAligned) Cursor(Cursor.W_RESIZE_CURSOR) else Cursor(Cursor.E_RESIZE_CURSOR)
             } else {
@@ -160,28 +166,55 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
                 val enabled = (if(DocRenderEnabled != null){
                     !(editor.getUserData(DocRenderEnabled)?:false)
                 }else true) || textEditor.file?.isWritable?:false
-                if (!isInRect(e.y) && enabled && e.y < scrollState.drawHeight && editorFragmentRendererShow != null && myEditorFragmentRenderer != null) {
-                    val visualLine = fitLineToEditor(editor,(e.y + scrollState.visibleStart) / config.pixelsPerLine)
-                    val point = SwingUtilities.convertPoint(this@ScrollBar, 0,e.y, editor.scrollPane.verticalScrollBar)
-                    val me = MouseEvent(editor.scrollPane.verticalScrollBar, e.id, e.`when`, e.modifiersEx, 1,
-                        point.y, e.clickCount, e.isPopupTrigger)
-
-                    val highlighters = mutableListOf<RangeHighlighterEx>()
-                    collectRangeHighlighters(editor.markupModel, visualLine, highlighters)
-                    collectRangeHighlighters(editor.filteredDocumentMarkupModel, visualLine, highlighters)
-                    editorFragmentRendererShow.invoke(myEditorFragmentRenderer.get(editor.markupModel),visualLine,
-                        highlighters, me.isAltDown, createHint(me))
+                if (!isInRect(e.y) && enabled && e.y < scrollState.drawHeight) {
+                    showToolTipByMouseMove(e)
+                    return
                 }
             }
         }
 
-        override fun mouseExited(e: MouseEvent?) {
+        override fun mouseExited(e: MouseEvent) {
+            hideMyEditorPreviewHint()
             if (!dragging)
                 visibleRectAlpha = DEFAULT_ALPHA
         }
 
-        override fun mouseWheelMoved(mouseWheelEvent: MouseWheelEvent) {
-            editor.contentComponent.dispatchEvent(mouseWheelEvent)
+        override fun mouseWheelMoved(e: MouseWheelEvent) {
+            if(viewing){
+                val units: Int = e.unitsToScroll
+                if (units == 0) return
+                if (myLastVisualLine < editor.visibleLineCount - 1 && units > 0 || myLastVisualLine > 0 && units < 0) {
+                    myWheelAccumulator += units
+                }
+                showToolTipByMouseMove(e)
+            }else{
+                editor.contentComponent.dispatchEvent(e)
+            }
+        }
+
+        private fun showToolTipByMouseMove(e: MouseEvent){
+            if(editorFragmentRendererShow != null && myEditorFragmentRenderer != null){
+                val y = e.y + myWheelAccumulator
+                val visualLine = fitLineToEditor(editor,((y + scrollState.visibleStart)/ config.pixelsPerLine))
+                myLastVisualLine = visualLine
+                val point = SwingUtilities.convertPoint(this@ScrollBar, 0,
+                    if(y > 0 && y < scrollState.drawHeight) y else if(y < 0) 0 else scrollState.drawHeight
+                    , editor.scrollPane.verticalScrollBar)
+                val me = MouseEvent(editor.scrollPane.verticalScrollBar, e.id, e.`when`, e.modifiersEx, 1,
+                    point.y, e.clickCount, e.isPopupTrigger)
+                val highlighters = mutableListOf<RangeHighlighterEx>()
+                collectRangeHighlighters(editor.markupModel, visualLine, highlighters)
+                collectRangeHighlighters(editor.filteredDocumentMarkupModel, visualLine, highlighters)
+                editorFragmentRendererShow.invoke(myEditorFragmentRenderer.get(editor.markupModel),visualLine,
+                    highlighters, me.isAltDown, createHint(me))
+                viewing = true
+            }
+        }
+
+        private fun hideMyEditorPreviewHint() {
+            viewing = false
+            myWheelAccumulator = 0
+            myLastVisualLine = 0
         }
 
         private fun collectRangeHighlighters(markupModel: MarkupModelEx, visualLine: Int, highlighters: MutableCollection<in RangeHighlighterEx>) {
