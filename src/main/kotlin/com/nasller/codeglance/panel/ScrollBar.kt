@@ -158,7 +158,6 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
 
         override fun mouseMoved(e: MouseEvent) {
             updateAlpha(e.y)
-            hideMyEditorPreviewHint()
             if (isInResizeGutter(e.x)) {
                 cursor = if (config.isRightAligned) Cursor(Cursor.W_RESIZE_CURSOR) else Cursor(Cursor.E_RESIZE_CURSOR)
             } else {
@@ -171,6 +170,7 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
                     return
                 }
             }
+            hideMyEditorPreviewHint()
         }
 
         override fun mouseExited(e: MouseEvent) {
