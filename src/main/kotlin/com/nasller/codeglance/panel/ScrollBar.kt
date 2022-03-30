@@ -198,7 +198,7 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
                 val visualLine = fitLineToEditor(editor,((y + scrollState.visibleStart)/ config.pixelsPerLine))
                 myLastVisualLine = visualLine
                 val point = SwingUtilities.convertPoint(this@ScrollBar, 0,
-                    if(y > 0 && y < scrollState.drawHeight) y else if(y < 0) 0 else scrollState.drawHeight
+                    if(y > 0 && y < scrollState.drawHeight) y else if(y <= 0) 0 else scrollState.drawHeight
                     , editor.scrollPane.verticalScrollBar)
                 val me = MouseEvent(editor.scrollPane.verticalScrollBar, e.id, e.`when`, e.modifiersEx, 1,
                     point.y, e.clickCount, e.isPopupTrigger)
