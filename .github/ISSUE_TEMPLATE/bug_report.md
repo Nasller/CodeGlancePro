@@ -9,8 +9,8 @@ assignees: Nasller
 
 1. Which Glance version and IDEA version?
 
-2. Which glance did you choose (old,new)?
+2. Do you enabled reader mode option?
 
-3. Do you enabled reader mode option?
+3. Could you show Glance config picture?
 
-4. Could you show a picture?
+4. Could you show a mini-map picture?
