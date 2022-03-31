@@ -11,6 +11,6 @@ assignees: Nasller
 
 2. Do you enabled reader mode option?
 
-3. Could you show Glance config picture?
+3. Could you show Glance config picture and minimap picture?
 
-4. Could you show a mini-map picture?
+4. What steps will reproduce the issue?
