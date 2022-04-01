@@ -19,6 +19,12 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.2.3</h3>
+		<ul>
+			<li>fix jump To line and vcs transparency</li>
+			<li>fix scrollState precision</li>
+			<li>fix merge two glance</li>
+		</ul>
 		<h3>1.2.2</h3>
 		<ul>
 			<li>fix vcs and selection position</li>
@@ -48,7 +54,6 @@
 			<li>fix markdown file</li>
 			<li>fix some bug</li>
 			<li>feature: show git line</li>
-			<li>feature: support old minimap</li>
 		</ul>
 	]]></change-notes>
 

@@ -37,7 +37,6 @@ class ConfigEntry : Configurable {
             || config.minWindowWidth != form!!.minWindowWidth
             || config.clean != form!!.cleanStyle
             || config.isRightAligned != form!!.isRightAligned
-            || config.oldGlance != form!!.isOldGlance
     )
 
     @Throws(ConfigurationException::class)
@@ -47,7 +46,6 @@ class ConfigEntry : Configurable {
         config.pixelsPerLine = form!!.pixelsPerLine
         config.disabled = form!!.isDisabled
         config.locked = form!!.isLocked
-        config.oldGlance = form!!.isOldGlance
         config.jumpOnMouseDown = form!!.jumpOnMouseDown()
         config.width = form!!.width.coerceAtLeast(50)
         if (form!!.viewportColor.length == 6 && form!!.viewportColor.matches("^[a-fA-F0-9]*$".toRegex())) {
@@ -69,7 +67,6 @@ class ConfigEntry : Configurable {
 
         form!!.pixelsPerLine = config.pixelsPerLine
         form!!.isDisabled = config.disabled
-        form!!.isOldGlance = config.oldGlance
         form!!.isLocked= config.locked
         form!!.setJumpOnMouseDown(config.jumpOnMouseDown)
         form!!.viewportColor = config.viewportColor
@@ -78,7 +75,6 @@ class ConfigEntry : Configurable {
         form!!.minWindowWidth = config.minWindowWidth
         form!!.cleanStyle = config.clean
         form!!.isRightAligned = config.isRightAligned
-        form!!.isOldGlance = config.oldGlance
     }
 
     override fun disposeUIResources() {

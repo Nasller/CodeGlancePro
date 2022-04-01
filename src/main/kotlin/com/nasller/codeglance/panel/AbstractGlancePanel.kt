@@ -18,7 +18,6 @@ import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.Config
 import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.render.Minimap
-import com.nasller.codeglance.render.OldMinimap
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
 import java.awt.event.ComponentAdapter
@@ -185,7 +184,6 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
         if (editor.document.textLength != 0) {
             g.drawImage(
                 when (get) {
-                    is OldMinimap -> {get.img!!}
                     is Minimap -> {get.img!!}
                     else -> throw RuntimeException("error img")
                 },

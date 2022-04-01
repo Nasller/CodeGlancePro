@@ -12,7 +12,6 @@ import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import com.nasller.codeglance.panel.GlancePanel
-import com.nasller.codeglance.panel.OldGlancePanel
 import java.awt.BorderLayout
 import java.awt.Component
 import javax.swing.JLayeredPane
@@ -76,9 +75,7 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         else
             BorderLayout.LINE_START
         if (innerLayout.getLayoutComponent(where) == null) {
-            val glancePanel = if(config.oldGlance) {
-                OldGlancePanel(project,editor)
-            } else GlancePanel(project, editor)
+            val glancePanel = GlancePanel(project, editor)
             panel.add(glancePanel, where)
         }
     }
@@ -108,9 +105,7 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
                             panel.remove(layoutComponent)
                             Disposer.dispose(layoutComponent as Disposable)
                         }
-                        val glancePanel = if (config.oldGlance) {
-                            OldGlancePanel(project, editor)
-                        } else GlancePanel(project, editor)
+                        val glancePanel = GlancePanel(project, editor)
                         panel.add(glancePanel, where)
                     }
                 }

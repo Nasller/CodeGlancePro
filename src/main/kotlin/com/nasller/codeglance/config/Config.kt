@@ -20,7 +20,6 @@ class Config {
     var isRightAligned: Boolean = true
     var minWindowWidth: Int = 0
     var locked: Boolean = false
-    var oldGlance: Boolean = false
 }
 
 val SettingsChangePublisher: SettingsChangeListener =

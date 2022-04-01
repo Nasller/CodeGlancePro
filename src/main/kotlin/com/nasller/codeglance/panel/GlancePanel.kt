@@ -13,17 +13,20 @@ import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.intellij.openapi.fileEditor.TextEditor
+import com.intellij.openapi.fileTypes.SyntaxHighlighterFactory
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vcs.ex.LocalRange
+import com.intellij.psi.PsiDocumentManager
+import com.nasller.codeglance.render.Folds
 import com.nasller.codeglance.render.Minimap
 import com.nasller.codeglance.util.attributesImpactForegroundColor
 import java.awt.AlphaComposite
 import java.awt.Graphics2D
 import java.lang.ref.SoftReference
 
-class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePanel<Minimap>(project,textEditor) {
+class GlancePanel(private val project: Project, textEditor: TextEditor) : AbstractGlancePanel<Minimap>(project,textEditor) {
     init {
         Disposer.register(textEditor, this)
         scrollbar = ScrollBar(textEditor, scrollState,this)
@@ -35,10 +38,9 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
             override fun afterAdded(highlighter: RangeHighlighterEx) =
                 if (attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) updateImage() else Unit
 
-            override fun attributesChanged(
-                highlighter: RangeHighlighterEx,
+            override fun attributesChanged(highlighter: RangeHighlighterEx,
                 renderersChanged: Boolean, fontStyleChanged: Boolean, foregroundColorChanged: Boolean
-            ) = if (renderersChanged || foregroundColorChanged) updateImage() else Unit
+            ) = if(renderersChanged || foregroundColorChanged)updateImage() else Unit
         }
         editor.filteredDocumentMarkupModel.addMarkupModelListener(this, myMarkupModelListener)
         editor.markupModel.addMarkupModelListener(this, myMarkupModelListener)
@@ -53,7 +55,10 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
     override fun computeInReadAction(indicator: ProgressIndicator) {
         val map = getOrCreateMap()
         try {
-            map.update(editor, scrollState, indicator)
+            val file = PsiDocumentManager.getInstance(project).getPsiFile(editor.document) ?: return
+            val folds = Folds(editor.foldingModel.allFoldRegions)
+            val hl = SyntaxHighlighterFactory.getSyntaxHighlighter(file.language, project, file.virtualFile)
+            map.update(editor, folds,hl)
             scrollState.computeDimensions(editor, config)
             ApplicationManager.getApplication().invokeLater {
                 scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
@@ -70,9 +75,9 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
 
     override fun paintVcs(g: Graphics2D) {
         val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> fold !is CustomFoldRegionImpl && !fold.isExpanded }
-        trackerManager.getLineStatusTracker(editor.document)?.getRanges()?.run{
+        trackerManager.getLineStatusTracker(editor.document)?.getRanges()?.run {
             g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.4f)
-            forEach {
+            forEach{
                 if (it !is LocalRange || it.changelistId == changeListManager.defaultChangeList.id) {
                     g.color = LineStatusMarkerDrawUtil.getGutterColor(it.type, editor)
                     val documentLine = getDocumentRenderLine(it.line1,it.line2)
@@ -89,23 +94,23 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
                         visualLine1 += it.line1 - realLine1
                         visualLine2 += it.line2 - realLine2
                     }
-                    val start = (visualLine1+documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
-                    val end = (visualLine2+documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
+                    val start = (visualLine1+documentLine.first+1) * config.pixelsPerLine - scrollState.visibleStart
+                    val end = (visualLine2+documentLine.second+1) * config.pixelsPerLine - scrollState.visibleStart
                     g.fillRect(0, start, width, config.pixelsPerLine)
                     g.fillRect(0, end, 0, config.pixelsPerLine)
-                    g.fillRect(0, start, width, end - start - config.pixelsPerLine)
+                    g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
                 }
             }
         }
     }
 
     override fun paintCaretPosition(g: Graphics2D) {
-        editor.caretModel.runForEachCaret{
+        editor.caretModel.allCarets.forEach{
             g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
             g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
             val documentLine = getDocumentRenderLine(it.logicalPosition.line,it.logicalPosition.line)
-            val start = (it.visualPosition.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
-            val end = (it.visualPosition.line + documentLine.second + 1) * config.pixelsPerLine - scrollState.visibleStart
+            val start = (it.visualPosition.line + documentLine.first + 1) * config.pixelsPerLine - scrollState.visibleStart
+            val end = (it.visualPosition.line + documentLine.second + 2) * config.pixelsPerLine - scrollState.visibleStart
             g.fillRect(0, start, width, config.pixelsPerLine)
             g.fillRect(0, end, 0, config.pixelsPerLine)
             g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
@@ -118,9 +123,9 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         val documentLine = getDocumentRenderLine(editor.document.getLineNumber(startByte),editor.document.getLineNumber(endByte))
 
         val sX = start.column
-        val sY = (start.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
-        val eX = end.column + 1
-        val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
+        val sY = (start.line + documentLine.first + 1) * config.pixelsPerLine - scrollState.visibleStart
+        val eX = end.column
+        val eY = (end.line + documentLine.second + 1) * config.pixelsPerLine - scrollState.visibleStart
 
         g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
         g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)

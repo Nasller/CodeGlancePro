@@ -25,7 +25,6 @@ public class ConfigForm {
     private JSpinner minWindowWidth;
     private JSpinner width;
     private JTextField viewportColor;
-    private JCheckBox oldGlance;
 
     public ConfigForm() {
         pixelsPerLine.setModel(new DefaultComboBoxModel(new Integer[]{1, 2, 3, 4}));
@@ -178,14 +177,6 @@ public class ConfigForm {
 
     public void setMinWindowWidth(int minWindowWidth) {
         this.minWindowWidth.setValue(minWindowWidth);
-    }
-
-    public boolean isOldGlance() {
-        return oldGlance.getModel().isSelected();
-    }
-
-    public void setOldGlance(boolean isOldGlance) {
-        oldGlance.getModel().setSelected(isOldGlance);
     }
 
     {

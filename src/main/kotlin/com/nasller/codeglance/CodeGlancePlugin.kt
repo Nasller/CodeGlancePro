@@ -29,5 +29,11 @@ class CodeGlancePlugin : ProjectManagerListener {
         } catch (e: Exception) {
             null
         }
+
+        val HasCustomFoldRegionImpl:Class<*>? = try {
+            Class.forName("com.intellij.openapi.editor.impl.CustomFoldRegionImpl")
+        } catch (e: Exception) {
+            null
+        }
     }
 }
