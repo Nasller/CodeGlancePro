@@ -10,7 +10,6 @@ import com.intellij.openapi.editor.event.CaretListener
 import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
-import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileTypes.SyntaxHighlighterFactory
@@ -19,6 +18,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vcs.ex.LocalRange
 import com.intellij.psi.PsiDocumentManager
+import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 import com.nasller.codeglance.render.Folds
 import com.nasller.codeglance.render.Minimap
 import com.nasller.codeglance.util.attributesImpactForegroundColor
@@ -74,7 +74,7 @@ class GlancePanel(private val project: Project, textEditor: TextEditor) : Abstra
     }
 
     override fun paintVcs(g: Graphics2D) {
-        val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> fold !is CustomFoldRegionImpl && !fold.isExpanded }
+        val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> !isCustomFoldRegionImpl(fold) && !fold.isExpanded }
         trackerManager.getLineStatusTracker(editor.document)?.getRanges()?.run {
             g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.4f)
             forEach{

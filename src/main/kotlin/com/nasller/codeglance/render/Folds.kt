@@ -1,14 +1,14 @@
 package com.nasller.codeglance.render
 
 import com.intellij.openapi.editor.FoldRegion
-import com.nasller.codeglance.CodeGlancePlugin.Companion.HasCustomFoldRegionImpl
+import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 
 // Is a copy of Array<FoldRegion> that only contains folded folds and can be passed safely to another thread
 class Folds(allFolds: Array<FoldRegion>) {
     private val foldsSet: HashSet<Int> = hashSetOf()
     init {
         allFolds
-            .filterNot { it.isExpanded || (HasCustomFoldRegionImpl != null && HasCustomFoldRegionImpl.isInstance(it)) }
+            .filterNot { it.isExpanded || isCustomFoldRegionImpl(it) }
             .forEach { foldRegion ->
                 for (index in foldRegion.startOffset until foldRegion.endOffset)
                     foldsSet.add(index)

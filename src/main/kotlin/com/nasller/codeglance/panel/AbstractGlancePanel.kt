@@ -4,7 +4,6 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.ex.EditorEx
-import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.ProgressIndicatorUtils
@@ -14,6 +13,7 @@ import com.intellij.openapi.vcs.changes.ChangeListManagerImpl
 import com.intellij.openapi.vcs.impl.LineStatusTrackerManager
 import com.intellij.openapi.vfs.PersistentFSConstants
 import com.intellij.util.ui.ImageUtil
+import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.Config
 import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
@@ -130,7 +130,7 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
     protected fun getDocumentRenderLine(lineStart:Int,lineEnd:Int):Pair<Int,Int>{
         var startAdd = 0
         var endAdd = 0
-        editor.foldingModel.allFoldRegions.filter{ it is CustomFoldRegionImpl && !it.isExpanded }.forEach{
+        editor.foldingModel.allFoldRegions.filter{ isCustomFoldRegionImpl(it) && !it.isExpanded }.forEach{
             val start = it.document.getLineNumber(it.startOffset)
             val end = it.document.getLineNumber(it.endOffset)
             val i = end - start
