@@ -94,8 +94,8 @@ class GlancePanel(private val project: Project, textEditor: TextEditor) : Abstra
                         visualLine1 += it.line1 - realLine1
                         visualLine2 += it.line2 - realLine2
                     }
-                    val start = (visualLine1+documentLine.first+1) * config.pixelsPerLine - scrollState.visibleStart
-                    val end = (visualLine2+documentLine.second+1) * config.pixelsPerLine - scrollState.visibleStart
+                    val start = (visualLine1+documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
+                    val end = (visualLine2+documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
                     g.fillRect(0, start, width, config.pixelsPerLine)
                     g.fillRect(0, end, 0, config.pixelsPerLine)
                     g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
@@ -106,11 +106,11 @@ class GlancePanel(private val project: Project, textEditor: TextEditor) : Abstra
 
     override fun paintCaretPosition(g: Graphics2D) {
         editor.caretModel.allCarets.forEach{
-            g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
+            g.composite = srcOver0_8
             g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
             val documentLine = getDocumentRenderLine(it.logicalPosition.line,it.logicalPosition.line)
-            val start = (it.visualPosition.line + documentLine.first + 1) * config.pixelsPerLine - scrollState.visibleStart
-            val end = (it.visualPosition.line + documentLine.second + 2) * config.pixelsPerLine - scrollState.visibleStart
+            val start = (it.visualPosition.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
+            val end = (it.visualPosition.line + documentLine.second + 1) * config.pixelsPerLine - scrollState.visibleStart
             g.fillRect(0, start, width, config.pixelsPerLine)
             g.fillRect(0, end, 0, config.pixelsPerLine)
             g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
@@ -123,11 +123,11 @@ class GlancePanel(private val project: Project, textEditor: TextEditor) : Abstra
         val documentLine = getDocumentRenderLine(editor.document.getLineNumber(startByte),editor.document.getLineNumber(endByte))
 
         val sX = start.column
-        val sY = (start.line + documentLine.first + 1) * config.pixelsPerLine - scrollState.visibleStart
+        val sY = (start.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
         val eX = end.column
-        val eY = (end.line + documentLine.second + 1) * config.pixelsPerLine - scrollState.visibleStart
+        val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
 
-        g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
+        g.composite = srcOver0_8
         g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
         // Single line is real easy
         if (start.line == end.line) {

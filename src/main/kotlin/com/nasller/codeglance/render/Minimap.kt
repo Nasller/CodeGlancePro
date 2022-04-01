@@ -32,7 +32,6 @@ class Minimap(private val config: Config) {
 	 */
 	private fun updateDimensions(text: CharSequence, folds: Folds) {
 		var lineLength = 0    // The current line length
-		var longestLine = 1   // The longest line in the document
 		var lines = 1          // The total number of lines in the document
 		var last = ' '
 		var ch: Char
@@ -53,9 +52,8 @@ class Minimap(private val config: Config) {
 
 			if (ch == '\n' || (ch == '\r' && last != '\n')) {
 				lineEndings1.add(i)
-				lines++
-				if (lineLength > longestLine) longestLine = lineLength
 				lineLength = 0
+				lines++
 			} else if (ch == '\t') {
 				lineLength += 4
 			} else {
@@ -177,7 +175,7 @@ class Minimap(private val config: Config) {
 		while (tokenType != null) {
 			val start = lexer.tokenStart
 			startLine = getLine(start)
-			y = startLine.number * config.pixelsPerLine
+			y = (startLine.number-1) * config.pixelsPerLine
 
 			color = getColorForElementType(lexer, hl, editor.colorsScheme,markupModelEx)
 

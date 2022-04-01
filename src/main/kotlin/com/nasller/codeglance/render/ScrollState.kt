@@ -4,7 +4,6 @@ import com.intellij.openapi.editor.Editor
 import com.nasller.codeglance.config.Config
 import java.awt.Rectangle
 import kotlin.math.min
-import kotlin.math.round
 
 class ScrollState {
     var scale: Double = 0.0
@@ -33,7 +32,7 @@ class ScrollState {
 
     fun computeDimensions(editor: Editor, config: Config) {
         scale = config.pixelsPerLine.toDouble() / editor.lineHeight
-        documentHeight = round(editor.contentComponent.height * scale).toInt()
+        documentHeight = (editor.contentComponent.height * scale).toInt()
         documentWidth = config.width
     }
 
@@ -41,10 +40,10 @@ class ScrollState {
         visibleHeight = visibleArea.height
         drawHeight = min(visibleHeight, documentHeight)
 
-        viewportStart = round(visibleArea.y * scale).toInt()
-        viewportHeight = round(visibleArea.height * scale).toInt()
+        viewportStart = (visibleArea.y * scale).toInt()
+        viewportHeight = (visibleArea.height * scale).toInt()
 
-        visibleStart = round((viewportStart.toFloat() / (documentHeight - viewportHeight + 1)) * (documentHeight - visibleHeight + 1)).toInt().coerceAtLeast(0)
+        visibleStart = ((viewportStart.toFloat() / (documentHeight - viewportHeight + 1)) * (documentHeight - visibleHeight + 1)).toInt().coerceAtLeast(0)
         visibleEnd = visibleStart + drawHeight
     }
 }

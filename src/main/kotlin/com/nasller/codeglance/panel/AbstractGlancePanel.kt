@@ -206,4 +206,8 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
         scrollbar?.let {remove(it)}
         mapRef.clear()
     }
+
+    protected companion object{
+        val srcOver0_8: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
+    }
 }
