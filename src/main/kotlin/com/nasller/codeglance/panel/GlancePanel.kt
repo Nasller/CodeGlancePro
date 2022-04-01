@@ -43,7 +43,6 @@ class GlancePanel(private val project: Project, textEditor: TextEditor) : Abstra
             ) = if(renderersChanged || foregroundColorChanged)updateImage() else Unit
         }
         editor.filteredDocumentMarkupModel.addMarkupModelListener(this, myMarkupModelListener)
-        editor.markupModel.addMarkupModelListener(this, myMarkupModelListener)
         editor.caretModel.addCaretListener(object : CaretListener {
             override fun caretPositionChanged(event: CaretEvent) = repaint()
             override fun caretAdded(event: CaretEvent) = repaint()
