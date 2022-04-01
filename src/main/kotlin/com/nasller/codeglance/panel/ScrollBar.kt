@@ -2,6 +2,7 @@ package com.nasller.codeglance.panel
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
+import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.ex.MarkupModelEx
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
@@ -66,10 +67,8 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
     private fun isInRect(y: Int): Boolean = y in vOffset..(vOffset + scrollState.viewportHeight)
 
     private fun jumpToLineAt(y: Int) {
-        val scrollingModel = editor.scrollingModel
-        val line = (y + scrollState.visibleStart) / config.pixelsPerLine
-        val offset = scrollState.viewportHeight / config.pixelsPerLine / 2
-        scrollingModel.scrollVertically(max(0, line - offset) * editor.lineHeight)
+        val line = fitLineToEditor(editor,((y + scrollState.visibleStart)/ config.pixelsPerLine))
+        editor.scrollingModel.scrollTo(editor.visualToLogicalPosition(VisualPosition(line,0)),ScrollType.CENTER)
     }
 
     private fun updateAlpha(y: Int) {
@@ -145,9 +144,7 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
         }
 
         override fun mouseReleased(e: MouseEvent) {
-            if (!config.jumpOnMouseDown && !dragging && !resizing) {
-                jumpToLineAt(e.y)
-            }else if(resizing && !dragging){
+            if(resizing && !dragging){
                 SettingsChangePublisher.onRefreshChanged(config.disabled,textEditor)
             }
             dragging = false

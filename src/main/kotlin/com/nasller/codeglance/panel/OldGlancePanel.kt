@@ -73,6 +73,37 @@ class OldGlancePanel(private val project: Project, textEditor: TextEditor) : Abs
         }
     }
 
+    override fun paintVcs(g: Graphics2D) {
+        val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> fold !is CustomFoldRegionImpl && !fold.isExpanded }
+        trackerManager.getLineStatusTracker(editor.document)?.getRanges()?.run {
+            g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.4f)
+            forEach{
+                if (it !is LocalRange || it.changelistId == changeListManager.defaultChangeList.id) {
+                    g.color = LineStatusMarkerDrawUtil.getGutterColor(it.type, editor)
+                    val documentLine = getDocumentRenderLine(it.line1,it.line2)
+                    var visualLine1 = EditorUtil.logicalToVisualLine(editor, it.line1)
+                    var visualLine2 = EditorUtil.logicalToVisualLine(editor, it.line2)
+                    foldRegions.forEach{ fold->
+                        if(editor.document.getLineNumber(fold.startOffset) < it.line1 &&
+                            it.line2 <= editor.document.getLineNumber(fold.endOffset)
+                        ) visualLine2 = visualLine1 + 1
+                    }
+                    if(it.line1 != it.line2 && visualLine1 == visualLine2){
+                        val realLine1 = editor.visualToLogicalPosition(VisualPosition(visualLine1,0)).line
+                        val realLine2 = editor.visualToLogicalPosition(VisualPosition(visualLine2,0)).line
+                        visualLine1 += it.line1 - realLine1
+                        visualLine2 += it.line2 - realLine2
+                    }
+                    val start = (visualLine1+documentLine.first+1) * config.pixelsPerLine - scrollState.visibleStart
+                    val end = (visualLine2+documentLine.second+1) * config.pixelsPerLine - scrollState.visibleStart
+                    g.fillRect(0, start, width, config.pixelsPerLine)
+                    g.fillRect(0, end, 0, config.pixelsPerLine)
+                    g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
+                }
+            }
+        }
+    }
+
     override fun paintCaretPosition(g: Graphics2D) {
         editor.caretModel.allCarets.forEach{
             g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
@@ -109,35 +140,6 @@ class OldGlancePanel(private val project: Project, textEditor: TextEditor) : Abs
             if (eY + config.pixelsPerLine != sY) {
                 // And if there is anything in between, fill it in
                 g.fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
-            }
-        }
-    }
-
-    override fun paintVcs(g: Graphics2D) {
-        val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> fold !is CustomFoldRegionImpl && !fold.isExpanded }
-        trackerManager.getLineStatusTracker(editor.document)?.getRanges()?.forEach {
-            if (it !is LocalRange || it.changelistId == changeListManager.defaultChangeList.id) {
-                g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
-                g.color = LineStatusMarkerDrawUtil.getGutterColor(it.type, editor)
-                val documentLine = getDocumentRenderLine(it.line1,it.line2)
-                var visualLine1 = EditorUtil.logicalToVisualLine(editor, it.line1)
-                var visualLine2 = EditorUtil.logicalToVisualLine(editor, it.line2)
-                foldRegions.forEach{ fold->
-                    if(editor.document.getLineNumber(fold.startOffset) < it.line1 &&
-                        it.line2 <= editor.document.getLineNumber(fold.endOffset)
-                    ) visualLine2 = visualLine1 + 1
-                }
-                if(it.line1 != it.line2 && visualLine1 == visualLine2){
-                    val realLine1 = editor.visualToLogicalPosition(VisualPosition(visualLine1,0)).line
-                    val realLine2 = editor.visualToLogicalPosition(VisualPosition(visualLine2,0)).line
-                    visualLine1 += it.line1 - realLine1
-                    visualLine2 += it.line2 - realLine2
-                }
-                val start = (visualLine1+documentLine.first+1) * config.pixelsPerLine - scrollState.visibleStart
-                val end = (visualLine2+documentLine.second+1) * config.pixelsPerLine - scrollState.visibleStart
-                g.fillRect(0, start, width, config.pixelsPerLine)
-                g.fillRect(0, end, 0, config.pixelsPerLine)
-                g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
             }
         }
     }
