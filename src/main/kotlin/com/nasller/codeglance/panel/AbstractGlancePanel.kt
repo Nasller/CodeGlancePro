@@ -204,7 +204,8 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
     }
 
     protected companion object{
-        val srcOver1: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)
+        val srcOver0_4: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.40f)
         val srcOver0_8: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
+        val srcOver1: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)
     }
 }

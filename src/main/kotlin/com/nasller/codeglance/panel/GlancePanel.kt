@@ -19,7 +19,6 @@ import com.intellij.openapi.vcs.ex.LocalRange
 import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 import com.nasller.codeglance.render.Minimap
 import com.nasller.codeglance.util.attributesImpactForegroundColor
-import java.awt.AlphaComposite
 import java.awt.Graphics2D
 import java.lang.ref.SoftReference
 
@@ -69,7 +68,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
     override fun paintVcs(g: Graphics2D) {
         val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> !isCustomFoldRegionImpl(fold) && !fold.isExpanded }
         trackerManager.getLineStatusTracker(editor.document)?.getRanges()?.run {
-            g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.4f)
+            g.composite = srcOver0_4
             forEach{
                 if (it !is LocalRange || it.changelistId == changeListManager.defaultChangeList.id) {
                     g.color = LineStatusMarkerDrawUtil.getGutterColor(it.type, editor)
