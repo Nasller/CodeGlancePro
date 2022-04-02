@@ -7,7 +7,6 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.ex.MarkupModelEx
 import com.intellij.openapi.fileTypes.SyntaxHighlighter
 import com.intellij.psi.tree.IElementType
-import com.intellij.util.alsoIfNull
 import com.intellij.util.ui.ImageUtil
 import com.nasller.codeglance.config.Config
 import java.awt.AlphaComposite
@@ -132,7 +131,7 @@ class Minimap(private val config: Config) {
 		try{
 			attributes.asSequence().mapNotNull { colorScheme.getAttributes(it) }
 				.forEach { attr -> attr.foregroundColor?.let { color = it } }
-			color.alsoIfNull {
+			if(color == null || color == colorScheme.defaultForeground) {
 				markupModelEx.processRangeHighlightersOverlappingWith(lexer.tokenStart, lexer.tokenEnd) {
 					val textAttributes = it.getTextAttributes(colorScheme)
 					if (textAttributes != null && textAttributes.foregroundColor != null){
