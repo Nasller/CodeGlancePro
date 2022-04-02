@@ -12,21 +12,18 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.intellij.openapi.fileEditor.TextEditor
-import com.intellij.openapi.fileTypes.SyntaxHighlighterFactory
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vcs.ex.LocalRange
-import com.intellij.psi.PsiDocumentManager
 import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
-import com.nasller.codeglance.render.Folds
 import com.nasller.codeglance.render.Minimap
 import com.nasller.codeglance.util.attributesImpactForegroundColor
 import java.awt.AlphaComposite
 import java.awt.Graphics2D
 import java.lang.ref.SoftReference
 
-class GlancePanel(private val project: Project, textEditor: TextEditor) : AbstractGlancePanel<Minimap>(project,textEditor) {
+class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePanel<Minimap>(project,textEditor) {
     init {
         Disposer.register(textEditor, this)
         scrollbar = ScrollBar(textEditor, scrollState,this)
@@ -54,10 +51,7 @@ class GlancePanel(private val project: Project, textEditor: TextEditor) : Abstra
     override fun computeInReadAction(indicator: ProgressIndicator) {
         val map = getOrCreateMap()
         try {
-            val file = PsiDocumentManager.getInstance(project).getPsiFile(editor.document) ?: return
-            val folds = Folds(editor.foldingModel.allFoldRegions)
-            val hl = SyntaxHighlighterFactory.getSyntaxHighlighter(file.language, project, file.virtualFile)
-            map.update(editor, folds,hl)
+            map.update(scrollState,indicator)
             scrollState.computeDimensions(editor, config)
             ApplicationManager.getApplication().invokeLater {
                 scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
@@ -105,7 +99,7 @@ class GlancePanel(private val project: Project, textEditor: TextEditor) : Abstra
 
     override fun paintCaretPosition(g: Graphics2D) {
         editor.caretModel.allCarets.forEach{
-            g.composite = srcOver0_8
+            g.composite = srcOver1
             g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
             val documentLine = getDocumentRenderLine(it.logicalPosition.line,it.logicalPosition.line)
             val start = (it.visualPosition.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
@@ -123,7 +117,7 @@ class GlancePanel(private val project: Project, textEditor: TextEditor) : Abstra
 
         val sX = start.column
         val sY = (start.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
-        val eX = end.column
+        val eX = end.column + 1
         val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
 
         g.composite = srcOver0_8

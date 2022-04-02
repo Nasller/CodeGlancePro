@@ -28,7 +28,7 @@ import java.lang.ref.SoftReference
 import javax.swing.JPanel
 
 sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: TextEditor) : JPanel(), Disposable {
-    protected val editor = textEditor.editor as EditorEx
+    val editor = textEditor.editor as EditorEx
     protected var mapRef = SoftReference<T>(null)
     protected val config: Config = ConfigInstance.state
     protected val renderLock = DirtyLock()
@@ -203,6 +203,7 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
     }
 
     protected companion object{
+        val srcOver1: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)
         val srcOver0_8: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
     }
 }
