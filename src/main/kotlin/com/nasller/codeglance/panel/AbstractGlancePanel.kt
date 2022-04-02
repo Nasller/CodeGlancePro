@@ -13,6 +13,7 @@ import com.intellij.openapi.vcs.changes.ChangeListManagerImpl
 import com.intellij.openapi.vcs.impl.LineStatusTrackerManager
 import com.intellij.openapi.vfs.PersistentFSConstants
 import com.intellij.util.ui.ImageUtil
+import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.Config
@@ -115,13 +116,7 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
 
     private fun paintLast(gfx: Graphics?) {
         val g = gfx as Graphics2D
-
-        if (buf != null) {
-            g.drawImage(buf,
-                0, 0, buf!!.width, buf!!.height,
-                0, 0, buf!!.width, buf!!.height,
-                null)
-        }
+        buf?.run{ UIUtil.drawImage(g, this, Rectangle(0, 0, width, height), Rectangle(0, 0, width, height),null) }
         paintSelections(g)
         paintVcs(g)
         scrollbar!!.paint(gfx)
@@ -175,26 +170,23 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
             return
         }
         if (buf == null || buf?.width!! < width || buf?.height!! < height) {
-            buf = ImageUtil.createImage(width, height, BufferedImage.TYPE_4BYTE_ABGR)
+            buf = ImageUtil.createImage(graphicsConfiguration,width, height, BufferedImage.TYPE_4BYTE_ABGR)
         }
         val g = buf!!.createGraphics()
         g.composite = AlphaComposite.getInstance(AlphaComposite.CLEAR)
         g.fillRect(0, 0, width, height)
         g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
         if (editor.document.textLength != 0) {
-            g.drawImage(
-                when (get) {
+            UIUtil.drawImage(g, when (get) {
                     is Minimap -> {get.img!!}
                     else -> throw RuntimeException("error img")
-                },
-                0, 0, scrollState.documentWidth, scrollState.drawHeight,
-                0, scrollState.visibleStart, scrollState.documentWidth, scrollState.visibleEnd,
-                null
-            )
+                }, Rectangle(0, 0, scrollState.documentWidth, scrollState.drawHeight),
+                Rectangle(0, scrollState.visibleStart, scrollState.documentWidth, scrollState.visibleEnd),
+                null)
         }
         paintVcs(gfx as Graphics2D)
         paintSelections(gfx)
-        gfx.drawImage(buf, 0, 0, null)
+        UIUtil.drawImage(gfx,buf!!,0,0,null)
         scrollbar!!.paint(gfx)
     }
 
