@@ -170,7 +170,7 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
             return
         }
         if (buf == null || buf?.width!! < width || buf?.height!! < height) {
-            buf = ImageUtil.createImage(width, height, BufferedImage.TYPE_4BYTE_ABGR)
+            buf = ImageUtil.createImage(graphicsConfiguration,width, height, BufferedImage.TYPE_4BYTE_ABGR)
         }
         val g = buf!!.createGraphics()
         g.composite = AlphaComposite.getInstance(AlphaComposite.CLEAR)

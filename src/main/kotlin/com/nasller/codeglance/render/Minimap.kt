@@ -9,6 +9,7 @@ import com.intellij.openapi.fileTypes.SyntaxHighlighter
 import com.intellij.psi.tree.IElementType
 import com.intellij.util.ui.ImageUtil
 import com.nasller.codeglance.config.Config
+import com.nasller.codeglance.panel.AbstractGlancePanel
 import java.awt.AlphaComposite
 import java.awt.Color
 import java.awt.Graphics2D
@@ -18,7 +19,7 @@ import kotlin.math.floor
 /**
  * A rendered minimap of a document
  */
-class Minimap(private val config: Config) {
+class Minimap(private val config: Config, private val glancePanel: AbstractGlancePanel<*>) {
 	var img: BufferedImage? = null
 	private var height: Int = 0
 	private val logger = Logger.getInstance(javaClass)
@@ -66,14 +67,14 @@ class Minimap(private val config: Config) {
 		if (lineEndings1[lineEndings1.size - 1] != text.length - 1) lineEndings1.add(text.length - 1)
 
 		this.lineEndings = lineEndings1
-		height = (lines + 1) * config.pixelsPerLine
+		height = lines * config.pixelsPerLine
 
 		// If the image is too small to represent the entire document now then regenerate it
 		if (img == null || img!!.height < height || img!!.width < config.width) {
 			if (img != null) img!!.flush()
 			// Create an image that is a bit bigger then the one we need so we don't need to re-create it again soon.
 			// Documents can get big, so rather then relative sizes lets just add a fixed amount on.
-			img = ImageUtil.createImage(config.width, height + 100 * config.pixelsPerLine, BufferedImage.TYPE_4BYTE_ABGR)
+			img = ImageUtil.createImage(glancePanel.graphicsConfiguration,config.width, height + 100 * config.pixelsPerLine, BufferedImage.TYPE_4BYTE_ABGR)
 
 			logger.debug("Created new image")
 		}
