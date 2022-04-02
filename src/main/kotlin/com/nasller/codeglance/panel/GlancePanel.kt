@@ -120,7 +120,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         val eX = end.column + 1
         val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
 
-        g.composite = srcOver0_8
+        g.composite = srcOver1
         g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
         // Single line is real easy
         if (start.line == end.line) {
