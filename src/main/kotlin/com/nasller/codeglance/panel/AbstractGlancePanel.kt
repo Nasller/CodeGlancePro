@@ -116,12 +116,7 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
     private fun paintLast(gfx: Graphics?) {
         val g = gfx as Graphics2D
 
-        if (buf != null) {
-            g.drawImage(buf,
-                0, 0, buf!!.width, buf!!.height,
-                0, 0, buf!!.width, buf!!.height,
-                null)
-        }
+        buf?.run{ g.drawImage(this,0, 0, width, height, 0, 0, width, height,null) }
         paintSelections(g)
         paintVcs(g)
         scrollbar!!.paint(gfx)
