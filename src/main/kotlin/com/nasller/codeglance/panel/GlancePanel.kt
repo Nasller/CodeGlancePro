@@ -146,7 +146,7 @@ class GlancePanel(private val project: Project, textEditor: TextEditor) : Abstra
     override fun getOrCreateMap() : Minimap {
         var map = mapRef.get()
         if (map == null) {
-            map = Minimap(config,this)
+            map = Minimap(config)
             mapRef = SoftReference(map)
         }
         return map

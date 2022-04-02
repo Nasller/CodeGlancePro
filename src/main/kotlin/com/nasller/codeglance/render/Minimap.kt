@@ -9,7 +9,6 @@ import com.intellij.openapi.fileTypes.SyntaxHighlighter
 import com.intellij.psi.tree.IElementType
 import com.intellij.util.ui.ImageUtil
 import com.nasller.codeglance.config.Config
-import com.nasller.codeglance.panel.AbstractGlancePanel
 import java.awt.AlphaComposite
 import java.awt.Color
 import java.awt.Graphics2D
@@ -19,7 +18,7 @@ import kotlin.math.floor
 /**
  * A rendered minimap of a document
  */
-class Minimap(private val config: Config,private val glancePanel: AbstractGlancePanel<*>) {
+class Minimap(private val config: Config) {
 	var img: BufferedImage? = null
 	private var height: Int = 0
 	private val logger = Logger.getInstance(javaClass)
@@ -74,7 +73,9 @@ class Minimap(private val config: Config,private val glancePanel: AbstractGlance
 			if (img != null) img!!.flush()
 			// Create an image that is a bit bigger then the one we need so we don't need to re-create it again soon.
 			// Documents can get big, so rather then relative sizes lets just add a fixed amount on.
-			img = ImageUtil.createImage(glancePanel.graphicsConfiguration,config.width, height + 100 * config.pixelsPerLine, BufferedImage.TYPE_4BYTE_ABGR)
+			img = ImageUtil.createImage(config.width, height + 100 * config.pixelsPerLine, BufferedImage.TYPE_4BYTE_ABGR)
+
+			logger.debug("Created new image")
 		}
 	}
 
