@@ -18,18 +18,13 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 	private val editor = glancePanel.editor
 	var img: BufferedImage? = null
 
-	/**
-	 * Internal worker function to update the minimap image
-	 *
-	 * @param editor        The editor being drawn
-	 */
 	@Synchronized
-	fun update(scrollstate: ScrollState, indicator: ProgressIndicator?) {
-		if (img == null || img!!.height < scrollstate.documentHeight || img!!.width < config.width) {
+	fun update(scrollState: ScrollState, indicator: ProgressIndicator) {
+		if (img == null || img!!.height < scrollState.documentHeight || img!!.width < config.width) {
 			if (img != null) img!!.flush()
 			// Create an image that is a bit bigger then the one we need so we don't need to re-create it again soon.
 			// Documents can get big, so rather then relative sizes lets just add a fixed amount on.
-			img = ImageUtil.createImage(glancePanel.graphicsConfiguration,config.width, scrollstate.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
+			img = ImageUtil.createImage(glancePanel.graphicsConfiguration,config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 		}
 
 		val g = img!!.createGraphics()
@@ -48,15 +43,13 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 		var y: Int
 		var prevY = -1
 		var foldedLines = 0
-
+		indicator.checkCanceled()
 		while (!hlIter.atEnd()) {
-			indicator?.checkCanceled()
 			val tokenStart = hlIter.start
 			var i = tokenStart
 			line.start(tokenStart)
 			y = (line.lineNumber - foldedLines) * config.pixelsPerLine
 			getColor(hlIter,colorBuffer)
-
 			// Jump over folds
 			val checkFold = {
 				var isFolded = editor.foldingModel.isOffsetCollapsed(i)
@@ -77,12 +70,7 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 				i = line.start
 				while (i < tokenStart) {
 					if (checkFold()) break
-
-					x += if (text[i++] == '\t') {
-						4
-					} else {
-						1
-					}
+					x += if (text[i++] == '\t') 4 else 1
 					// Abort if this line is getting too long...
 					if (x > config.width) break
 				}
@@ -91,7 +79,6 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 				if (checkFold()) break
 				// Watch out for tokens that extend past the document... bad plugins? see issue #138
 				if (i >= text.length) return
-
 				when (text[i]) {
 					'\n' -> {
 						x = 0
@@ -100,7 +87,6 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 					'\t' -> x += 4
 					else -> x += 1
 				}
-
 				if (0 <= x && x < img!!.width && 0 <= y && y + config.pixelsPerLine < img!!.height) {
 					if (config.clean) {
 						renderClean(x, y, text[i].code, colorBuffer, scaleBuffer)
@@ -116,14 +102,6 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 			while (!hlIter.atEnd() && hlIter.start < i)
 		}
 	}
-
-//	private fun test(lexer: Lexer){
-//		val blockElementsInRange =
-//			glancePanel.editor.inlayModel.getBlockElementsInRange(lexer.tokenStart, lexer.tokenEnd)
-//		blockElementsInRange.forEach{
-//			it.renderer
-//		}
-//	}
 
 	private fun getColor(hlIter: HighlighterIterator, colorBuffer: FloatArray){
 		val default = editor.colorsScheme.defaultForeground
