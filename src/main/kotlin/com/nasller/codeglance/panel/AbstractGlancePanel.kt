@@ -143,6 +143,8 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
 
     abstract fun paintVcs(g: Graphics2D)
 
+    abstract fun paintErrorStripes(g: Graphics2D)
+
     abstract fun paintSelection(g: Graphics2D, startByte: Int, endByte: Int)
 
     abstract fun paintCaretPosition(g: Graphics2D)
@@ -188,6 +190,7 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
             )
         }
         paintVcs(gfx as Graphics2D)
+        paintErrorStripes(gfx)
         paintSelections(gfx)
         gfx.composite = srcOver0_8
         gfx.drawImage(buf, 0, 0, null)

@@ -1,5 +1,7 @@
 package com.nasller.codeglance.panel
 
+import com.intellij.codeInsight.daemon.impl.HighlightInfo
+import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diff.LineStatusMarkerDrawUtil
 import com.intellij.openapi.editor.FoldRegion
@@ -96,9 +98,32 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         }
     }
 
+    override fun paintErrorStripes(g: Graphics2D) {
+        g.composite = srcOver1
+        editor.filteredDocumentMarkupModel.allHighlighters.forEach {
+            val info = HighlightInfo.fromRangeHighlighter(it) ?: return
+            if (info.severity.myVal > HighlightSeverity.INFORMATION.myVal) {
+                val textAttributes = it.getTextAttributes(editor.colorsScheme)
+                if (textAttributes != null) {
+                    g.color = textAttributes.errorStripeColor?:textAttributes.effectColor?:textAttributes.backgroundColor?:textAttributes.foregroundColor
+                    val documentLine = getDocumentRenderLine(editor.document.getLineNumber(it.startOffset), editor.document.getLineNumber(it.endOffset))
+                    val visualLine1 = editor.offsetToVisualLine(it.startOffset, false)
+                    val visualLine2 = editor.offsetToVisualLine(it.endOffset, false)
+                    val start = (visualLine1 + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
+                    val end = (visualLine2 + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
+                    val x = width / 2
+                    g.fillRect(x, start, width, config.pixelsPerLine)
+                    g.fillRect(x, end, 0, config.pixelsPerLine)
+                    g.fillRect(x, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
+                }
+
+            }
+        }
+    }
+
     override fun paintCaretPosition(g: Graphics2D) {
+        g.composite = srcOver1
         editor.caretModel.allCarets.forEach{
-            g.composite = srcOver1
             g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
             val documentLine = getDocumentRenderLine(it.logicalPosition.line,it.logicalPosition.line)
             val start = (it.visualPosition.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart

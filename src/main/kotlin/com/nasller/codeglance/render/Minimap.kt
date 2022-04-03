@@ -15,15 +15,15 @@ import kotlin.math.max
  * A rendered minimap of a document
  */
 class Minimap(private val config: Config, private val glancePanel: AbstractGlancePanel<*>) {
-	private val editor = glancePanel.editor
 	var img: BufferedImage? = null
+	private val editor = glancePanel.editor
 
 	@Synchronized
 	fun update(scrollState: ScrollState, indicator: ProgressIndicator) {
 		if (img == null || img!!.height < scrollState.documentHeight || img!!.width < config.width) {
 			if (img != null) img!!.flush()
-			// Create an image that is a bit bigger then the one we need so we don't need to re-create it again soon.
-			// Documents can get big, so rather then relative sizes lets just add a fixed amount on.
+			// Create an image that is a bit bigger then the one we need, so we don't need to re-create it again soon.
+			// Documents can get big, so rather than relative sizes lets just add a fixed amount on.
 			img = ImageUtil.createImage(glancePanel.graphicsConfiguration,config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 		}
 
@@ -135,7 +135,7 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 		if (weight == 0.0f) return
 
 		when (config.pixelsPerLine) {
-			1 -> // Cant show whitespace between lines any more. This looks rather ugly...
+			1 -> // Can't show whitespace between lines anymore. This looks rather ugly...
 				setPixel(x, y + 1, color, weight * 0.6f, buffer)
 
 			2 -> {
@@ -161,11 +161,11 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 	private fun renderAccurate(x: Int, y: Int, char: Int, color: FloatArray, buffer: FloatArray) {
 		val topWeight = getTopWeight(char)
 		val bottomWeight = getBottomWeight(char)
-		// No point rendering non visible characters.
+		// No point rendering non-visible characters.
 		if (topWeight == 0.0f && bottomWeight == 0.0f) return
 
 		when (config.pixelsPerLine) {
-			1 -> // Cant show whitespace between lines any more. This looks rather ugly...
+			1 -> // Can't show whitespace between lines anymore. This looks rather ugly...
 				setPixel(x, y + 1, color, ((topWeight + bottomWeight) / 2.0).toFloat(), buffer)
 
 			2 -> {
