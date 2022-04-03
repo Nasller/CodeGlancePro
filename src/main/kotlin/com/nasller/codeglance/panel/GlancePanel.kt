@@ -111,12 +111,11 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
                     val visualLine2 = editor.offsetToVisualLine(it.endOffset, false)
                     val start = (visualLine1 + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
                     val end = (visualLine2 + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
-                    val x = width / 3
-                    g.fillRect(x, start, width, config.pixelsPerLine)
-                    g.fillRect(x, end, 0, config.pixelsPerLine)
-                    g.fillRect(x, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
+                    val width = width / 3
+                    g.fillRect(0, start, width, config.pixelsPerLine)
+                    g.fillRect(0, end, 0, config.pixelsPerLine)
+                    g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
                 }
-
             }
         }
     }
