@@ -190,8 +190,8 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
             )
         }
         paintVcs(gfx as Graphics2D)
-        paintErrorStripes(gfx)
         paintSelections(gfx)
+        paintErrorStripes(gfx)
         gfx.composite = srcOver0_8
         gfx.drawImage(buf, 0, 0, null)
         scrollbar!!.paint(gfx)

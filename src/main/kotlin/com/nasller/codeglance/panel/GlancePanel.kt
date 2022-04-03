@@ -1,7 +1,7 @@
 package com.nasller.codeglance.panel
 
+import com.intellij.codeHighlighting.HighlightDisplayLevel
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
-import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diff.LineStatusMarkerDrawUtil
 import com.intellij.openapi.editor.FoldRegion
@@ -18,6 +18,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vcs.ex.LocalRange
+import com.intellij.util.ObjectUtils
 import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 import com.nasller.codeglance.render.Minimap
 import com.nasller.codeglance.util.attributesImpactForegroundColor
@@ -91,7 +92,6 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
                     val start = (visualLine1+documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
                     val end = (visualLine2+documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
                     g.fillRect(0, start, width, config.pixelsPerLine)
-                    g.fillRect(0, end, 0, config.pixelsPerLine)
                     g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
                 }
             }
@@ -102,19 +102,23 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         g.composite = srcOver1
         editor.filteredDocumentMarkupModel.allHighlighters.forEach {
             val info = HighlightInfo.fromRangeHighlighter(it) ?: return
-            if (info.severity.myVal > HighlightSeverity.INFORMATION.myVal) {
+            val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
+            if (info.severity.myVal > minSeverity.myVal) {
                 val textAttributes = it.getTextAttributes(editor.colorsScheme)
                 if (textAttributes != null) {
-                    g.color = textAttributes.errorStripeColor?:textAttributes.effectColor?:textAttributes.backgroundColor?:textAttributes.foregroundColor
+                    g.color = it.getErrorStripeMarkColor(editor.colorsScheme)?:textAttributes.errorStripeColor?:textAttributes.backgroundColor?:textAttributes.effectColor?:textAttributes.foregroundColor?:return
                     val documentLine = getDocumentRenderLine(editor.document.getLineNumber(it.startOffset), editor.document.getLineNumber(it.endOffset))
-                    val visualLine1 = editor.offsetToVisualLine(it.startOffset, false)
-                    val visualLine2 = editor.offsetToVisualLine(it.endOffset, false)
-                    val start = (visualLine1 + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
-                    val end = (visualLine2 + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
-                    val width = width / 3
-                    g.fillRect(0, start, width, config.pixelsPerLine)
-                    g.fillRect(0, end, 0, config.pixelsPerLine)
-                    g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
+                    val start = editor.offsetToVisualPosition(it.startOffset)
+                    val end = editor.offsetToVisualPosition(it.endOffset)
+                    val sX = if(start.column > (width - 15)) width - 15 else start.column
+                    val sY = (start.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
+                    val eX = if(start.column < (width - 15)) end.column + 1 else width
+                    val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
+                    if(sY == eY && !editor.foldingModel.isOffsetCollapsed(it.startOffset)){
+                        g.fillRect(sX, sY, eX - sX, config.pixelsPerLine)
+                    }else{
+                        g.fillRect(0, sY, width / 2, config.pixelsPerLine)
+                    }
                 }
             }
         }
@@ -128,7 +132,6 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
             val start = (it.visualPosition.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
             val end = (it.visualPosition.line + documentLine.second + 1) * config.pixelsPerLine - scrollState.visibleStart
             g.fillRect(0, start, width, config.pixelsPerLine)
-            g.fillRect(0, end, 0, config.pixelsPerLine)
             g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
         }
     }
