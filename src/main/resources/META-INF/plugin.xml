@@ -22,6 +22,7 @@
 		<h3>1.2.4</h3>
 		<ul>
 			<li>fix merge two glance</li>
+			<li>feature: support errorStripes</li>
 		</ul>
 		<h3>1.2.3</h3>
 		<ul>
