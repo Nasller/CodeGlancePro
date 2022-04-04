@@ -35,7 +35,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         }, this)
         val myMarkupModelListener = object : MarkupModelListener {
             override fun afterAdded(highlighter: RangeHighlighterEx) =
-                if (attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) updateImage() else Unit
+                if (attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))updateImage() else Unit
 
             override fun attributesChanged(highlighter: RangeHighlighterEx,
                 renderersChanged: Boolean, fontStyleChanged: Boolean, foregroundColorChanged: Boolean
@@ -105,20 +105,20 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
             val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
             if (info.severity.myVal > minSeverity.myVal) {
                 val textAttributes = it.getTextAttributes(editor.colorsScheme)
-                if (textAttributes != null) {
-                    g.color = it.getErrorStripeMarkColor(editor.colorsScheme)?:textAttributes.errorStripeColor?:textAttributes.backgroundColor?:textAttributes.effectColor?:textAttributes.foregroundColor?:return
-                    val documentLine = getDocumentRenderLine(editor.document.getLineNumber(it.startOffset), editor.document.getLineNumber(it.endOffset))
-                    val start = editor.offsetToVisualPosition(it.startOffset)
-                    val end = editor.offsetToVisualPosition(it.endOffset)
-                    val sX = if(start.column > (width - 15)) width - 15 else start.column
-                    val sY = (start.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
-                    val eX = if(start.column < (width - 15)) end.column + 1 else width
-                    val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
-                    if(sY == eY && !editor.foldingModel.isOffsetCollapsed(it.startOffset)){
-                        g.fillRect(sX, sY, eX - sX, config.pixelsPerLine)
-                    }else{
-                        g.fillRect(0, sY, width / 2, config.pixelsPerLine)
-                    }
+                g.color = it.getErrorStripeMarkColor(editor.colorsScheme) ?: textAttributes?.errorStripeColor
+                        ?: textAttributes?.backgroundColor ?: textAttributes?.effectColor
+                        ?: textAttributes?.foregroundColor ?: return
+                val documentLine = getDocumentRenderLine(editor.document.getLineNumber(it.startOffset), editor.document.getLineNumber(it.endOffset))
+                val start = editor.offsetToVisualPosition(it.startOffset)
+                val end = editor.offsetToVisualPosition(it.endOffset)
+                val sX = if (start.column > (width - 15)) width - 15 else start.column
+                val sY = (start.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
+                val eX = if (start.column < (width - 15)) end.column + 1 else width
+                val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
+                if (sY == eY && !editor.foldingModel.isOffsetCollapsed(it.startOffset)) {
+                    g.fillRect(sX, sY, eX - sX, config.pixelsPerLine)
+                } else {
+                    g.fillRect(0, sY, width / 2, config.pixelsPerLine)
                 }
             }
         }
