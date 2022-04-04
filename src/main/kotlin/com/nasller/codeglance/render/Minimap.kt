@@ -131,13 +131,10 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 			in 33..126 -> 0.8f
 			else -> 0.4f
 		}
-
 		if (weight == 0.0f) return
-
 		when (config.pixelsPerLine) {
 			1 -> // Can't show whitespace between lines anymore. This looks rather ugly...
 				setPixel(x, y + 1, color, weight * 0.6f, buffer)
-
 			2 -> {
 				// Two lines we make the top line a little lighter to give the illusion of whitespace between lines.
 				setPixel(x, y, color, weight * 0.3f, buffer)
@@ -163,11 +160,9 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 		val bottomWeight = getBottomWeight(char)
 		// No point rendering non-visible characters.
 		if (topWeight == 0.0f && bottomWeight == 0.0f) return
-
 		when (config.pixelsPerLine) {
 			1 -> // Can't show whitespace between lines anymore. This looks rather ugly...
 				setPixel(x, y + 1, color, ((topWeight + bottomWeight) / 2.0).toFloat(), buffer)
-
 			2 -> {
 				// Two lines we make the top line a little lighter to give the illusion of whitespace between lines.
 				setPixel(x, y, color, topWeight * 0.5f, buffer)

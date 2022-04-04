@@ -34,6 +34,16 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
             override fun onFoldRegionStateChange(region: FoldRegion) = updateImage()
         }, this)
         val myMarkupModelListener = object : MarkupModelListener {
+            override fun afterAdded(highlighter: RangeHighlighterEx) = repaint()
+
+            override fun beforeRemoved(highlighter: RangeHighlighterEx) = repaint()
+
+            override fun attributesChanged(highlighter: RangeHighlighterEx,
+                                           renderersChanged: Boolean, fontStyleChanged: Boolean, foregroundColorChanged: Boolean
+            ) = if(renderersChanged || foregroundColorChanged)repaint() else Unit
+        }
+        editor.markupModel.addMarkupModelListener(this, myMarkupModelListener)
+        val myFilterMarkupModelListener = object : MarkupModelListener {
             override fun afterAdded(highlighter: RangeHighlighterEx) =
                 if (attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))updateImage() else Unit
 
@@ -41,7 +51,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
                 renderersChanged: Boolean, fontStyleChanged: Boolean, foregroundColorChanged: Boolean
             ) = if(renderersChanged || foregroundColorChanged)updateImage() else Unit
         }
-        editor.filteredDocumentMarkupModel.addMarkupModelListener(this, myMarkupModelListener)
+        editor.filteredDocumentMarkupModel.addMarkupModelListener(this, myFilterMarkupModelListener)
         editor.caretModel.addCaretListener(object : CaretListener {
             override fun caretPositionChanged(event: CaretEvent) = repaint()
             override fun caretAdded(event: CaretEvent) = repaint()
@@ -98,28 +108,27 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         }
     }
 
+    override fun paintOtherHighlight(g: Graphics2D) {
+        val map = lazy{ hashMapOf<String,Int>() }
+        g.composite = srcOver1
+        editor.markupModel.processRangeHighlightersOverlappingWith(0, editor.document.textLength) {
+            val key = (it.startOffset+it.endOffset).toString()
+            val layer = map.value[key]
+            if(layer == null || layer < it.layer){
+                drawMarkupLine(it,g)
+                map.value[key] = it.layer
+            }
+            return@processRangeHighlightersOverlappingWith true
+        }
+    }
+
     override fun paintErrorStripes(g: Graphics2D) {
         g.composite = srcOver1
         editor.filteredDocumentMarkupModel.allHighlighters.forEach {
             val info = HighlightInfo.fromRangeHighlighter(it) ?: return
             val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
             if (info.severity.myVal > minSeverity.myVal) {
-                val textAttributes = it.getTextAttributes(editor.colorsScheme)
-                g.color = it.getErrorStripeMarkColor(editor.colorsScheme) ?: textAttributes?.errorStripeColor
-                        ?: textAttributes?.backgroundColor ?: textAttributes?.effectColor
-                        ?: textAttributes?.foregroundColor ?: return
-                val documentLine = getDocumentRenderLine(editor.document.getLineNumber(it.startOffset), editor.document.getLineNumber(it.endOffset))
-                val start = editor.offsetToVisualPosition(it.startOffset)
-                val end = editor.offsetToVisualPosition(it.endOffset)
-                val sX = if (start.column > (width - 15)) width - 15 else start.column
-                val sY = (start.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
-                val eX = if (start.column < (width - 15)) end.column + 1 else width
-                val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
-                if (sY == eY && !editor.foldingModel.isOffsetCollapsed(it.startOffset)) {
-                    g.fillRect(sX, sY, eX - sX, config.pixelsPerLine)
-                } else {
-                    g.fillRect(0, sY, width / 2, config.pixelsPerLine)
-                }
+                drawMarkupLine(it, g)
             }
         }
     }

@@ -4,6 +4,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.ProgressIndicatorUtils
@@ -139,9 +140,30 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
         return Pair(startAdd,endAdd)
     }
 
+    protected fun drawMarkupLine(it: RangeHighlighter, g: Graphics2D){
+        val textAttributes = it.getTextAttributes(editor.colorsScheme)
+        g.color = it.getErrorStripeMarkColor(editor.colorsScheme) ?: textAttributes?.errorStripeColor
+                ?: textAttributes?.backgroundColor
+                ?: textAttributes?.foregroundColor ?: return
+        val documentLine = getDocumentRenderLine(editor.document.getLineNumber(it.startOffset), editor.document.getLineNumber(it.endOffset))
+        val start = editor.offsetToVisualPosition(it.startOffset)
+        val end = editor.offsetToVisualPosition(it.endOffset)
+        val sX = if (start.column > (width - 15)) width - 15 else start.column
+        val sY = (start.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
+        val eX = if (start.column < (width - 15)) end.column + 1 else width
+        val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
+        if (sY == eY && !editor.foldingModel.isOffsetCollapsed(it.startOffset)) {
+            g.fillRect(sX, sY, eX - sX, config.pixelsPerLine)
+        } else {
+            g.fillRect(0, sY, width / 2, config.pixelsPerLine)
+        }
+    }
+
     abstract fun computeInReadAction(indicator: ProgressIndicator)
 
     abstract fun paintVcs(g: Graphics2D)
+
+    abstract fun paintOtherHighlight(g: Graphics2D)
 
     abstract fun paintErrorStripes(g: Graphics2D)
 
@@ -191,6 +213,7 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
         }
         paintVcs(gfx as Graphics2D)
         paintSelections(gfx)
+        paintOtherHighlight(gfx)
         paintErrorStripes(gfx)
         gfx.composite = srcOver0_8
         gfx.drawImage(buf, 0, 0, null)
