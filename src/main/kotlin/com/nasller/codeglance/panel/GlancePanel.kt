@@ -108,43 +108,6 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         }
     }
 
-    override fun paintOtherHighlight(g: Graphics2D) {
-        val map = lazy{ hashMapOf<String,Int>() }
-        g.composite = srcOver1
-        editor.markupModel.processRangeHighlightersOverlappingWith(0, editor.document.textLength) {
-            val key = (it.startOffset+it.endOffset).toString()
-            val layer = map.value[key]
-            if(layer == null || layer < it.layer){
-                drawMarkupLine(it,g)
-                map.value[key] = it.layer
-            }
-            return@processRangeHighlightersOverlappingWith true
-        }
-    }
-
-    override fun paintErrorStripes(g: Graphics2D) {
-        g.composite = srcOver1
-        editor.filteredDocumentMarkupModel.allHighlighters.forEach {
-            val info = HighlightInfo.fromRangeHighlighter(it) ?: return
-            val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
-            if (info.severity.myVal > minSeverity.myVal) {
-                drawMarkupLine(it, g)
-            }
-        }
-    }
-
-    override fun paintCaretPosition(g: Graphics2D) {
-        g.composite = srcOver1
-        editor.caretModel.allCarets.forEach{
-            g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
-            val documentLine = getDocumentRenderLine(it.logicalPosition.line,it.logicalPosition.line)
-            val start = (it.visualPosition.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
-            val end = (it.visualPosition.line + documentLine.second + 1) * config.pixelsPerLine - scrollState.visibleStart
-            g.fillRect(0, start, width, config.pixelsPerLine)
-            g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
-        }
-    }
-
     override fun paintSelection(g: Graphics2D, startByte: Int, endByte: Int) {
         val start = editor.offsetToVisualPosition(startByte)
         val end = editor.offsetToVisualPosition(endByte)
@@ -168,6 +131,43 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
             if (eY + config.pixelsPerLine != sY) {
                 // And if there is anything in between, fill it in
                 g.fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
+            }
+        }
+    }
+
+    override fun paintCaretPosition(g: Graphics2D) {
+        g.composite = srcOver1
+        editor.caretModel.allCarets.forEach{
+            g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
+            val documentLine = getDocumentRenderLine(it.logicalPosition.line,it.logicalPosition.line)
+            val start = (it.visualPosition.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
+            val end = (it.visualPosition.line + documentLine.second + 1) * config.pixelsPerLine - scrollState.visibleStart
+            g.fillRect(0, start, width, config.pixelsPerLine)
+            g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
+        }
+    }
+
+    override fun paintOtherHighlight(g: Graphics2D) {
+        val map = lazy{ hashMapOf<String,Int>() }
+        g.composite = srcOver1
+        editor.markupModel.processRangeHighlightersOverlappingWith(0, editor.document.textLength) {
+            val key = (it.startOffset+it.endOffset).toString()
+            val layer = map.value[key]
+            if(layer == null || layer < it.layer){
+                drawMarkupLine(it,g)
+                map.value[key] = it.layer
+            }
+            return@processRangeHighlightersOverlappingWith true
+        }
+    }
+
+    override fun paintErrorStripes(g: Graphics2D) {
+        g.composite = srcOver1
+        editor.filteredDocumentMarkupModel.allHighlighters.forEach {
+            val info = HighlightInfo.fromRangeHighlighter(it) ?: return
+            val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
+            if (info.severity.myVal > minSeverity.myVal) {
+                drawMarkupLine(it, g)
             }
         }
     }

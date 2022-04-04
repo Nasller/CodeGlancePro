@@ -102,6 +102,8 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
         }
     }
 
+    protected fun updateImageSoon() = ApplicationManager.getApplication().invokeLater(this::updateImage)
+
     /**
      * Fires off a new task to the worker thread. This should only be called from the ui thread.
      */
@@ -111,8 +113,6 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
         if (!renderLock.acquire()) return
         ProgressIndicatorUtils.scheduleWithWriteActionPriority(updateTask)
     }
-
-    protected fun updateImageSoon() = ApplicationManager.getApplication().invokeLater(this::updateImage)
 
     private fun paintLast(gfx: Graphics?) {
         val g = gfx as Graphics2D
@@ -163,15 +163,13 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
 
     abstract fun paintVcs(g: Graphics2D)
 
-    abstract fun paintOtherHighlight(g: Graphics2D)
-
-    abstract fun paintErrorStripes(g: Graphics2D)
-
     abstract fun paintSelection(g: Graphics2D, startByte: Int, endByte: Int)
 
     abstract fun paintCaretPosition(g: Graphics2D)
 
-    abstract fun getOrCreateMap() : T
+    abstract fun paintOtherHighlight(g: Graphics2D)
+
+    abstract fun paintErrorStripes(g: Graphics2D)
 
     private fun paintSelections(g: Graphics2D) {
         if(editor.selectionModel.hasSelection()){
@@ -219,6 +217,8 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
         gfx.drawImage(buf, 0, 0, null)
         scrollbar!!.paint(gfx)
     }
+
+    abstract fun getOrCreateMap() : T
 
     override fun dispose() {
         editor.contentComponent.removeComponentListener(componentListener)
