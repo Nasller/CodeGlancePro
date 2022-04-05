@@ -89,7 +89,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
                     var visualLine1 = EditorUtil.logicalToVisualLine(editor, it.line1)
                     var visualLine2 = EditorUtil.logicalToVisualLine(editor, it.line2)
                     foldRegions.forEach{ fold->
-                        if(editor.document.getLineNumber(fold.startOffset) < it.line1 &&
+                        if(editor.document.getLineNumber(fold.startOffset) <= it.line1 &&
                             it.line2 <= editor.document.getLineNumber(fold.endOffset)
                         ) visualLine2 = visualLine1 + 1
                     }

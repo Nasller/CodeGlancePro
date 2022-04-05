@@ -1,7 +1,13 @@
 package com.nasller.codeglance.render
 
+import com.intellij.codeHighlighting.HighlightDisplayLevel
+import com.intellij.codeInsight.daemon.impl.HighlightInfo
+import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.highlighter.HighlighterIterator
+import com.intellij.openapi.editor.impl.view.IterationState
+import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.util.ObjectUtils
 import com.intellij.util.ui.ImageUtil
 import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.config.Config
@@ -106,21 +112,31 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 	private fun getColor(hlIter: HighlighterIterator, colorBuffer: FloatArray){
 		val default = editor.colorsScheme.defaultForeground
 		var color:Color? = null
+		val list = mutableListOf<RangeHighlighterEx>()
+		val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
 		try {
-			if (hlIter.textAttributes.foregroundColor != null) {
+			editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(hlIter.start, hlIter.end) {
+				if(it.getTextAttributes(editor.colorsScheme) != TextAttributes.ERASE_MARKER)
+					HighlightInfo.fromRangeHighlighter(it)?.let { highlightInfo ->
+						if (highlightInfo.severity.myVal < minSeverity.myVal) {
+							list.add(it)
+						}
+					}
+				return@processRangeHighlightersOverlappingWith true
+			}
+			if (list.isEmpty()) {
 				color = hlIter.textAttributes.foregroundColor
+			}else{
+				list.sortWith(IterationState.createByLayerThenByAttributesComparator(editor.colorsScheme))
+				list.forEach {
+					it.getTextAttributes(editor.colorsScheme)?.foregroundColor?.run {
+						color = this
+						return@forEach
+					}
+				}
 			}
 		} catch (e: Exception) {
 			color = default
-		}
-		if (color == null || color == default) {
-			editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(hlIter.start, hlIter.end) {
-				val textAttributes = it.getTextAttributes(editor.colorsScheme)
-				if (textAttributes != null && textAttributes.foregroundColor != null) {
-					color = textAttributes.foregroundColor
-					false
-				} else true
-			}
 		}
 		(color?:default).getRGBComponents(colorBuffer)
 	}
