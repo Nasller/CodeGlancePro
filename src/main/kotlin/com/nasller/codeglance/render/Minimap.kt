@@ -5,6 +5,7 @@ import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.highlighter.HighlighterIterator
 import com.intellij.openapi.editor.impl.view.IterationState
+import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.util.ObjectUtils
 import com.intellij.util.containers.ContainerUtil
@@ -112,31 +113,30 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 	private fun getColor(hlIter: HighlighterIterator, colorBuffer: FloatArray){
 		var color:Color? = null
 		try {
-			val foregroundColor = hlIter.textAttributes.foregroundColor
-			if (foregroundColor != null) {
-				color = foregroundColor
-			}else{
-				val list = mutableListOf<RangeHighlighterEx>()
-				val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
-				editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(hlIter.start, hlIter.end) {
+			color = hlIter.textAttributes.foregroundColor
+		} catch (e: Exception) {
+			//
+		}
+		if (color == null){
+			val list = mutableListOf<RangeHighlighterEx>()
+			val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
+			editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(hlIter.start, hlIter.end) {
+				if (it.getTextAttributes(editor.colorsScheme) != TextAttributes.ERASE_MARKER)
 					HighlightInfo.fromRangeHighlighter(it)?.let { highlightInfo ->
 						if (highlightInfo.severity.myVal < minSeverity.myVal) {
 							list.add(it)
 						}
 					}
-					return@processRangeHighlightersOverlappingWith true
-				}
-				list.apply {
-					ContainerUtil.quickSort(this,IterationState.createByLayerThenByAttributesComparator(editor.colorsScheme))
-				}.forEach{
-					it.getTextAttributes(editor.colorsScheme)?.foregroundColor?.run {
-						color = this
-						return@forEach
-					}
+				return@processRangeHighlightersOverlappingWith true
+			}
+			list.apply {
+				if(this.size > 1) ContainerUtil.quickSort(this,IterationState.createByLayerThenByAttributesComparator(editor.colorsScheme))
+			}.forEach{
+				it.getTextAttributes(editor.colorsScheme)?.foregroundColor?.run {
+					color = this
+					return@forEach
 				}
 			}
-		} catch (e: Exception) {
-			color = editor.colorsScheme.defaultForeground
 		}
 		(color?:editor.colorsScheme.defaultForeground).getRGBComponents(colorBuffer)
 	}
