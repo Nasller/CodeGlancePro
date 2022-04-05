@@ -79,7 +79,8 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
     }
 
     override fun paintVcs(g: Graphics2D) {
-        val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> !isCustomFoldRegionImpl(fold) && !fold.isExpanded }
+        val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> !isCustomFoldRegionImpl(fold) && !fold.isExpanded &&
+                fold.startOffset >= 0 && fold.endOffset >= 0}
         trackerManager.getLineStatusTracker(editor.document)?.getRanges()?.run {
             g.composite = srcOver0_4
             forEach{
