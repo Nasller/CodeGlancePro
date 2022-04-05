@@ -5,9 +5,9 @@ import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.highlighter.HighlighterIterator
 import com.intellij.openapi.editor.impl.view.IterationState
-import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.util.ObjectUtils
+import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.ui.ImageUtil
 import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.config.Config
@@ -110,25 +110,25 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 	}
 
 	private fun getColor(hlIter: HighlighterIterator, colorBuffer: FloatArray){
-		val default = editor.colorsScheme.defaultForeground
 		var color:Color? = null
-		val list = mutableListOf<RangeHighlighterEx>()
-		val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
 		try {
-			editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(hlIter.start, hlIter.end) {
-				if(it.getTextAttributes(editor.colorsScheme) != TextAttributes.ERASE_MARKER)
+			val foregroundColor = hlIter.textAttributes.foregroundColor
+			if (foregroundColor != null) {
+				color = foregroundColor
+			}else{
+				val list = mutableListOf<RangeHighlighterEx>()
+				val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
+				editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(hlIter.start, hlIter.end) {
 					HighlightInfo.fromRangeHighlighter(it)?.let { highlightInfo ->
 						if (highlightInfo.severity.myVal < minSeverity.myVal) {
 							list.add(it)
 						}
 					}
-				return@processRangeHighlightersOverlappingWith true
-			}
-			if (list.isEmpty()) {
-				color = hlIter.textAttributes.foregroundColor
-			}else{
-				list.sortWith(IterationState.createByLayerThenByAttributesComparator(editor.colorsScheme))
-				list.forEach {
+					return@processRangeHighlightersOverlappingWith true
+				}
+				list.apply {
+					ContainerUtil.quickSort(this,IterationState.createByLayerThenByAttributesComparator(editor.colorsScheme))
+				}.forEach{
 					it.getTextAttributes(editor.colorsScheme)?.foregroundColor?.run {
 						color = this
 						return@forEach
@@ -136,9 +136,9 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 				}
 			}
 		} catch (e: Exception) {
-			color = default
+			color = editor.colorsScheme.defaultForeground
 		}
-		(color?:default).getRGBComponents(colorBuffer)
+		(color?:editor.colorsScheme.defaultForeground).getRGBComponents(colorBuffer)
 	}
 
 	private fun renderClean(x: Int, y: Int, char: Int, color: FloatArray, buffer: FloatArray) {
