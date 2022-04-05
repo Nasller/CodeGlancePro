@@ -152,10 +152,17 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
         val sY = (start.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
         val eX = if (start.column < (width - 15)) end.column + 1 else width
         val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
-        if (sY == eY && !editor.foldingModel.isOffsetCollapsed(it.startOffset)) {
+        val collapsed = editor.foldingModel.isOffsetCollapsed(it.startOffset)
+        if (sY == eY && !collapsed) {
             g.fillRect(sX, sY, eX - sX, config.pixelsPerLine)
-        } else {
+        } else if(collapsed){
             g.fillRect(0, sY, width / 2, config.pixelsPerLine)
+        } else {
+            g.fillRect(sX, sY, width - sX, config.pixelsPerLine)
+            g.fillRect(0, eY, eX, config.pixelsPerLine)
+            if (eY + config.pixelsPerLine != sY) {
+                g.fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
+            }
         }
     }
 

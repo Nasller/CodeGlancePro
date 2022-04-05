@@ -62,7 +62,8 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 				var isFolded = editor.foldingModel.isOffsetCollapsed(i)
 				if (isFolded) {
 					val fold = editor.foldingModel.getCollapsedRegionAtOffset(i)!!
-					if(!CodeGlancePlugin.isCustomFoldRegionImpl(fold)){
+					if(!CodeGlancePlugin.isCustomFoldRegionImpl(fold) &&
+						fold.startOffset >= 0 && fold.endOffset >= 0){
 						foldedLines += editor.document.getLineNumber(fold.endOffset) - editor.document.getLineNumber(fold.startOffset)
 						i = fold.endOffset
 					}else{
