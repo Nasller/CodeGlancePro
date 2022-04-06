@@ -1,13 +1,10 @@
 package com.nasller.codeglance.render
 
-import com.intellij.codeHighlighting.HighlightDisplayLevel
-import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
-import com.intellij.openapi.editor.highlighter.HighlighterIterator
 import com.intellij.openapi.editor.impl.view.IterationState
+import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.util.ObjectUtils
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.ui.ImageUtil
 import com.nasller.codeglance.CodeGlancePlugin
@@ -54,9 +51,15 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 		while (!hlIter.atEnd()) {
 			val tokenStart = hlIter.start
 			var i = tokenStart
+			var hasColor = false
 			line.start(tokenStart)
 			y = (line.lineNumber - foldedLines) * config.pixelsPerLine
-			getColor(hlIter,colorBuffer)
+			try {
+				hlIter.textAttributes.foregroundColor?.let {
+					it.getRGBComponents(colorBuffer)
+					hasColor = true
+				}
+			} catch (_: Exception){ }
 			// Jump over folds
 			val checkFold = {
 				var isFolded = editor.foldingModel.isOffsetCollapsed(i)
@@ -96,6 +99,7 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 					else -> x += 1
 				}
 				if (0 <= x && x < img!!.width && 0 <= y && y + config.pixelsPerLine < img!!.height) {
+					if(!hasColor)getColor(i).getRGBComponents(colorBuffer)
 					if (config.clean) {
 						renderClean(x, y, text[i].code, colorBuffer, scaleBuffer)
 					} else {
@@ -111,35 +115,25 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 		}
 	}
 
-	private fun getColor(hlIter: HighlighterIterator, colorBuffer: FloatArray){
+	private fun getColor(offset:Int):Color{
 		var color:Color? = null
-		try {
-			color = hlIter.textAttributes.foregroundColor
-		} catch (e: Exception) {
-			//
-		}
-		if (color == null){
-			val list = mutableListOf<RangeHighlighterEx>()
-			val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
-			editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(hlIter.start, hlIter.end) {
-				if (it.getTextAttributes(editor.colorsScheme) != TextAttributes.ERASE_MARKER)
-					HighlightInfo.fromRangeHighlighter(it)?.let { highlightInfo ->
-						if (highlightInfo.severity.myVal < minSeverity.myVal) {
-							list.add(it)
-						}
-					}
-				return@processRangeHighlightersOverlappingWith true
+		val list = mutableListOf<RangeHighlighterEx>()
+		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(max(0, offset - 1),offset) {
+			if (it.isValid && it.getTextAttributes (editor.colorsScheme) != TextAttributes.ERASE_MARKER &&
+				(it.targetArea == HighlighterTargetArea.LINES_IN_RANGE || it.startOffset < offset)) {
+				list.add(it)
 			}
-			list.apply {
-				if(this.size > 1) ContainerUtil.quickSort(this,IterationState.createByLayerThenByAttributesComparator(editor.colorsScheme))
-			}.forEach{
-				it.getTextAttributes(editor.colorsScheme)?.foregroundColor?.run {
-					color = this
-					return@forEach
-				}
+			return@processRangeHighlightersOverlappingWith true
+		}
+		list.apply {
+			if(this.size > 1) ContainerUtil.quickSort(this,IterationState.createByLayerThenByAttributesComparator(editor.colorsScheme))
+		}.forEach{
+			it.getTextAttributes(editor.colorsScheme)?.foregroundColor?.run {
+				color = this
+				return@forEach
 			}
 		}
-		(color?:editor.colorsScheme.defaultForeground).getRGBComponents(colorBuffer)
+		return color?:editor.colorsScheme.defaultForeground
 	}
 
 	private fun renderClean(x: Int, y: Int, char: Int, color: FloatArray, buffer: FloatArray) {
