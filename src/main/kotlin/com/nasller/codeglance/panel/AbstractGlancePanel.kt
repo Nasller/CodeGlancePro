@@ -143,8 +143,7 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
 
     protected fun drawMarkupLine(it: RangeHighlighter, g: Graphics2D){
         val textAttributes = it.getTextAttributes(editor.colorsScheme)
-        g.color = it.getErrorStripeMarkColor(editor.colorsScheme) ?: textAttributes?.errorStripeColor
-                ?: textAttributes?.backgroundColor
+        g.color = it.getErrorStripeMarkColor(editor.colorsScheme) ?: textAttributes?.backgroundColor
                 ?: textAttributes?.foregroundColor ?: return
         val documentLine = getDocumentRenderLine(editor.document.getLineNumber(it.startOffset), editor.document.getLineNumber(it.endOffset))
         val start = editor.offsetToVisualPosition(it.startOffset)
