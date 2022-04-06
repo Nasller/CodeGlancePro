@@ -145,7 +145,8 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
         val textAttributes = it.getTextAttributes(editor.colorsScheme)
         g.color = it.getErrorStripeMarkColor(editor.colorsScheme) ?: textAttributes?.backgroundColor
                 ?: textAttributes?.foregroundColor ?: return
-        val documentLine = getDocumentRenderLine(editor.document.getLineNumber(it.startOffset), editor.document.getLineNumber(it.endOffset))
+        val documentLine = getDocumentRenderLine(editor.document.getLineNumber(it.startOffset),
+            editor.document.getLineNumber(if(it.endOffset > editor.document.textLength) editor.document.textLength else it.endOffset))
         val start = editor.offsetToVisualPosition(it.startOffset)
         val end = editor.offsetToVisualPosition(it.endOffset)
         val sX = if (start.column > (width - 15)) width - 15 else start.column
