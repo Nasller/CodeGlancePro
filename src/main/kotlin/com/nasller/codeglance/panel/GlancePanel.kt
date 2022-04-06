@@ -164,9 +164,9 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
 
     override fun paintErrorStripes(g: Graphics2D) {
         g.composite = srcOver1
+        val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
         editor.filteredDocumentMarkupModel.allHighlighters.forEach {
             val info = HighlightInfo.fromRangeHighlighter(it) ?: return
-            val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
             if (info.severity.myVal > minSeverity.myVal) {
                 drawMarkupLine(it, g)
             }
