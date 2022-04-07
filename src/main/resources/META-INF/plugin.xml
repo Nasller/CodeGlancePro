@@ -19,6 +19,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.2.6</h3>
+		<ul>
+			<li>optimize code,fix config</li>
+		</ul>
 		<h3>1.2.5</h3>
 		<ul>
 			<li>feature: support markup highlights</li>
