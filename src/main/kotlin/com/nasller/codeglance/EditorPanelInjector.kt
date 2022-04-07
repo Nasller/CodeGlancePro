@@ -69,7 +69,7 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         val panel = getPanel(editor) ?: return
         val innerLayout = panel.layout as BorderLayout
         val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
-        if (innerLayout.getLayoutComponent(where) == null) {
+        if (innerLayout.getLayoutComponent(where) == null && !config.disabled) {
             val glancePanel = GlancePanel(project, editor)
             panel.add(glancePanel, where)
         }
