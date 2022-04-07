@@ -78,7 +78,7 @@
         </constraints>
         <properties>
           <labelFor value="b040b"/>
-          <text value="Viewport Color"/>
+          <text value="Viewport Color:"/>
         </properties>
       </component>
       <component id="b040b" class="javax.swing.JTextField" binding="viewportColor">
@@ -118,7 +118,7 @@
         </constraints>
         <properties>
           <labelFor value="2c8ac"/>
-          <text value="Render Style"/>
+          <text value="Render Style:"/>
         </properties>
       </component>
       <component id="2c8ac" class="javax.swing.JComboBox" binding="renderStyle">
@@ -138,7 +138,7 @@
         </constraints>
         <properties>
           <labelFor value="346be"/>
-          <text value="Alignment (restart)"/>
+          <text value="Alignment:"/>
         </properties>
       </component>
       <component id="346be" class="javax.swing.JComboBox" binding="alignment">

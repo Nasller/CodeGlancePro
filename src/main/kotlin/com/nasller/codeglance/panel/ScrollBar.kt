@@ -28,7 +28,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, private val panel: AbstractGlancePanel<*>) : JPanel() {
+class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, private val panel: AbstractGlancePanel) : JPanel() {
     private val editor = textEditor.editor as EditorImpl
     private val defaultCursor = Cursor(Cursor.DEFAULT_CURSOR)
 

@@ -18,7 +18,7 @@ import kotlin.math.max
 /**
  * A rendered minimap of a document
  */
-class Minimap(private val config: Config, private val glancePanel: AbstractGlancePanel<*>) {
+class Minimap(private val config: Config, private val glancePanel: AbstractGlancePanel) {
 	var img: BufferedImage? = null
 	private val editor = glancePanel.editor
 

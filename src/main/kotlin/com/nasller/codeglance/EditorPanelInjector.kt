@@ -1,6 +1,5 @@
 package com.nasller.codeglance
 
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileEditor.*
@@ -69,11 +68,7 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
     private fun inject(editor: TextEditor) {
         val panel = getPanel(editor) ?: return
         val innerLayout = panel.layout as BorderLayout
-
-        val where = if (config.isRightAligned)
-            BorderLayout.LINE_END
-        else
-            BorderLayout.LINE_START
+        val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
         if (innerLayout.getLayoutComponent(where) == null) {
             val glancePanel = GlancePanel(project, editor)
             panel.add(glancePanel, where)
@@ -90,28 +85,25 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
                 if(ignore == null || ignore.file?.path != editor.file?.path){
                     val panel = getPanel(editor) ?: continue
                     val innerLayout = panel.layout as BorderLayout
-                    val where = if (config.isRightAligned)
-                        BorderLayout.LINE_END
-                    else
-                        BorderLayout.LINE_START
-                    val layoutComponent = innerLayout.getLayoutComponent(where)
-                    if(disable){
-                        if(layoutComponent != null && layoutComponent is AbstractGlancePanel<*>){
-                            panel.remove(layoutComponent)
-                            Disposer.dispose(layoutComponent as Disposable)
-                        }
-                    }else {
-                        if (layoutComponent != null && layoutComponent is AbstractGlancePanel<*>) {
-                            panel.remove(layoutComponent)
-                            Disposer.dispose(layoutComponent as Disposable)
-                        }
+                    val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
+                    innerLayout.getLayoutComponent(BorderLayout.LINE_END)?.removeComponent(panel)
+                    innerLayout.getLayoutComponent(BorderLayout.LINE_START)?.removeComponent(panel)
+                    if(!disable){
                         val glancePanel = GlancePanel(project, editor)
                         panel.add(glancePanel, where)
+                        glancePanel.updateImageSoon()
                     }
                 }
             }
         }catch (e:Exception){
             logger.error(e)
+        }
+    }
+
+    private fun Component.removeComponent(panel: JPanel){
+        if (this is AbstractGlancePanel) {
+            panel.remove(this)
+            Disposer.dispose(this)
         }
     }
 }

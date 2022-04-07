@@ -23,9 +23,11 @@ import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 import com.nasller.codeglance.render.Minimap
 import com.nasller.codeglance.util.attributesImpactForegroundColor
 import java.awt.Graphics2D
+import java.awt.image.BufferedImage
 import java.lang.ref.SoftReference
 
-class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePanel<Minimap>(project,textEditor) {
+class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePanel(project,textEditor) {
+    private var mapRef = SoftReference<Minimap>(null)
     init {
         Disposer.register(textEditor, this)
         scrollbar = ScrollBar(textEditor, scrollState,this)
@@ -57,6 +59,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
             override fun caretAdded(event: CaretEvent) = repaint()
             override fun caretRemoved(event: CaretEvent) = repaint()
         },this)
+        Disposer.register(this){mapRef.clear()}
         refresh()
     }
 
@@ -173,7 +176,15 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         }
     }
 
-    override fun getOrCreateMap() : Minimap {
+    override fun getDrawImage() : BufferedImage?{
+        val minimap = mapRef.get()
+        return if(minimap == null || (minimap.img == null)){
+            updateImageSoon()
+            null
+        }else minimap.img
+    }
+
+    private fun getOrCreateMap() : Minimap {
         var map = mapRef.get()
         if (map == null) {
             map = Minimap(config,this)

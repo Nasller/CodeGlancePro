@@ -18,19 +18,16 @@ import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.Config
 import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
-import com.nasller.codeglance.render.Minimap
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.awt.image.BufferedImage
-import java.lang.ref.SoftReference
 import javax.swing.JPanel
 
-sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: TextEditor) : JPanel(), Disposable {
+sealed class AbstractGlancePanel(private val project: Project, textEditor: TextEditor) : JPanel(), Disposable {
     val editor = textEditor.editor as EditorEx
-    protected var mapRef = SoftReference<T>(null)
     protected val config: Config = ConfigInstance.state
     protected val renderLock = DirtyLock()
     protected val scrollState = ScrollState()
@@ -102,7 +99,7 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
         }
     }
 
-    protected fun updateImageSoon() = ApplicationManager.getApplication().invokeLater(this::updateImage)
+    fun updateImageSoon() = ApplicationManager.getApplication().invokeLater(this::updateImage)
 
     /**
      * Fires off a new task to the worker thread. This should only be called from the ui thread.
@@ -116,7 +113,6 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
 
     private fun paintLast(gfx: Graphics?) {
         val g = gfx as Graphics2D
-
         buf?.run{ g.drawImage(this,0, 0, width, height, 0, 0, width, height,null) }
         paintSelections(g)
         paintVcs(g)
@@ -193,11 +189,7 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
             paintLast(gfx)
             return
         }
-        val get = mapRef.get()
-        if (get == null) {
-            updateImageSoon()
-            return
-        }
+        val img = getDrawImage() ?: return
         if (buf == null || buf?.width!! < width || buf?.height!! < height) {
             buf = ImageUtil.createImage(graphicsConfiguration,width, height, BufferedImage.TYPE_4BYTE_ABGR)
         }
@@ -206,15 +198,8 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
         g.fillRect(0, 0, width, height)
         g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
         if (editor.document.textLength != 0) {
-            g.drawImage(
-                when (get) {
-                    is Minimap -> {get.img!!}
-                    else -> throw RuntimeException("error img")
-                },
-                0, 0, scrollState.documentWidth, scrollState.drawHeight,
-                0, scrollState.visibleStart, scrollState.documentWidth, scrollState.visibleEnd,
-                null
-            )
+            g.drawImage(img, 0, 0, scrollState.documentWidth, scrollState.drawHeight,
+                0, scrollState.visibleStart, scrollState.documentWidth, scrollState.visibleEnd, null)
         }
         paintVcs(gfx as Graphics2D)
         paintSelections(gfx)
@@ -225,7 +210,7 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
         scrollbar!!.paint(gfx)
     }
 
-    abstract fun getOrCreateMap() : T
+    abstract fun getDrawImage() : BufferedImage?
 
     override fun dispose() {
         editor.contentComponent.removeComponentListener(componentListener)
@@ -233,7 +218,6 @@ sealed class AbstractGlancePanel<T>(private val project: Project, textEditor: Te
         editor.scrollingModel.removeVisibleAreaListener(areaListener)
         editor.selectionModel.removeSelectionListener(selectionListener)
         scrollbar?.let {remove(it)}
-        mapRef.clear()
     }
 
     protected companion object{
