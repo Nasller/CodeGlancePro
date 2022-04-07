@@ -50,7 +50,7 @@ sealed class AbstractGlancePanel(private val project: Project, textEditor: TextE
         }
     }
     private val isDisabled: Boolean
-        get() = editor.document.textLength > PersistentFSConstants.getMaxIntellisenseFileSize() || editor.document.lineCount < config.minLineCount
+        get() = config.disabled && editor.document.textLength > PersistentFSConstants.getMaxIntellisenseFileSize() || editor.document.lineCount < config.minLineCount
                 || (parent != null && (parent.width == 0 || parent.width < config.minWindowWidth))
     private var buf: BufferedImage? = null
     protected var scrollbar:ScrollBar? = null
