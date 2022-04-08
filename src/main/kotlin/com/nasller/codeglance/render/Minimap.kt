@@ -18,7 +18,7 @@ import kotlin.math.max
 /**
  * A rendered minimap of a document
  */
-class Minimap(private val config: Config, private val glancePanel: AbstractGlancePanel) {
+class Minimap(private val config: Config, glancePanel: AbstractGlancePanel) {
 	var img: BufferedImage? = null
 	private val editor = glancePanel.editor
 
@@ -28,7 +28,7 @@ class Minimap(private val config: Config, private val glancePanel: AbstractGlanc
 			if (img != null) img!!.flush()
 			// Create an image that is a bit bigger then the one we need, so we don't need to re-create it again soon.
 			// Documents can get big, so rather than relative sizes lets just add a fixed amount on.
-			img = ImageUtil.createImage(glancePanel.graphicsConfiguration,config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
+			img = ImageUtil.createImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 		}
 
 		val g = img!!.createGraphics()
