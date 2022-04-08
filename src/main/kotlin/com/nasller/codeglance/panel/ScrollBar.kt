@@ -32,7 +32,7 @@ import kotlin.math.roundToInt
 class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, private val panel: AbstractGlancePanel) : JPanel() {
     private val editor = textEditor.editor as EditorImpl
     private val defaultCursor = Cursor(Cursor.DEFAULT_CURSOR)
-    private val myPopHandler = CustomDaemonEditorPopup(panel.project,editor)
+    private val myPopHandler = CustomScrollBarPopup(panel.project,editor)
 
     private var visibleRectAlpha = DEFAULT_ALPHA
         set(value) {

@@ -21,7 +21,7 @@ import com.intellij.util.ui.UIUtil
 import java.awt.Component
 import java.awt.Point
 
-class CustomDaemonEditorPopup(private val myProject: Project,private val myEditor: Editor) : PopupHandler() {
+class CustomScrollBarPopup(private val myProject: Project, private val myEditor: Editor) : PopupHandler() {
 
     override fun invokePopup(comp: Component?, x: Int, y: Int) {
         if (ApplicationManager.getApplication() == null) return
