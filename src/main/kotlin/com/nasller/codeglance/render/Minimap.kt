@@ -2,7 +2,6 @@ package com.nasller.codeglance.render
 
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.view.IterationState
-import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.util.containers.ContainerUtil
@@ -119,8 +118,7 @@ class Minimap(private val config: Config, glancePanel: AbstractGlancePanel) {
 		var color:Color? = null
 		val list = mutableListOf<RangeHighlighterEx>()
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(max(0, offset - 1),offset) {
-			if (it.isValid && it.getTextAttributes (editor.colorsScheme) != TextAttributes.ERASE_MARKER &&
-				(it.targetArea == HighlighterTargetArea.LINES_IN_RANGE || it.startOffset < offset)) {
+			if (it.isValid && it.getTextAttributes (editor.colorsScheme) != TextAttributes.ERASE_MARKER) {
 				list.add(it)
 			}
 			return@processRangeHighlightersOverlappingWith true
