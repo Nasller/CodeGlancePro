@@ -138,7 +138,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         return Pair(startAdd,endAdd)
     }
 
-    protected fun drawMarkupLine(it: RangeHighlighter, g: Graphics2D){
+    protected fun drawMarkupLine(it: RangeHighlighter, g: Graphics2D,compensateLine:Boolean){
         val textAttributes = it.getTextAttributes(editor.colorsScheme)
         g.color = it.getErrorStripeMarkColor(editor.colorsScheme) ?: textAttributes?.backgroundColor
                 ?: textAttributes?.foregroundColor ?: return
@@ -152,7 +152,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         val collapsed = editor.foldingModel.isOffsetCollapsed(it.startOffset)
         if (sY == eY && !collapsed) {
             val gap = eX - sX
-            if(gap < minGap){
+            if(compensateLine && gap < minGap){
                 eX += minGap-gap
                 if(eX > width) sX -= eX - width
             }

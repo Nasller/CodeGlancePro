@@ -158,7 +158,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
             val key = (it.startOffset+it.endOffset).toString()
             val layer = map.value[key]
             if(layer == null || layer < it.layer){
-                drawMarkupLine(it,g)
+                drawMarkupLine(it,g,false)
                 map.value[key] = it.layer
             }
             return@processRangeHighlightersOverlappingWith true
@@ -171,7 +171,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         editor.filteredDocumentMarkupModel.allHighlighters.forEach {
             val info = HighlightInfo.fromRangeHighlighter(it) ?: return
             if (info.severity.myVal > minSeverity.myVal) {
-                drawMarkupLine(it, g)
+                drawMarkupLine(it, g,true)
             }
         }
     }
