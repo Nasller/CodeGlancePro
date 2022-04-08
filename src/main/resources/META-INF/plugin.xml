@@ -19,6 +19,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.2.7</h3>
+		<ul>
+			<li>feature: right click to quick config</li>
+		</ul>
 		<h3>1.2.6</h3>
 		<ul>
 			<li>feature: support hide original scrollBar(should scroll once)</li>

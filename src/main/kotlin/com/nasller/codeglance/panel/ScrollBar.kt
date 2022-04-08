@@ -2,6 +2,7 @@ package com.nasller.codeglance.panel
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
+import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.ex.MarkupModelEx
@@ -31,6 +32,7 @@ import kotlin.math.roundToInt
 class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, private val panel: AbstractGlancePanel) : JPanel() {
     private val editor = textEditor.editor as EditorImpl
     private val defaultCursor = Cursor(Cursor.DEFAULT_CURSOR)
+    private val myPopHandler = CustomDaemonEditorPopup(panel.project,editor)
 
     private var visibleRectAlpha = DEFAULT_ALPHA
         set(value) {
@@ -52,6 +54,7 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
         addMouseListener(mouseHandler)
         addMouseWheelListener(mouseHandler)
         addMouseMotionListener(mouseHandler)
+        addMouseListener(myPopHandler)
     }
 
     private fun isInResizeGutter(x: Int): Boolean {
@@ -159,9 +162,9 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
                 cursor = if (config.isRightAligned) Cursor(Cursor.W_RESIZE_CURSOR) else Cursor(Cursor.E_RESIZE_CURSOR)
             } else {
                 cursor = defaultCursor
-                val enabled = (if(DocRenderEnabled != null){
+                val enabled = UISettings.instance.showEditorToolTip && ((if(DocRenderEnabled != null){
                     !(editor.getUserData(DocRenderEnabled)?:false)
-                }else true) || textEditor.file?.isWritable?:false
+                }else true) || textEditor.file?.isWritable?:false)
                 if (e.x > 10 && !resizing && !dragging && !isInRect(e.y) && enabled && e.y < scrollState.drawHeight) {
                     showToolTipByMouseMove(e)
                     return

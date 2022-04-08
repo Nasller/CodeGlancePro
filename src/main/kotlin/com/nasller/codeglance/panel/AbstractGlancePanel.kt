@@ -26,7 +26,7 @@ import java.awt.event.ComponentListener
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
 
-sealed class AbstractGlancePanel(private val project: Project, textEditor: TextEditor) : JPanel(), Disposable {
+sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) : JPanel(), Disposable {
     val editor = textEditor.editor as EditorEx
     val originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
     protected val config: Config = ConfigInstance.state
