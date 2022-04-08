@@ -144,12 +144,17 @@ sealed class AbstractGlancePanel(private val project: Project, textEditor: TextE
         val documentLine = getDocumentRenderLine(editor.offsetToLogicalPosition(it.startOffset).line, editor.offsetToLogicalPosition(it.endOffset).line)
         val start = editor.offsetToVisualPosition(it.startOffset)
         val end = editor.offsetToVisualPosition(it.endOffset)
-        val sX = if (start.column > (width - 15)) width - 15 else start.column
+        var sX = if (start.column > (width - minGap)) width - minGap else start.column
         val sY = (start.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
-        val eX = if (start.column < (width - 15)) end.column + 1 else width
+        var eX = if (start.column < (width - minGap)) end.column + 1 else width
         val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
         val collapsed = editor.foldingModel.isOffsetCollapsed(it.startOffset)
         if (sY == eY && !collapsed) {
+            val gap = eX - sX
+            if(gap < minGap){
+                eX += minGap-gap
+                if(eX > width) sX -= eX - width
+            }
             g.fillRect(sX, sY, eX - sX, config.pixelsPerLine)
         } else if(collapsed){
             g.fillRect(0, sY, width / 2, config.pixelsPerLine)
@@ -221,6 +226,7 @@ sealed class AbstractGlancePanel(private val project: Project, textEditor: TextE
     }
 
     protected companion object{
+        const val minGap = 15
         val srcOver0_4: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.40f)
         val srcOver0_8: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
         val srcOver1: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)
