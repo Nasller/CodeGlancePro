@@ -29,8 +29,7 @@ class CustomScrollBarPopup(private val myProject: Project, private val myEditor:
         val actionGroup = DefaultActionGroup()
         actionGroup.add(createGotoGroup())
         actionGroup.addSeparator()
-        actionGroup.add(object :
-            DumbAwareAction(EditorBundle.messagePointer("customize.highlighting.level.menu.item")) {
+        actionGroup.add(object : DumbAwareAction(EditorBundle.messagePointer("customize.highlighting.level.menu.item")) {
             override fun actionPerformed(e: AnActionEvent) {
                 val popup = getConfigureHighlightingLevelPopup(e.dataContext)
                 popup?.show(RelativePoint(comp!!, Point(x, y)))
