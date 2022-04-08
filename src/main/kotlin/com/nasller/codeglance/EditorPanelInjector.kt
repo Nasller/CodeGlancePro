@@ -2,6 +2,7 @@ package com.nasller.codeglance
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.*
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
@@ -13,6 +14,7 @@ import com.nasller.codeglance.panel.AbstractGlancePanel
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.BorderLayout
 import java.awt.Component
+import java.awt.Dimension
 import javax.swing.JLayeredPane
 import javax.swing.JPanel
 
@@ -72,6 +74,11 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         if (innerLayout.getLayoutComponent(where) == null && !config.disabled) {
             val glancePanel = GlancePanel(project, editor)
             panel.add(glancePanel, where)
+            if(config.disableOriginalScrollBar && editor.editor is EditorEx){
+                val preferredSize = (editor.editor as EditorEx).scrollPane.verticalScrollBar.preferredSize
+                (editor.editor as EditorEx).scrollPane.verticalScrollBar.preferredSize = Dimension(0,preferredSize.height)
+                glancePanel.originalScrollbarWidth = preferredSize.width
+            }
         }
     }
 
@@ -86,12 +93,17 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
                     val panel = getPanel(editor) ?: continue
                     val innerLayout = panel.layout as BorderLayout
                     val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
-                    innerLayout.getLayoutComponent(BorderLayout.LINE_END)?.removeComponent(panel)
-                    innerLayout.getLayoutComponent(BorderLayout.LINE_START)?.removeComponent(panel)
+                    innerLayout.getLayoutComponent(BorderLayout.LINE_END)?.removeComponent(panel,editor)
+                    innerLayout.getLayoutComponent(BorderLayout.LINE_START)?.removeComponent(panel,editor)
                     if(!disable){
                         val glancePanel = GlancePanel(project, editor)
                         panel.add(glancePanel, where)
                         glancePanel.updateImageSoon()
+                        if(config.disableOriginalScrollBar && editor.editor is EditorEx){
+                            val preferredSize = (editor.editor as EditorEx).scrollPane.verticalScrollBar.preferredSize
+                            (editor.editor as EditorEx).scrollPane.verticalScrollBar.preferredSize = Dimension(0,preferredSize.height)
+                            glancePanel.originalScrollbarWidth = preferredSize.width
+                        }
                     }
                 }
             }
@@ -100,10 +112,14 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         }
     }
 
-    private fun Component.removeComponent(panel: JPanel){
+    private fun Component.removeComponent(panel: JPanel,editor: TextEditor){
         if (this is AbstractGlancePanel) {
             panel.remove(this)
             Disposer.dispose(this)
+            if(editor.editor is EditorEx){
+                val preferredSize = (editor.editor as EditorEx).scrollPane.verticalScrollBar.preferredSize
+                (editor.editor as EditorEx).scrollPane.verticalScrollBar.preferredSize = Dimension(this.originalScrollbarWidth,preferredSize.height)
+            }
         }
     }
 }

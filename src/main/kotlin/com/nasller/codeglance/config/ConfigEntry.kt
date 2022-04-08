@@ -37,6 +37,7 @@ class ConfigEntry : Configurable {
             || config.minWindowWidth != form!!.minWindowWidth
             || config.clean != form!!.cleanStyle
             || config.isRightAligned != form!!.isRightAligned
+            || config.disableOriginalScrollBar != form!!.isDisableOriginalScrollBar
     )
 
     @Throws(ConfigurationException::class)
@@ -57,6 +58,7 @@ class ConfigEntry : Configurable {
         config.minWindowWidth = form!!.minWindowWidth
         config.clean = form!!.cleanStyle
         config.isRightAligned = form!!.isRightAligned
+        config.disableOriginalScrollBar = form!!.isDisableOriginalScrollBar
         ApplicationManager.getApplication().invokeLater{
             SettingsChangePublisher.onRefreshChanged(config.disabled,null)
         }
@@ -75,6 +77,7 @@ class ConfigEntry : Configurable {
         form!!.minWindowWidth = config.minWindowWidth
         form!!.cleanStyle = config.clean
         form!!.isRightAligned = config.isRightAligned
+        form!!.isDisableOriginalScrollBar = config.disableOriginalScrollBar
     }
 
     override fun disposeUIResources() {

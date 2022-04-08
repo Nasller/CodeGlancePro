@@ -28,6 +28,7 @@ import javax.swing.JPanel
 
 sealed class AbstractGlancePanel(private val project: Project, textEditor: TextEditor) : JPanel(), Disposable {
     val editor = textEditor.editor as EditorEx
+    var originalScrollbarWidth = 0
     protected val config: Config = ConfigInstance.state
     protected val renderLock = DirtyLock()
     protected val scrollState = ScrollState()

@@ -1,20 +1,16 @@
 package com.nasller.codeglance
 
 import com.intellij.codeInsight.documentation.render.DocRenderManager
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManagerListener
 import com.intellij.openapi.util.Key
 
 class CodeGlancePlugin : ProjectManagerListener {
-    private val logger = Logger.getInstance(javaClass)
-
     override fun projectOpened(project: Project) {
         project.messageBus.connect().subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER,
             EditorPanelInjector(project)
         )
-        logger.debug("CodeGlance initialized")
     }
 
     companion object{

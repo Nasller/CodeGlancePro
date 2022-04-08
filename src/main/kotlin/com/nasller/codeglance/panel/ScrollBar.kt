@@ -162,7 +162,7 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
                 val enabled = (if(DocRenderEnabled != null){
                     !(editor.getUserData(DocRenderEnabled)?:false)
                 }else true) || textEditor.file?.isWritable?:false
-                if (!resizing && !dragging && !isInRect(e.y) && enabled && e.y < scrollState.drawHeight) {
+                if (e.x > 10 && !resizing && !dragging && !isInRect(e.y) && enabled && e.y < scrollState.drawHeight) {
                     showToolTipByMouseMove(e)
                     return
                 }
