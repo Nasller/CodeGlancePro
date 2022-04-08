@@ -74,10 +74,10 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         if (innerLayout.getLayoutComponent(where) == null && !config.disabled) {
             val glancePanel = GlancePanel(project, editor)
             panel.add(glancePanel, where)
-            if(config.disableOriginalScrollBar && editor.editor is EditorEx){
-                val preferredSize = (editor.editor as EditorEx).scrollPane.verticalScrollBar.preferredSize
-                (editor.editor as EditorEx).scrollPane.verticalScrollBar.preferredSize = Dimension(0,preferredSize.height)
-                glancePanel.originalScrollbarWidth = preferredSize.width
+            if(config.hideOriginalScrollBar && editor.editor is EditorEx){
+                (editor.editor as EditorEx).scrollPane.verticalScrollBar.run{
+                    this.preferredSize = Dimension(0,this.preferredSize.height)
+                }
             }
         }
     }
@@ -98,12 +98,12 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
                     if(!disable){
                         val glancePanel = GlancePanel(project, editor)
                         panel.add(glancePanel, where)
-                        glancePanel.updateImageSoon()
-                        if(config.disableOriginalScrollBar && editor.editor is EditorEx){
-                            val preferredSize = (editor.editor as EditorEx).scrollPane.verticalScrollBar.preferredSize
-                            (editor.editor as EditorEx).scrollPane.verticalScrollBar.preferredSize = Dimension(0,preferredSize.height)
-                            glancePanel.originalScrollbarWidth = preferredSize.width
+                        if(config.hideOriginalScrollBar && editor.editor is EditorEx){
+                            (editor.editor as EditorEx).scrollPane.verticalScrollBar.run{
+                                this.preferredSize = Dimension(0,this.preferredSize.height)
+                            }
                         }
+                        glancePanel.updateImageSoon()
                     }
                 }
             }
@@ -117,8 +117,9 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
             panel.remove(this)
             Disposer.dispose(this)
             if(editor.editor is EditorEx){
-                val preferredSize = (editor.editor as EditorEx).scrollPane.verticalScrollBar.preferredSize
-                (editor.editor as EditorEx).scrollPane.verticalScrollBar.preferredSize = Dimension(this.originalScrollbarWidth,preferredSize.height)
+                (editor.editor as EditorEx).scrollPane.verticalScrollBar.run{
+                    this.preferredSize = Dimension(this@removeComponent.originalScrollbarWidth,this.preferredSize.height)
+                }
             }
         }
     }

@@ -219,10 +219,10 @@
           </grid>
         </constraints>
         <properties>
-          <text value="Disable Original ScrollBar:"/>
+          <text value="Hide Original ScrollBar:"/>
         </properties>
       </component>
-      <component id="24642" class="javax.swing.JCheckBox" binding="disableOriginalScrollBar">
+      <component id="24642" class="javax.swing.JCheckBox" binding="hideOriginalScrollBar">
         <constraints>
           <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
         </constraints>

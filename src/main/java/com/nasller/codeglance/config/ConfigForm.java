@@ -25,7 +25,7 @@ public class ConfigForm {
     private JSpinner minWindowWidth;
     private JSpinner width;
     private JTextField viewportColor;
-    private JCheckBox disableOriginalScrollBar;
+    private JCheckBox hideOriginalScrollBar;
 
     public ConfigForm() {
         pixelsPerLine.setModel(new DefaultComboBoxModel(new Integer[]{1, 2, 3, 4}));
@@ -116,12 +116,12 @@ public class ConfigForm {
         disabled.getModel().setSelected(isDisabled);
     }
 
-    public boolean isDisableOriginalScrollBar() {
-        return disableOriginalScrollBar.getModel().isSelected();
+    public boolean isHideOriginalScrollBar() {
+        return hideOriginalScrollBar.getModel().isSelected();
     }
 
-    public void setDisableOriginalScrollBar(boolean isDisabled) {
-        disableOriginalScrollBar.getModel().setSelected(isDisabled);
+    public void setHideOriginalScrollBar(boolean isDisabled) {
+        hideOriginalScrollBar.getModel().setSelected(isDisabled);
     }
 
     public boolean isLocked() {

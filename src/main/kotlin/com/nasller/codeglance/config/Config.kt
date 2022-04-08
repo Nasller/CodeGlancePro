@@ -13,11 +13,7 @@ class Config {
             SettingsChangePublisher.onRefreshChanged(newValue,null)
         }
     }
-    var disableOriginalScrollBar: Boolean by Delegates.observable(false) { _, oldValue: Boolean, newValue: Boolean ->
-        if (oldValue != newValue) {
-            SettingsChangePublisher.onRefreshChanged(newValue,null)
-        }
-    }
+    var hideOriginalScrollBar: Boolean = false
     var jumpOnMouseDown: Boolean = true
     var width: Int = 110
     var viewportColor: String = "A0A0A0"

@@ -21,7 +21,7 @@
 	<change-notes><![CDATA[
 		<h3>1.2.6</h3>
 		<ul>
-			<li>feature: support hide original scrollBar</li>
+			<li>feature: support hide original scrollBar(should scroll once)</li>
 			<li>optimize code,fix config</li>
 			<li>fix the min error stripes</li>
 		</ul>
