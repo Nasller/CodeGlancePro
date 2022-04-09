@@ -5,7 +5,6 @@ import com.intellij.openapi.editor.impl.view.IterationState
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.util.containers.ContainerUtil
-import com.intellij.util.ui.ImageUtil
 import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.config.Config
 import com.nasller.codeglance.panel.AbstractGlancePanel
@@ -38,7 +37,8 @@ class Minimap(private val config: Config, glancePanel: AbstractGlancePanel) {
 		val colorBuffer = FloatArray(4)
 		val scaleBuffer = FloatArray(4)
 
-		val text = editor.document.charsSequence
+		val text = editor.document.immutableCharSequence
+		val defaultColor = editor.colorsScheme.defaultForeground
 		val line = editor.document.createLineIterator()
 		val hlIter = editor.highlighter.createIterator(0)
 
@@ -50,15 +50,11 @@ class Minimap(private val config: Config, glancePanel: AbstractGlancePanel) {
 		while (!hlIter.atEnd()) {
 			val tokenStart = hlIter.start
 			var i = tokenStart
-			var hasColor = false
 			line.start(tokenStart)
 			y = (line.lineNumber - foldedLines) * config.pixelsPerLine
-			try {
-				hlIter.textAttributes.foregroundColor?.let {
-					it.getRGBComponents(colorBuffer)
-					hasColor = true
-				}
-			} catch (_: Exception){ }
+			val color = try {
+				hlIter.textAttributes.foregroundColor
+			} catch (_: Exception){ null }
 			// Jump over folds
 			val checkFold = {
 				var isFolded = editor.foldingModel.isOffsetCollapsed(i)
@@ -98,7 +94,7 @@ class Minimap(private val config: Config, glancePanel: AbstractGlancePanel) {
 					else -> x += 1
 				}
 				if (0 <= x && x < img!!.width && 0 <= y && y + config.pixelsPerLine < img!!.height) {
-					if(!hasColor)getColor(i).getRGBComponents(colorBuffer)
+					(getHighlightColor(i)?:color?:defaultColor).getRGBComponents(colorBuffer)
 					if (config.clean) {
 						renderClean(x, y, text[i].code, colorBuffer, scaleBuffer)
 					} else {
@@ -114,7 +110,7 @@ class Minimap(private val config: Config, glancePanel: AbstractGlancePanel) {
 		}
 	}
 
-	private fun getColor(offset:Int):Color{
+	private fun getHighlightColor(offset:Int):Color?{
 		var color:Color? = null
 		val list = mutableListOf<RangeHighlighterEx>()
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(max(0, offset - 1),offset) {
@@ -131,7 +127,7 @@ class Minimap(private val config: Config, glancePanel: AbstractGlancePanel) {
 				return@forEach
 			}
 		}
-		return color?:editor.colorsScheme.defaultForeground
+		return color
 	}
 
 	private fun renderClean(x: Int, y: Int, char: Int, color: FloatArray, buffer: FloatArray) {
