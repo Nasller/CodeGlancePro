@@ -16,7 +16,6 @@ import java.util.regex.Pattern;
 public class ConfigForm {
     private JCheckBox disabled;
     private JCheckBox locked;
-    private JComboBox alignment;
     private JComboBox jumpToPosition;
     private JComboBox pixelsPerLine;
     private JComboBox renderStyle;
@@ -90,7 +89,6 @@ public class ConfigForm {
             // Cyclic Scroll
             // comboBox.setSelectedIndex(Math.abs((comboBox.getSelectedIndex() + e.getWheelRotation()) % comboBox.getItemCount()));
         };
-        alignment.addMouseWheelListener(scrollListener);
         jumpToPosition.addMouseWheelListener(scrollListener);
         pixelsPerLine.addMouseWheelListener(scrollListener);
         renderStyle.addMouseWheelListener(scrollListener);
@@ -154,14 +152,6 @@ public class ConfigForm {
 
     public void setCleanStyle(boolean isClean) {
         renderStyle.setSelectedIndex(isClean ? 0 : 1);
-    }
-
-    public boolean isRightAligned() {
-        return alignment.getSelectedIndex() == 0;
-    }
-
-    public void setRightAligned(boolean isRightAligned) {
-        alignment.setSelectedIndex(isRightAligned ? 0 : 1);
     }
 
     public int getWidth() {
@@ -257,12 +247,9 @@ public class ConfigForm {
         final JLabel label8 = new JLabel();
         label8.setText("Alignment (restart)");
         rootPanel.add(label8, new GridConstraints(8, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        alignment = new JComboBox();
         final DefaultComboBoxModel defaultComboBoxModel3 = new DefaultComboBoxModel();
         defaultComboBoxModel3.addElement("Right");
         defaultComboBoxModel3.addElement("Left");
-        alignment.setModel(defaultComboBoxModel3);
-        rootPanel.add(alignment, new GridConstraints(8, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JLabel label9 = new JLabel();
         label9.setText("Minimum Window Width:");
         rootPanel.add(label9, new GridConstraints(6, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
@@ -279,7 +266,6 @@ public class ConfigForm {
         label5.setLabelFor(viewportColor);
         label6.setLabelFor(minLinesCount);
         label7.setLabelFor(renderStyle);
-        label8.setLabelFor(alignment);
         label9.setLabelFor(minWindowWidth);
     }
 

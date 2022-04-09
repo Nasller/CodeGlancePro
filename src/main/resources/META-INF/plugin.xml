@@ -19,6 +19,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.2.8</h3>
+		<ul>
+			<li>feature: hide original scrollbar support new vcs line and click</li>
+		</ul>
 		<h3>1.2.7</h3>
 		<ul>
 			<li>feature: right click to quick config</li>

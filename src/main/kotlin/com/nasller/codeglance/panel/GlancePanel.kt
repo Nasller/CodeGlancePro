@@ -30,7 +30,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
     private var mapRef = SoftReference<Minimap>(null)
     init {
         Disposer.register(textEditor, this)
-        scrollbar = ScrollBar(textEditor, scrollState,this)
+        scrollbar = ScrollBar(textEditor,this)
         add(scrollbar)
         editor.foldingModel.addListener(object : FoldingListener {
             override fun onFoldRegionStateChange(region: FoldRegion) = updateImage()
@@ -60,6 +60,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
             override fun caretRemoved(event: CaretEvent) = repaint()
         },this)
         Disposer.register(this){mapRef.clear()}
+        if(config.hideOriginalScrollBar) myVcsPanel = MyVcsPanel(this)
         refresh()
     }
 
@@ -83,28 +84,29 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
 
     override fun paintVcs(g: Graphics2D) {
         val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> !isCustomFoldRegionImpl(fold) && !fold.isExpanded &&
-                fold.startOffset >= 0 && fold.endOffset >= 0}
+                fold.startOffset >= 0 && fold.endOffset >= 0 }
+        val srcOver = if(config.hideOriginalScrollBar) srcOver else srcOver0_4
         trackerManager.getLineStatusTracker(editor.document)?.getRanges()?.run {
-            g.composite = srcOver0_4
-            forEach{
+            g.composite = srcOver
+            forEach {
                 if (it !is LocalRange || it.changelistId == changeListManager.defaultChangeList.id) {
                     g.color = LineStatusMarkerDrawUtil.getGutterColor(it.type, editor)
-                    val documentLine = getDocumentRenderLine(it.line1,it.line2)
+                    val documentLine = getDocumentRenderLine(it.line1, it.line2)
                     var visualLine1 = EditorUtil.logicalToVisualLine(editor, it.line1)
                     var visualLine2 = EditorUtil.logicalToVisualLine(editor, it.line2)
-                    foldRegions.forEach{ fold->
-                        if(editor.document.getLineNumber(fold.startOffset) <= it.line1 &&
+                    foldRegions.forEach { fold ->
+                        if (editor.document.getLineNumber(fold.startOffset) <= it.line1 &&
                             it.line2 <= editor.document.getLineNumber(fold.endOffset)
                         ) visualLine2 = visualLine1 + 1
                     }
-                    if(it.line1 != it.line2 && visualLine1 == visualLine2){
-                        val realLine1 = editor.visualToLogicalPosition(VisualPosition(visualLine1,0)).line
-                        val realLine2 = editor.visualToLogicalPosition(VisualPosition(visualLine2,0)).line
+                    if (it.line1 != it.line2 && visualLine1 == visualLine2) {
+                        val realLine1 = editor.visualToLogicalPosition(VisualPosition(visualLine1, 0)).line
+                        val realLine2 = editor.visualToLogicalPosition(VisualPosition(visualLine2, 0)).line
                         visualLine1 += it.line1 - realLine1
                         visualLine2 += it.line2 - realLine2
                     }
-                    val start = (visualLine1+documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
-                    val end = (visualLine2+documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
+                    val start = (visualLine1 + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
+                    val end = (visualLine2 + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
                     g.fillRect(0, start, width, config.pixelsPerLine)
                     g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
                 }
@@ -122,7 +124,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         val eX = end.column + 1
         val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
 
-        g.composite = srcOver1
+        g.composite = srcOver
         g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
         // Single line is real easy
         if (start.line == end.line) {
@@ -140,7 +142,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
     }
 
     override fun paintCaretPosition(g: Graphics2D) {
-        g.composite = srcOver1
+        g.composite = srcOver
         editor.caretModel.allCarets.forEach{
             g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
             val documentLine = getDocumentRenderLine(it.logicalPosition.line,it.logicalPosition.line)
@@ -153,7 +155,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
 
     override fun paintOtherHighlight(g: Graphics2D) {
         val map = lazy{ hashMapOf<String,Int>() }
-        g.composite = srcOver1
+        g.composite = srcOver
         editor.markupModel.processRangeHighlightersOverlappingWith(0, editor.document.textLength) {
             val key = (it.startOffset+it.endOffset).toString()
             val layer = map.value[key]
@@ -166,7 +168,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
     }
 
     override fun paintErrorStripes(g: Graphics2D) {
-        g.composite = srcOver1
+        g.composite = srcOver
         val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
         editor.filteredDocumentMarkupModel.allHighlighters.forEach {
             val info = HighlightInfo.fromRangeHighlighter(it) ?: return

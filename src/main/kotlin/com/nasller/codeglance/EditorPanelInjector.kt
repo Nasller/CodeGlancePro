@@ -70,10 +70,9 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
     private fun inject(editor: TextEditor) {
         val panel = getPanel(editor) ?: return
         val innerLayout = panel.layout as BorderLayout
-        val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
+        val where = BorderLayout.LINE_END
         if (innerLayout.getLayoutComponent(where) == null && !config.disabled) {
-            val glancePanel = GlancePanel(project, editor)
-            panel.add(glancePanel, where)
+            panel.add(getMyPanel(editor), where)
             if(config.hideOriginalScrollBar && editor.editor is EditorEx){
                 (editor.editor as EditorEx).scrollPane.verticalScrollBar.run{
                     this.preferredSize = Dimension(0,this.preferredSize.height)
@@ -92,18 +91,20 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
                 if(ignore == null || ignore.file?.path != editor.file?.path){
                     val panel = getPanel(editor) ?: continue
                     val innerLayout = panel.layout as BorderLayout
-                    val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
-                    innerLayout.getLayoutComponent(BorderLayout.LINE_END)?.removeComponent(panel,editor)
-                    innerLayout.getLayoutComponent(BorderLayout.LINE_START)?.removeComponent(panel,editor)
+                    val where = BorderLayout.LINE_END
+                    innerLayout.getLayoutComponent(where)?.removeComponent(panel,editor)
                     if(!disable){
-                        val glancePanel = GlancePanel(project, editor)
-                        panel.add(glancePanel, where)
+                        val myPanel = getMyPanel(editor)
+                        panel.add(myPanel, where)
                         if(config.hideOriginalScrollBar && editor.editor is EditorEx){
                             (editor.editor as EditorEx).scrollPane.verticalScrollBar.run{
                                 this.preferredSize = Dimension(0,this.preferredSize.height)
                             }
                         }
-                        glancePanel.updateImageSoon()
+                        when(myPanel){
+                            is MyPanel -> myPanel.panel.updateImageSoon()
+                            is AbstractGlancePanel -> myPanel.updateImageSoon()
+                        }
                     }
                 }
             }
@@ -112,15 +113,31 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         }
     }
 
+    private fun getMyPanel(editor: TextEditor): JPanel {
+        val glancePanel = GlancePanel(project, editor)
+        return if(config.hideOriginalScrollBar && editor.file?.isWritable == true) MyPanel(glancePanel).apply {
+            glancePanel.myVcsPanel?.let{ add(it, BorderLayout.WEST) }
+        } else glancePanel
+    }
+
     private fun Component.removeComponent(panel: JPanel,editor: TextEditor){
-        if (this is AbstractGlancePanel) {
-            panel.remove(this)
-            Disposer.dispose(this)
+        panel.remove(this)
+        val myPanel = if (this is MyPanel) this.panel else if(this is AbstractGlancePanel) this else null
+        myPanel?.let {
+            Disposer.dispose(it)
             if(editor.editor is EditorEx){
                 (editor.editor as EditorEx).scrollPane.verticalScrollBar.run{
-                    this.preferredSize = Dimension(this@removeComponent.originalScrollbarWidth,this.preferredSize.height)
+                    this.preferredSize = Dimension(myPanel.originalScrollbarWidth,this.preferredSize.height)
                 }
             }
+        }
+    }
+
+    private class MyPanel(val panel: AbstractGlancePanel):JPanel(){
+        init{
+            layout = BorderLayout()
+            isOpaque = false
+            add(panel)
         }
     }
 }

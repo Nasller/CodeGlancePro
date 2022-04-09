@@ -36,7 +36,6 @@ class ConfigEntry : Configurable {
             || config.minLineCount != form!!.minLinesCount
             || config.minWindowWidth != form!!.minWindowWidth
             || config.clean != form!!.cleanStyle
-            || config.isRightAligned != form!!.isRightAligned
             || config.hideOriginalScrollBar != form!!.isHideOriginalScrollBar
     )
 
@@ -57,7 +56,6 @@ class ConfigEntry : Configurable {
         config.minLineCount = form!!.minLinesCount
         config.minWindowWidth = form!!.minWindowWidth
         config.clean = form!!.cleanStyle
-        config.isRightAligned = form!!.isRightAligned
         config.hideOriginalScrollBar = form!!.isHideOriginalScrollBar
         ApplicationManager.getApplication().invokeLater{
             SettingsChangePublisher.onRefreshChanged(config.disabled,null)
@@ -76,7 +74,6 @@ class ConfigEntry : Configurable {
         form!!.minLinesCount = config.minLineCount
         form!!.minWindowWidth = config.minWindowWidth
         form!!.cleanStyle = config.clean
-        form!!.isRightAligned = config.isRightAligned
         form!!.isHideOriginalScrollBar = config.hideOriginalScrollBar
     }
 

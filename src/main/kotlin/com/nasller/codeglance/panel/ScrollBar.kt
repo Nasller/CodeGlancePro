@@ -14,9 +14,7 @@ import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.ui.HintHint
 import com.intellij.util.ui.JBUI
 import com.nasller.codeglance.CodeGlancePlugin.Companion.DocRenderEnabled
-import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.config.SettingsChangePublisher
-import com.nasller.codeglance.render.ScrollState
 import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -29,8 +27,10 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, private val panel: AbstractGlancePanel) : JPanel() {
+class ScrollBar(textEditor: TextEditor, private val panel: AbstractGlancePanel) : JPanel() {
     private val editor = textEditor.editor as EditorImpl
+    private val config = panel.config
+    private val scrollState = panel.scrollState
     private val defaultCursor = Cursor(Cursor.DEFAULT_CURSOR)
     private val myPopHandler = CustomScrollBarPopup(panel.project,editor)
 
@@ -41,8 +41,6 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
                 parent.repaint()
             }
         }
-
-    private val config = ConfigInstance.state
 
     private var visibleRectColor: Color = Color.decode("#"+config.viewportColor)
     //矩形y轴
@@ -61,10 +59,7 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
         if (config.locked) {
             return false
         }
-        return if (config.isRightAligned)
-            x in 0..7
-        else
-            x in (config.width - 8)..config.width
+        return x in 0..7
     }
 
     private fun isInRect(y: Int): Boolean = y in vOffset..(vOffset + scrollState.viewportHeight)
@@ -128,7 +123,7 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
 
         override fun mouseDragged(e: MouseEvent) {
             if (resizing) {
-                val newWidth = widthStart + if(config.isRightAligned) resizeStart - e.xOnScreen else e.xOnScreen - resizeStart
+                val newWidth = widthStart + resizeStart - e.xOnScreen
                 config.width = newWidth.coerceIn(50, 250)
                 panel.refresh()
             } else if (dragging) {
@@ -159,15 +154,19 @@ class ScrollBar(textEditor: TextEditor, private val scrollState : ScrollState, p
         override fun mouseMoved(e: MouseEvent) {
             updateAlpha(e.y)
             if (isInResizeGutter(e.x)) {
-                cursor = if (config.isRightAligned) Cursor(Cursor.W_RESIZE_CURSOR) else Cursor(Cursor.E_RESIZE_CURSOR)
+                cursor = Cursor(Cursor.W_RESIZE_CURSOR)
             } else {
-                cursor = defaultCursor
-                val enabled = UISettings.instance.showEditorToolTip && ((if(DocRenderEnabled != null){
-                    !(editor.getUserData(DocRenderEnabled)?:false)
-                }else true) || textEditor.file?.isWritable?:false)
-                if (e.x > 10 && !resizing && !dragging && !isInRect(e.y) && enabled && e.y < scrollState.drawHeight) {
-                    showToolTipByMouseMove(e)
-                    return
+                if(isInRect(e.y)){
+                    cursor = defaultCursor
+                }else{
+                    cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                    val enabled = UISettings.instance.showEditorToolTip && ((if(DocRenderEnabled != null){
+                        !(editor.getUserData(DocRenderEnabled)?:false)
+                    }else true) || textEditor.file?.isWritable?:false)
+                    if (e.x > 10 && !resizing && !dragging && enabled && e.y < scrollState.drawHeight) {
+                        showToolTipByMouseMove(e)
+                        return
+                    }
                 }
             }
             hideMyEditorPreviewHint()

@@ -28,11 +28,11 @@ import javax.swing.JPanel
 sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) : JPanel(), Disposable {
     val editor = textEditor.editor as EditorEx
     val originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
-    protected val config: Config = ConfigInstance.state
+    val config: Config = ConfigInstance.state
+    val scrollState = ScrollState()
+    val trackerManager = LineStatusTrackerManager.getInstance(project)
+    val changeListManager: ChangeListManagerImpl = ChangeListManagerImpl.getInstanceImpl(project)
     protected val renderLock = DirtyLock()
-    protected val scrollState = ScrollState()
-    protected val changeListManager: ChangeListManagerImpl = ChangeListManagerImpl.getInstanceImpl(project)
-    protected val trackerManager = LineStatusTrackerManager.getInstance(project)
     // Anonymous Listeners that should be cleaned up.
     private val componentListener: ComponentListener
     private val documentListener: DocumentListener
@@ -54,6 +54,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
                 || (parent != null && (parent.width == 0 || parent.width < config.minWindowWidth))
     private var buf: BufferedImage? = null
     protected var scrollbar:ScrollBar? = null
+    var myVcsPanel:MyVcsPanel? = null
 
     init {
         componentListener = object : ComponentAdapter() {
@@ -115,7 +116,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         val g = gfx as Graphics2D
         buf?.run{ g.drawImage(this,0, 0, width, height, 0, 0, width, height,null) }
         paintSelections(g)
-        paintVcs(g)
+        if(config.hideOriginalScrollBar) myVcsPanel?.repaint() else paintVcs(g)
         scrollbar!!.paint(gfx)
     }
 
@@ -206,13 +207,14 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
             g.drawImage(img, 0, 0, scrollState.documentWidth, scrollState.drawHeight,
                 0, scrollState.visibleStart, scrollState.documentWidth, scrollState.visibleEnd, null)
         }
-        paintVcs(gfx as Graphics2D)
-        paintSelections(gfx)
-        paintOtherHighlight(gfx)
-        paintErrorStripes(gfx)
-        gfx.composite = srcOver0_8
-        gfx.drawImage(buf, 0, 0, null)
-        scrollbar!!.paint(gfx)
+        val graphics2D = gfx as Graphics2D
+        if(config.hideOriginalScrollBar) myVcsPanel?.repaint() else paintVcs(graphics2D)
+        paintSelections(graphics2D)
+        paintOtherHighlight(graphics2D)
+        paintErrorStripes(graphics2D)
+        graphics2D.composite = srcOver0_8
+        graphics2D.drawImage(buf, 0, 0, null)
+        scrollbar?.paint(graphics2D)
     }
 
     abstract fun getDrawImage() : BufferedImage?
@@ -229,6 +231,6 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         const val minGap = 15
         val srcOver0_4: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.40f)
         val srcOver0_8: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
-        val srcOver1: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f)
+        val srcOver: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
     }
 }
