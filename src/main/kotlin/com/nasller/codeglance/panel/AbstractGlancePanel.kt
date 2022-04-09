@@ -13,7 +13,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.ChangeListManagerImpl
 import com.intellij.openapi.vcs.impl.LineStatusTrackerManager
 import com.intellij.openapi.vfs.PersistentFSConstants
-import com.intellij.util.ui.ImageUtil
 import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.Config
