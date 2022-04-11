@@ -15,6 +15,7 @@ import com.nasller.codeglance.panel.GlancePanel
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Dimension
+import javax.swing.JComponent
 import javax.swing.JLayeredPane
 import javax.swing.JPanel
 
@@ -49,7 +50,7 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
      */
     private fun getPanel(editor: TextEditor): JPanel? {
         try {
-            val layoutComponent : Component? = if (editor is TextEditorWithPreview) {
+            val layoutComponent = if (editor is TextEditorWithPreview) {
                 (editor.textEditor.component.layout as BorderLayout).getLayoutComponent(BorderLayout.CENTER)
             }else if(editor.component.layout != null){
                 (editor.component.layout as BorderLayout).getLayoutComponent(BorderLayout.CENTER)
@@ -120,8 +121,8 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         } else glancePanel
     }
 
-    private fun Component.removeComponent(panel: JPanel,editor: TextEditor){
-        panel.remove(this)
+    private fun Component.removeComponent(component: JComponent,editor: TextEditor){
+        component.remove(this)
         val myPanel = if (this is MyPanel) this.panel else if(this is AbstractGlancePanel) this else null
         myPanel?.let {
             Disposer.dispose(it)
