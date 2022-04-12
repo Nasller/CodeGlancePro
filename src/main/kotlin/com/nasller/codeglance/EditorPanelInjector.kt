@@ -82,10 +82,10 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
     /**
      * Here be dragons. No Seriously. Run!
      *
-     * We are digging way down into the editor layout. This lets the codeglance panel be right next to the scroll bar.
+     * We are digging way down into the editor layout. This lets the codeGlance panel be right next to the scroll bar.
      * In an ideal world it would be inside the scroll bar... maybe one day.
      *
-     * vsch: added handling when the editor is even deeper, inside firstComponent of a JBSplitter, used by idea-multimarkdown
+     * added handling when the editor is even deeper, inside firstComponent of a JBSplitter, used by idea-multi-markdown
      * and Markdown Support to show split preview. Missed this plugin while editing markdown. These changes got it back.
      *
      * @param editor A text editor to inject into.
