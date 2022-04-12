@@ -33,7 +33,7 @@ class ScrollState {
     fun computeDimensions(editor: Editor, glancePanel: AbstractGlancePanel) {
         scale = glancePanel.config.pixelsPerLine.toDouble() / editor.lineHeight
         documentHeight = (editor.contentComponent.height * scale).toInt()
-        documentWidth = glancePanel.currentWidth
+        documentWidth = glancePanel.preferredSize.width
     }
 
     fun recomputeVisible(visibleArea: Rectangle) {

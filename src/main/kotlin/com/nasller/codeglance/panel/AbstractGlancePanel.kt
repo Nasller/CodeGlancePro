@@ -36,7 +36,6 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     val scrollState = ScrollState()
     val trackerManager = LineStatusTrackerManager.getInstance(project)
     val changeListManager: ChangeListManagerImpl = ChangeListManagerImpl.getInstanceImpl(project)
-    var currentWidth:Int = 0
     protected val renderLock = DirtyLock()
     private val fileEditorManagerEx = FileEditorManager.getInstance(project) as FileEditorManagerEx
     // Anonymous Listeners that should be cleaned up.
@@ -114,11 +113,10 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
      * Adjusts the panels size to be a percentage of the total window
      */
     fun updateSize() {
-        currentWidth = config.width / getSplitCount()
         preferredSize = if (isDisabled) {
             Dimension(0, 0)
         } else {
-            Dimension(currentWidth, 0)
+            Dimension(config.width / getSplitCount(), 0)
         }
     }
 

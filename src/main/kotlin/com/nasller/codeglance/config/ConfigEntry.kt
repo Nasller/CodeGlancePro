@@ -56,7 +56,7 @@ class ConfigEntry : Configurable {
         config.clean = form!!.cleanStyle
         config.hideOriginalScrollBar = form!!.isHideOriginalScrollBar
         ApplicationManager.getApplication().invokeLater{
-            SettingsChangePublisher.onGlobalChanged(config.disabled)
+            SettingsChangePublisher.onGlobalChanged()
         }
     }
 

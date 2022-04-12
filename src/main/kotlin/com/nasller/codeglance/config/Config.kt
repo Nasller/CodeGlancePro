@@ -28,7 +28,7 @@ interface SettingsChangeListener {
 
     fun onRefreshChanged(disable:Boolean,ignore: TextEditor?) {}
 
-    fun onGlobalChanged(disable:Boolean) {}
+    fun onGlobalChanged() {}
 
     companion object {
         val TOPIC: Topic<SettingsChangeListener> =

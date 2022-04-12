@@ -35,7 +35,7 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         for (editor in fem.allEditors.filterIsInstance<TextEditor>()) {
             val panel = getPanel(editor) ?: continue
             val myPanel = (panel.layout as BorderLayout).getLayoutComponent(BorderLayout.LINE_END)
-            if (myPanel == null && !config.disabled) {
+            if (myPanel == null) {
                 panel.add(getMyPanel(editor), BorderLayout.LINE_END)
                 if(config.hideOriginalScrollBar && editor.editor is EditorEx){
                     (editor.editor as EditorEx).scrollPane.verticalScrollBar.run{
@@ -57,23 +57,21 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         }
     }
 
-    override fun onGlobalChanged(disable: Boolean) {
+    override fun onGlobalChanged() {
         try {
             for (editor in FileEditorManager.getInstance(project).allEditors.filterIsInstance<TextEditor>()) {
                 val panel = getPanel(editor) ?: continue
                 (panel.layout as BorderLayout).getLayoutComponent(BorderLayout.LINE_END)?.removeComponent(panel, editor)
-                if (!disable) {
-                    val myPanel = getMyPanel(editor)
-                    panel.add(myPanel, BorderLayout.LINE_END)
-                    if (config.hideOriginalScrollBar && editor.editor is EditorEx) {
-                        (editor.editor as EditorEx).scrollPane.verticalScrollBar.run {
-                            this.preferredSize = Dimension(0, this.preferredSize.height)
-                        }
+                val myPanel = getMyPanel(editor)
+                panel.add(myPanel, BorderLayout.LINE_END)
+                if (config.hideOriginalScrollBar && editor.editor is EditorEx) {
+                    (editor.editor as EditorEx).scrollPane.verticalScrollBar.run {
+                        this.preferredSize = Dimension(0, this.preferredSize.height)
                     }
-                    when (myPanel) {
-                        is MyPanel -> myPanel.panel.updateImageSoon()
-                        is AbstractGlancePanel -> myPanel.updateImageSoon()
-                    }
+                }
+                when (myPanel) {
+                    is MyPanel -> myPanel.panel.updateImageSoon()
+                    is AbstractGlancePanel -> myPanel.updateImageSoon()
                 }
             }
         }catch (e:Exception){
