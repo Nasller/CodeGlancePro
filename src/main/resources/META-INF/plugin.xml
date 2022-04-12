@@ -9,16 +9,25 @@
 		Rework on CodeGlance,support two type minimap to choose
 
 		<ul>
-		<li>Works with both light and dark themes using your customized colors for syntax highlighting.</li>
-		<li>Embedded into editor window.Support markdown file.</li>
-		<li>Color rendering using IntelliJ's tokenizer.</li>
-		<li>Show Git Line.</li>
+		<li>Hide original scrollbar.</li>
+		<li>Right click to quick config.</li>
+		<li>Support markup highlights.</li>
+		<li>Support error stripes highlights.</li>
+		<li>Support Vcs line highlights.</li>
+		<li>Support caret line highlights.</li>
+		<li>Quick view code on Glance.</li>
+		<li>Quick view code on Glance.</li>
 		<li>Ctrl-Shift-G to toggle Glance.</li>
 		</ul>
 
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.2.8</h3>
+		<ul>
+			<li>remove config minWindowWidth
+			<li>feature: Horizontal window automatically reduces(The first project opening may fail, need once refresh)</li>
+		</ul>
 		<h3>1.2.7</h3>
 		<ul>
 			<li>feature: hide original scrollbar support new vcs line and click</li>
@@ -60,22 +69,6 @@
 		<ul>
 			<li>fix vcs fold line</li>
 			<li>feature: quick look on hover Glance(could not support reader mode)</li>
-		</ul>
-		<h3>1.1.1</h3>
-		<ul>
-			<li>fix reader mode selection and vcs position</li>
-			<li>fix update image times</li>
-		</ul>
-		<h3>1.1.0</h3>
-		<ul>
-			<li>fix oldGlance selection position</li>
-			<li>feature: Support your language colorScheme</li>
-		</ul>
-		<h3>1.0.0</h3>
-		<ul>
-			<li>fix markdown file</li>
-			<li>fix some bug</li>
-			<li>feature: show git line</li>
 		</ul>
 	]]></change-notes>
 
