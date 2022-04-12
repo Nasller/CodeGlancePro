@@ -124,7 +124,7 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlanceP
         override fun mouseDragged(e: MouseEvent) {
             if (resizing) {
                 val newWidth = widthStart + resizeStart - e.xOnScreen
-                config.width = newWidth.coerceIn(50, 250)
+                config.width = newWidth.coerceIn(AbstractGlancePanel.minWidth, AbstractGlancePanel.maxWidth)
                 glancePanel.refresh()
             } else if (dragging) {
                 val delta = (dragStartDelta + (e.y - dragStart)).toFloat()

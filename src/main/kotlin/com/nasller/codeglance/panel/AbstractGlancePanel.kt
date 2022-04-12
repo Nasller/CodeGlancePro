@@ -16,7 +16,7 @@ import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.vcs.changes.ChangeListManagerImpl
 import com.intellij.openapi.vcs.impl.LineStatusTrackerManager
 import com.intellij.openapi.vfs.PersistentFSConstants
-import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
+import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.Config
 import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
@@ -93,22 +93,6 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         revalidate()
     }
 
-    fun getSplitCount():Int{
-        val splitters = fileEditorManagerEx.currentWindow.owner
-        val countHorizontal = if(splitters.componentCount > 0) {
-            val jPanel = splitters.getComponent(0) as JPanel
-            if (jPanel.componentCount > 0) {
-                val firstChild = jPanel.getComponent(0) as JComponent
-                if (firstChild is Splitter) {
-                    var count = 0
-                    if(!firstChild.isVertical) count++
-                    getSplitCount(firstChild.firstComponent,count) + getSplitCount(firstChild.secondComponent,count)
-                } else 0
-            } else 0
-        } else 0
-        return if(countHorizontal <= 0) 1 else if(countHorizontal < 4) countHorizontal else 4
-    }
-
     /**
      * Adjusts the panels size to be a percentage of the total window
      */
@@ -116,7 +100,8 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         preferredSize = if (isDisabled) {
             Dimension(0, 0)
         } else {
-            Dimension(config.width / getSplitCount(), 0)
+            val calWidth = config.width / getSplitCount()
+            Dimension(if(calWidth < minWidth) minWidth else calWidth, 0)
         }
     }
 
@@ -140,10 +125,48 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         scrollbar!!.paint(gfx)
     }
 
+    fun getSplitCount():Int{
+        val splitters = fileEditorManagerEx.currentWindow.owner
+        val countHorizontal = if(splitters.componentCount > 0) {
+            val jPanel = splitters.getComponent(0) as JPanel
+            if (jPanel.componentCount > 0) {
+                val firstChild = jPanel.getComponent(0) as JComponent
+                if (firstChild is Splitter) {
+                    var count = 0
+                    if(!firstChild.isVertical) count++
+                    getSplitCount(firstChild.firstComponent,count) + getSplitCount(firstChild.secondComponent,count)
+                } else 0
+            } else 0
+        } else 0
+        return if(countHorizontal <= 0) 1 else if(countHorizontal < 4) countHorizontal else 4
+    }
+
+    abstract fun computeInReadAction(indicator: ProgressIndicator)
+
+    abstract fun paintVcs(g: Graphics2D)
+
+    abstract fun paintSelection(g: Graphics2D, startByte: Int, endByte: Int)
+
+    abstract fun paintCaretPosition(g: Graphics2D)
+
+    abstract fun paintOtherHighlight(g: Graphics2D)
+
+    abstract fun paintErrorStripes(g: Graphics2D)
+
+    private fun paintSelections(g: Graphics2D) {
+        if(editor.selectionModel.hasSelection()){
+            for ((index, start) in editor.selectionModel.blockSelectionStarts.withIndex()) {
+                paintSelection(g, start, editor.selectionModel.blockSelectionEnds[index])
+            }
+        }else{
+            paintCaretPosition(g)
+        }
+    }
+
     protected fun getDocumentRenderLine(lineStart:Int,lineEnd:Int):Pair<Int,Int>{
         var startAdd = 0
         var endAdd = 0
-        editor.foldingModel.allFoldRegions.filter{ isCustomFoldRegionImpl(it) && !it.isExpanded &&
+        editor.foldingModel.allFoldRegions.filter{ CodeGlancePlugin.isCustomFoldRegionImpl(it) && !it.isExpanded &&
                 it.startOffset >= 0 && it.endOffset >= 0}.forEach{
             val start = it.document.getLineNumber(it.startOffset)
             val end = it.document.getLineNumber(it.endOffset)
@@ -158,7 +181,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         return Pair(startAdd,endAdd)
     }
 
-    protected fun drawMarkupLine(it: RangeHighlighter, g: Graphics2D,compensateLine:Boolean){
+    protected fun drawMarkupLine(it: RangeHighlighter, g: Graphics2D, compensateLine:Boolean){
         val textAttributes = it.getTextAttributes(editor.colorsScheme)
         g.color = it.getErrorStripeMarkColor(editor.colorsScheme) ?: textAttributes?.backgroundColor
                 ?: textAttributes?.foregroundColor ?: return
@@ -185,28 +208,6 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
             if (eY + config.pixelsPerLine != sY) {
                 g.fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
             }
-        }
-    }
-
-    abstract fun computeInReadAction(indicator: ProgressIndicator)
-
-    abstract fun paintVcs(g: Graphics2D)
-
-    abstract fun paintSelection(g: Graphics2D, startByte: Int, endByte: Int)
-
-    abstract fun paintCaretPosition(g: Graphics2D)
-
-    abstract fun paintOtherHighlight(g: Graphics2D)
-
-    abstract fun paintErrorStripes(g: Graphics2D)
-
-    private fun paintSelections(g: Graphics2D) {
-        if(editor.selectionModel.hasSelection()){
-            for ((index, start) in editor.selectionModel.blockSelectionStarts.withIndex()) {
-                paintSelection(g, start, editor.selectionModel.blockSelectionEnds[index])
-            }
-        }else{
-            paintCaretPosition(g)
         }
     }
 
@@ -247,8 +248,10 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         scrollbar?.let {remove(it)}
     }
 
-    protected companion object{
+    companion object{
         const val minGap = 15
+        const val minWidth = 50
+        const val maxWidth = 250
         val srcOver0_4: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.40f)
         val srcOver0_8: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
         val srcOver: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)

@@ -4,6 +4,7 @@ import com.intellij.ui.JBColor;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
+import com.nasller.codeglance.panel.AbstractGlancePanel;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -50,7 +51,7 @@ public class ConfigForm {
             }
         });
 
-        width.setModel(new SpinnerNumberModel(110, 50, 250, 5));
+        width.setModel(new SpinnerNumberModel(110, AbstractGlancePanel.minWidth, AbstractGlancePanel.maxWidth, 5));
         minLinesCount.setModel(new SpinnerNumberModel(1, 0, 100, 10));
 
         // Spinner scroll support
