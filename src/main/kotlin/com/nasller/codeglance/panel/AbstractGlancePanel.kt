@@ -106,7 +106,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
                 } else 0
             } else 0
         } else 0
-        return if(countHorizontal != 0) countHorizontal else 1
+        return if(countHorizontal <= 0) 1 else if(countHorizontal < 4) countHorizontal else 4
     }
 
     /**
