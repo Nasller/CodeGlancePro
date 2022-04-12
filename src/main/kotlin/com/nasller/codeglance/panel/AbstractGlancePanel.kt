@@ -126,19 +126,20 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     }
 
     fun getSplitCount():Int{
-        val splitters = fileEditorManagerEx.currentWindow.owner
-        val countHorizontal = if(splitters.componentCount > 0) {
-            val jPanel = splitters.getComponent(0) as JPanel
-            if (jPanel.componentCount > 0) {
-                val firstChild = jPanel.getComponent(0) as JComponent
-                if (firstChild is Splitter) {
-                    var count = 0
-                    if(!firstChild.isVertical) count++
-                    getSplitCount(firstChild.firstComponent,count) + getSplitCount(firstChild.secondComponent,count)
+        return fileEditorManagerEx.currentWindow?.owner?.let{
+            val countHorizontal = if(it.componentCount > 0) {
+                val jPanel = it.getComponent(0) as JPanel
+                if (jPanel.componentCount > 0) {
+                    val firstChild = jPanel.getComponent(0) as JComponent
+                    if (firstChild is Splitter) {
+                        var count = 0
+                        if(!firstChild.isVertical) count++
+                        getSplitCount(firstChild.firstComponent,count) + getSplitCount(firstChild.secondComponent,count)
+                    } else 0
                 } else 0
             } else 0
-        } else 0
-        return if(countHorizontal <= 0) 1 else if(countHorizontal < 4) countHorizontal else 4
+            if(countHorizontal <= 0) 1 else if(countHorizontal < 4) countHorizontal else 4
+        }?:1
     }
 
     abstract fun computeInReadAction(indicator: ProgressIndicator)
