@@ -20,16 +20,18 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vcs.ex.LocalRange
 import com.intellij.util.ObjectUtils
 import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
+import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.render.Minimap
 import com.nasller.codeglance.util.attributesImpactForegroundColor
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.lang.ref.SoftReference
 
-class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePanel(project,textEditor) {
+class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePanel(project,textEditor), SettingsChangeListener {
     private var mapRef = SoftReference<Minimap>(null)
     init {
         Disposer.register(textEditor, this)
+        ApplicationManager.getApplication().messageBus.connect(this).subscribe(SettingsChangeListener.TOPIC, this)
         scrollbar = ScrollBar(textEditor,this)
         add(scrollbar)
         editor.foldingModel.addListener(object : FoldingListener {
@@ -68,7 +70,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         val map = getOrCreateMap()
         try {
             map.update(scrollState,indicator)
-            scrollState.computeDimensions(editor, config)
+            scrollState.computeDimensions(editor,this)
             ApplicationManager.getApplication().invokeLater {
                 scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
                 repaint()
@@ -178,6 +180,8 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         }
     }
 
+    override fun onRefreshChanged(disable: Boolean,ignore: TextEditor?) = refresh()
+
     override fun getDrawImage() : BufferedImage?{
         val minimap = mapRef.get()
         return if(minimap == null || (minimap.img == null)){
@@ -189,7 +193,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
     private fun getOrCreateMap() : Minimap {
         var map = mapRef.get()
         if (map == null) {
-            map = Minimap(config,this)
+            map = Minimap(this)
             mapRef = SoftReference(map)
         }
         return map

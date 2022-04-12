@@ -27,12 +27,12 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-class ScrollBar(textEditor: TextEditor, private val panel: AbstractGlancePanel) : JPanel() {
+class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlancePanel) : JPanel() {
     private val editor = textEditor.editor as EditorImpl
-    private val config = panel.config
-    private val scrollState = panel.scrollState
+    private val config = glancePanel.config
+    private val scrollState = glancePanel.scrollState
     private val defaultCursor = Cursor(Cursor.DEFAULT_CURSOR)
-    private val myPopHandler = CustomScrollBarPopup(panel.project,editor)
+    private val myPopHandler = CustomScrollBarPopup(glancePanel.project,editor)
 
     private var visibleRectAlpha = DEFAULT_ALPHA
         set(value) {
@@ -56,7 +56,7 @@ class ScrollBar(textEditor: TextEditor, private val panel: AbstractGlancePanel) 
     }
 
     private fun isInResizeGutter(x: Int): Boolean {
-        if (config.locked) {
+        if (config.locked || glancePanel.getSplitCount() > 1) {
             return false
         }
         return x in 0..7
@@ -107,7 +107,7 @@ class ScrollBar(textEditor: TextEditor, private val panel: AbstractGlancePanel) 
                 isInResizeGutter(e.x) -> {
                     resizing = true
                     resizeStart = e.xOnScreen
-                    widthStart = config.width
+                    widthStart = glancePanel.width
                 }
                 isInRect(e.y) -> {
                     dragging = true
@@ -125,7 +125,7 @@ class ScrollBar(textEditor: TextEditor, private val panel: AbstractGlancePanel) 
             if (resizing) {
                 val newWidth = widthStart + resizeStart - e.xOnScreen
                 config.width = newWidth.coerceIn(50, 250)
-                panel.refresh()
+                glancePanel.refresh()
             } else if (dragging) {
                 val delta = (dragStartDelta + (e.y - dragStart)).toFloat()
                 val newPos = if (scrollState.documentHeight < scrollState.visibleHeight)

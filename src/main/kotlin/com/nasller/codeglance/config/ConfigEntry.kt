@@ -34,7 +34,6 @@ class ConfigEntry : Configurable {
             || config.locked != form!!.isLocked
             || config.viewportColor != form!!.viewportColor
             || config.minLineCount != form!!.minLinesCount
-            || config.minWindowWidth != form!!.minWindowWidth
             || config.clean != form!!.cleanStyle
             || config.hideOriginalScrollBar != form!!.isHideOriginalScrollBar
     )
@@ -54,11 +53,10 @@ class ConfigEntry : Configurable {
             config.viewportColor = "A0A0A0"
         }
         config.minLineCount = form!!.minLinesCount
-        config.minWindowWidth = form!!.minWindowWidth
         config.clean = form!!.cleanStyle
         config.hideOriginalScrollBar = form!!.isHideOriginalScrollBar
         ApplicationManager.getApplication().invokeLater{
-            SettingsChangePublisher.onRefreshChanged(config.disabled,null)
+            SettingsChangePublisher.onGlobalChanged(config.disabled)
         }
     }
 
@@ -72,7 +70,6 @@ class ConfigEntry : Configurable {
         form!!.viewportColor = config.viewportColor
         form!!.width = config.width
         form!!.minLinesCount = config.minLineCount
-        form!!.minWindowWidth = config.minWindowWidth
         form!!.cleanStyle = config.clean
         form!!.isHideOriginalScrollBar = config.hideOriginalScrollBar
     }

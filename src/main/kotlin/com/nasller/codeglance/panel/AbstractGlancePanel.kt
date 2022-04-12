@@ -5,11 +5,14 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.markup.RangeHighlighter
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.TextEditor
+import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.ProgressIndicatorUtils
 import com.intellij.openapi.progress.util.ReadTask
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.vcs.changes.ChangeListManagerImpl
 import com.intellij.openapi.vcs.impl.LineStatusTrackerManager
 import com.intellij.openapi.vfs.PersistentFSConstants
@@ -23,6 +26,7 @@ import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.awt.image.BufferedImage
+import javax.swing.JComponent
 import javax.swing.JPanel
 
 sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) : JPanel(), Disposable {
@@ -32,7 +36,9 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     val scrollState = ScrollState()
     val trackerManager = LineStatusTrackerManager.getInstance(project)
     val changeListManager: ChangeListManagerImpl = ChangeListManagerImpl.getInstanceImpl(project)
+    var currentWidth:Int = 0
     protected val renderLock = DirtyLock()
+    private val fileEditorManagerEx = FileEditorManager.getInstance(project) as FileEditorManagerEx
     // Anonymous Listeners that should be cleaned up.
     private val componentListener: ComponentListener
     private val documentListener: DocumentListener
@@ -51,7 +57,6 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     }
     private val isDisabled: Boolean
         get() = config.disabled || editor.document.textLength > PersistentFSConstants.getMaxIntellisenseFileSize() || editor.document.lineCount < config.minLineCount
-                || (parent != null && (parent.width == 0 || parent.width < config.minWindowWidth))
     private var buf: BufferedImage? = null
     protected var scrollbar:ScrollBar? = null
     var myVcsPanel:MyVcsPanel? = null
@@ -86,17 +91,34 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     fun refresh() {
         updateImage()
         updateSize()
-        parent?.revalidate()
+        revalidate()
+    }
+
+    fun getSplitCount():Int{
+        val splitters = fileEditorManagerEx.currentWindow.owner
+        val countHorizontal = if(splitters.componentCount > 0) {
+            val jPanel = splitters.getComponent(0) as JPanel
+            if (jPanel.componentCount > 0) {
+                val firstChild = jPanel.getComponent(0) as JComponent
+                if (firstChild is Splitter) {
+                    var count = 0
+                    if(!firstChild.isVertical) count++
+                    getSplitCount(firstChild.firstComponent,count) + getSplitCount(firstChild.secondComponent,count)
+                } else 0
+            } else 0
+        } else 0
+        return if(countHorizontal != 0) countHorizontal else 1
     }
 
     /**
      * Adjusts the panels size to be a percentage of the total window
      */
-    private fun updateSize() {
+    fun updateSize() {
+        currentWidth = config.width / getSplitCount()
         preferredSize = if (isDisabled) {
             Dimension(0, 0)
         } else {
-            Dimension(config.width, 0)
+            Dimension(currentWidth, 0)
         }
     }
 
@@ -232,5 +254,18 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         val srcOver0_4: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.40f)
         val srcOver0_8: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
         val srcOver: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
+
+        private fun getSplitCount(component: JComponent, count:Int): Int {
+            if (component.componentCount > 0) {
+                val firstChild = component.getComponent(0) as JComponent
+                if (firstChild is Splitter) {
+                    var temp = count
+                    if(!firstChild.isVertical) temp++
+                    return getSplitCount(firstChild.firstComponent,temp) + getSplitCount(firstChild.secondComponent,temp)
+                }
+                return count
+            }
+            return 0
+        }
     }
 }

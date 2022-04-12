@@ -18,7 +18,6 @@ class Config {
     var width: Int = 110
     var viewportColor: String = "A0A0A0"
     var clean: Boolean = true
-    var minWindowWidth: Int = 0
     var locked: Boolean = false
 }
 
@@ -28,6 +27,8 @@ val SettingsChangePublisher: SettingsChangeListener =
 interface SettingsChangeListener {
 
     fun onRefreshChanged(disable:Boolean,ignore: TextEditor?) {}
+
+    fun onGlobalChanged(disable:Boolean) {}
 
     companion object {
         val TOPIC: Topic<SettingsChangeListener> =

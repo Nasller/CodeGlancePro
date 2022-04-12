@@ -6,7 +6,6 @@ import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.util.containers.ContainerUtil
 import com.nasller.codeglance.CodeGlancePlugin
-import com.nasller.codeglance.config.Config
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import java.awt.AlphaComposite
 import java.awt.Color
@@ -16,17 +15,18 @@ import kotlin.math.max
 /**
  * A rendered minimap of a document
  */
-class Minimap(private val config: Config, glancePanel: AbstractGlancePanel) {
+class Minimap(private val glancePanel: AbstractGlancePanel) {
 	var img: BufferedImage? = null
 	private val editor = glancePanel.editor
+	private val config = glancePanel.config
 
 	@Synchronized
 	fun update(scrollState: ScrollState, indicator: ProgressIndicator) {
-		if (img == null || img!!.height < scrollState.documentHeight || img!!.width < config.width) {
+		if (img == null || img!!.height < scrollState.documentHeight || img!!.width < glancePanel.currentWidth) {
 			if (img != null) img!!.flush()
 			// Create an image that is a bit bigger then the one we need, so we don't need to re-create it again soon.
 			// Documents can get big, so rather than relative sizes lets just add a fixed amount on.
-			img = BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
+			img = BufferedImage(glancePanel.currentWidth, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 		}
 
 		val g = img!!.createGraphics()
@@ -78,7 +78,7 @@ class Minimap(private val config: Config, glancePanel: AbstractGlancePanel) {
 					if (checkFold()) break
 					x += if (text[i++] == '\t') 4 else 1
 					// Abort if this line is getting too long...
-					if (x > config.width) break
+					if (x > glancePanel.currentWidth) break
 				}
 			}
 			while (i < hlIter.end) {
