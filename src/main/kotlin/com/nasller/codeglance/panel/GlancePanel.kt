@@ -180,7 +180,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         }
     }
 
-    override fun onRefreshChanged(disable: Boolean,ignore: TextEditor?) = refresh()
+    override fun onRefreshChanged() = refresh()
 
     override fun getDrawImage() : BufferedImage?{
         val minimap = mapRef.get()

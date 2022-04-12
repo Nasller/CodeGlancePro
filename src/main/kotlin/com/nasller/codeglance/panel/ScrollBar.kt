@@ -143,7 +143,7 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlanceP
 
         override fun mouseReleased(e: MouseEvent) {
             if(resizing && !dragging){
-                SettingsChangePublisher.onRefreshChanged(config.disabled,textEditor)
+                SettingsChangePublisher.onRefreshChanged()
             }
             dragging = false
             resizing = false

@@ -1,7 +1,6 @@
 package com.nasller.codeglance.config
 
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.util.messages.Topic
 import kotlin.properties.Delegates
 
@@ -10,7 +9,7 @@ class Config {
     var minLineCount: Int = 1
     var disabled: Boolean by Delegates.observable(false) { _, oldValue: Boolean, newValue: Boolean ->
         if (oldValue != newValue) {
-            SettingsChangePublisher.onRefreshChanged(newValue,null)
+            SettingsChangePublisher.onRefreshChanged()
         }
     }
     var hideOriginalScrollBar: Boolean = false
@@ -26,7 +25,7 @@ val SettingsChangePublisher: SettingsChangeListener =
 
 interface SettingsChangeListener {
 
-    fun onRefreshChanged(disable:Boolean,ignore: TextEditor?) {}
+    fun onRefreshChanged() {}
 
     fun onGlobalChanged() {}
 
