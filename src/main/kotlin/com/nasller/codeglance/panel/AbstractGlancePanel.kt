@@ -12,7 +12,6 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.ProgressIndicatorUtils
 import com.intellij.openapi.progress.util.ReadTask
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.vcs.changes.ChangeListManagerImpl
 import com.intellij.openapi.vcs.impl.LineStatusTrackerManager
 import com.intellij.openapi.vfs.PersistentFSConstants
@@ -26,23 +25,33 @@ import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.awt.image.BufferedImage
-import javax.swing.JComponent
 import javax.swing.JPanel
 
-sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) : JPanel(), Disposable {
+sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,private val panelParent: JPanel) : JPanel(), Disposable {
     val editor = textEditor.editor as EditorEx
     val originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
     val config: Config = ConfigInstance.state
     val scrollState = ScrollState()
     val trackerManager = LineStatusTrackerManager.getInstance(project)
     val changeListManager: ChangeListManagerImpl = ChangeListManagerImpl.getInstanceImpl(project)
+    val fileEditorManagerEx = FileEditorManager.getInstance(project) as FileEditorManagerEx
     protected val renderLock = DirtyLock()
-    private val fileEditorManagerEx = FileEditorManager.getInstance(project) as FileEditorManagerEx
     // Anonymous Listeners that should be cleaned up.
-    private val componentListener: ComponentListener
-    private val documentListener: DocumentListener
-    private val areaListener: VisibleAreaListener
-    private val selectionListener: SelectionListener
+    private val componentListener: ComponentListener = object : ComponentAdapter() {
+        override fun componentResized(componentEvent: ComponentEvent?) = refresh()
+    }
+    private val documentListener: DocumentListener = object : DocumentListener {
+        override fun beforeDocumentChange(event: DocumentEvent) {}
+
+        override fun documentChanged(event: DocumentEvent) = updateImage()
+    }
+    private val areaListener: VisibleAreaListener = VisibleAreaListener{
+        scrollState.recomputeVisible(it.newRectangle)
+        repaint()
+    }
+    private val selectionListener: SelectionListener = object : SelectionListener {
+        override fun selectionChanged(e: SelectionEvent) = repaint()
+    }
     private val updateTask: ReadTask = object :ReadTask() {
         override fun onCanceled(indicator: ProgressIndicator) {
             renderLock.release()
@@ -61,47 +70,28 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     var myVcsPanel:MyVcsPanel? = null
 
     init {
-        componentListener = object : ComponentAdapter() {
-            override fun componentResized(componentEvent: ComponentEvent?) = updateImage()
-        }
-        editor.contentComponent.addComponentListener(componentListener)
-
-        documentListener = object : DocumentListener {
-            override fun beforeDocumentChange(event: DocumentEvent) {}
-
-            override fun documentChanged(event: DocumentEvent) = updateImage()
-        }
+        panelParent.addComponentListener(componentListener)
         editor.document.addDocumentListener(documentListener)
-
-        areaListener = VisibleAreaListener{
-            scrollState.recomputeVisible(it.newRectangle)
-            repaint()
-        }
         editor.scrollingModel.addVisibleAreaListener(areaListener)
-
-        selectionListener = object : SelectionListener {
-            override fun selectionChanged(e: SelectionEvent) = repaint()
-        }
         editor.selectionModel.addSelectionListener(selectionListener)
         isOpaque = false
         layout = BorderLayout()
     }
 
     fun refresh() {
-        updateImage()
         updateSize()
+        updateImage()
         revalidate()
     }
 
     /**
      * Adjusts the panels size to be a percentage of the total window
      */
-    fun updateSize() {
+    private fun updateSize() {
         preferredSize = if (isDisabled) {
             Dimension(0, 0)
         } else {
-            val calWidth = config.width / getSplitCount()
-            Dimension(if(calWidth < minWidth) minWidth else calWidth, 0)
+            Dimension(if(fileEditorManagerEx.isInSplitter && panelParent.width > 0) panelParent.width / 8 else config.width, 0)
         }
     }
 
@@ -123,23 +113,6 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         paintSelections(g)
         if(config.hideOriginalScrollBar) myVcsPanel?.repaint() else paintVcs(g)
         scrollbar!!.paint(gfx)
-    }
-
-    fun getSplitCount():Int{
-        return fileEditorManagerEx.currentWindow?.owner?.let{
-            val countHorizontal = if(it.componentCount > 0) {
-                val jPanel = it.getComponent(0) as JPanel
-                if (jPanel.componentCount > 0) {
-                    val firstChild = jPanel.getComponent(0) as JComponent
-                    if (firstChild is Splitter) {
-                        var count = 0
-                        if(!firstChild.isVertical) count++
-                        getSplitCount(firstChild.firstComponent,count) + getSplitCount(firstChild.secondComponent,count)
-                    } else 0
-                } else 0
-            } else 0
-            if(countHorizontal <= 0) 1 else if(countHorizontal < 4) countHorizontal else 4
-        }?:1
     }
 
     abstract fun computeInReadAction(indicator: ProgressIndicator)
@@ -242,7 +215,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     abstract fun getDrawImage() : BufferedImage?
 
     override fun dispose() {
-        editor.contentComponent.removeComponentListener(componentListener)
+        panelParent.removeComponentListener(componentListener)
         editor.document.removeDocumentListener(documentListener)
         editor.scrollingModel.removeVisibleAreaListener(areaListener)
         editor.selectionModel.removeSelectionListener(selectionListener)
@@ -256,18 +229,5 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         val srcOver0_4: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.40f)
         val srcOver0_8: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
         val srcOver: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
-
-        private fun getSplitCount(component: JComponent, count:Int): Int {
-            if (component.componentCount > 0) {
-                val firstChild = component.getComponent(0) as JComponent
-                if (firstChild is Splitter) {
-                    var temp = count
-                    if(!firstChild.isVertical) temp++
-                    return getSplitCount(firstChild.firstComponent,temp) + getSplitCount(firstChild.secondComponent,temp)
-                }
-                return count
-            }
-            return 0
-        }
     }
 }

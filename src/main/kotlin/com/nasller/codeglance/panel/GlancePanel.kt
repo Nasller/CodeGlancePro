@@ -26,11 +26,13 @@ import com.nasller.codeglance.util.attributesImpactForegroundColor
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.lang.ref.SoftReference
+import javax.swing.JPanel
 
-class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePanel(project,textEditor), SettingsChangeListener {
+class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) : AbstractGlancePanel(project,textEditor,panelParent), SettingsChangeListener {
     private var mapRef = SoftReference<Minimap>(null)
     init {
         Disposer.register(textEditor, this)
+        Disposer.register(this){mapRef.clear()}
         ApplicationManager.getApplication().messageBus.connect(this).subscribe(SettingsChangeListener.TOPIC, this)
         scrollbar = ScrollBar(textEditor,this)
         add(scrollbar)
@@ -49,11 +51,11 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         editor.markupModel.addMarkupModelListener(this, myMarkupModelListener)
         val myFilterMarkupModelListener = object : MarkupModelListener {
             override fun afterAdded(highlighter: RangeHighlighterEx) =
-                if (attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))updateImage() else Unit
+                if (attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))updateImageSoon() else Unit
 
             override fun attributesChanged(highlighter: RangeHighlighterEx,
                 renderersChanged: Boolean, fontStyleChanged: Boolean, foregroundColorChanged: Boolean
-            ) = if(renderersChanged || foregroundColorChanged)updateImage() else Unit
+            ) = if(renderersChanged || foregroundColorChanged)updateImageSoon() else Unit
         }
         editor.filteredDocumentMarkupModel.addMarkupModelListener(this, myFilterMarkupModelListener)
         editor.caretModel.addCaretListener(object : CaretListener {
@@ -61,7 +63,6 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
             override fun caretAdded(event: CaretEvent) = repaint()
             override fun caretRemoved(event: CaretEvent) = repaint()
         },this)
-        Disposer.register(this){mapRef.clear()}
         if(config.hideOriginalScrollBar) myVcsPanel = MyVcsPanel(this)
         refresh()
     }

@@ -56,7 +56,7 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlanceP
     }
 
     private fun isInResizeGutter(x: Int): Boolean {
-        if (config.locked || glancePanel.getSplitCount() > 1) {
+        if (config.locked || glancePanel.fileEditorManagerEx.isInSplitter) {
             return false
         }
         return x in 0..7
