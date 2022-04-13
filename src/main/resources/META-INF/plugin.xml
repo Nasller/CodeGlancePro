@@ -26,7 +26,7 @@
 		<h3>1.2.8</h3>
 		<ul>
 			<li>remove config minWindowWidth
-			<li>feature: Horizontal window automatically reduces(The first project opening may fail, need once refresh)</li>
+			<li>feature: codeGlance window automatically calculate width in splitter mode</li>
 		</ul>
 		<h3>1.2.7</h3>
 		<ul>
