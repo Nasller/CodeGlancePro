@@ -2,7 +2,6 @@ package com.nasller.codeglance
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.*
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
@@ -15,7 +14,6 @@ import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.MyVcsPanel
 import java.awt.BorderLayout
 import java.awt.Component
-import java.awt.Dimension
 import javax.swing.JComponent
 import javax.swing.JLayeredPane
 import javax.swing.JPanel
@@ -35,13 +33,12 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         // getEditors(virtualFile) return only one of them... So shotgun approach here.
         for (editor in fem.allEditors.filterIsInstance<TextEditor>()) {
             val panel = getPanel(editor) ?: continue
-            val myPanel = (panel.layout as BorderLayout).getLayoutComponent(BorderLayout.LINE_END)
-            if (myPanel == null) {
-                panel.add(getMyPanel(editor,panel), BorderLayout.LINE_END)
-                if(config.hideOriginalScrollBar && editor.editor is EditorEx){
-                    (editor.editor as EditorEx).scrollPane.verticalScrollBar.run{
-                        this.preferredSize = Dimension(0,this.preferredSize.height)
-                    }
+            if ((panel.layout as BorderLayout).getLayoutComponent(BorderLayout.LINE_END) == null) {
+                val myPanel = getMyPanel(editor, panel)
+                panel.add(myPanel, BorderLayout.LINE_END)
+                when (myPanel) {
+                    is MyPanel -> myPanel.panel.changeOriginScrollBarWidth()
+                    is AbstractGlancePanel -> myPanel.changeOriginScrollBarWidth()
                 }
             }
         }
@@ -55,14 +52,9 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         try {
             for (editor in FileEditorManager.getInstance(project).allEditors.filterIsInstance<TextEditor>()) {
                 val panel = getPanel(editor) ?: continue
-                (panel.layout as BorderLayout).getLayoutComponent(BorderLayout.LINE_END)?.removeComponent(panel, editor)
                 val myPanel = getMyPanel(editor,panel)
+                (panel.layout as BorderLayout).getLayoutComponent(BorderLayout.LINE_END)?.removeComponent(panel,myPanel)
                 panel.add(myPanel, BorderLayout.LINE_END)
-                if (config.hideOriginalScrollBar) {
-                    (editor.editor as EditorEx).scrollPane.verticalScrollBar.run {
-                        this.preferredSize = Dimension(0, this.preferredSize.height)
-                    }
-                }
                 when (myPanel) {
                     is MyPanel -> myPanel.panel.updateImageSoon()
                     is AbstractGlancePanel -> myPanel.updateImageSoon()
@@ -107,17 +99,20 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
     private fun getMyPanel(editor: TextEditor,panel: JPanel): JPanel {
         val glancePanel = GlancePanel(project, editor, panel)
         return if(config.hideOriginalScrollBar && editor.file?.isWritable == true) MyPanel(glancePanel).apply {
-            glancePanel.myVcsPanel = MyVcsPanel(glancePanel).apply { add(this, BorderLayout.WEST) }
+            glancePanel.myVcsPanel = MyVcsPanel(glancePanel)
+            add(glancePanel.myVcsPanel!!, BorderLayout.WEST)
         } else glancePanel
     }
 
-    private fun Component.removeComponent(component: JComponent,editor: TextEditor){
-        val myPanel = if (this is MyPanel) this.panel else if(this is AbstractGlancePanel) this else null
-        myPanel?.let {
-            component.remove(this)
+    private fun Component.removeComponent(parent: JComponent,newComponent: JComponent){
+        val oldGlancePanel = if (this is MyPanel) this.panel else if(this is AbstractGlancePanel) this else null
+        oldGlancePanel?.let {
+            parent.remove(this)
             Disposer.dispose(it)
-            (editor.editor as EditorEx).scrollPane.verticalScrollBar.run {
-                this.preferredSize = Dimension(myPanel.originalScrollbarWidth, this.preferredSize.height)
+            it.changeOriginScrollBarWidth()
+            when (newComponent) {
+                is MyPanel -> newComponent.panel.originalScrollbarWidth = it.originalScrollbarWidth
+                is AbstractGlancePanel -> newComponent.originalScrollbarWidth = it.originalScrollbarWidth
             }
         }
     }

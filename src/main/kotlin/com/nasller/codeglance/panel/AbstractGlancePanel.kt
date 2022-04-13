@@ -26,7 +26,7 @@ import javax.swing.JPanel
 sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,private val panelParent: JPanel) : JPanel(),
     SettingsChangeListener,Disposable {
     val editor = textEditor.editor as EditorEx
-    val originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
+    var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
     val config: Config = ConfigInstance.state
     val scrollState = ScrollState()
     val trackerManager = LineStatusTrackerManager.getInstance(project)
@@ -45,7 +45,8 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         }
     }
     private val isDisabled: Boolean
-        get() = config.disabled || editor.document.textLength > PersistentFSConstants.getMaxIntellisenseFileSize() || editor.document.lineCount < config.minLineCount
+        get() = config.disabled || editor.document.textLength > PersistentFSConstants.getMaxIntellisenseFileSize() ||
+                editor.document.lineCount < config.minLineCount
     private var buf: BufferedImage? = null
     protected var scrollbar:ScrollBar? = null
     var myVcsPanel:MyVcsPanel? = null
@@ -193,7 +194,22 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         scrollbar?.paint(graphics2D)
     }
 
-    override fun onRefreshChanged() = refresh()
+    override fun onRefreshChanged() {
+        refresh()
+        changeOriginScrollBarWidth()
+    }
+
+    fun changeOriginScrollBarWidth(){
+        if (config.hideOriginalScrollBar && !config.disabled) {
+            editor.scrollPane.verticalScrollBar.run {
+                this.preferredSize = Dimension(0, this.preferredSize.height)
+            }
+        }else{
+            editor.scrollPane.verticalScrollBar.run {
+                this.preferredSize = Dimension(originalScrollbarWidth, this.preferredSize.height)
+            }
+        }
+    }
 
     abstract fun getDrawImage() : BufferedImage?
 
