@@ -30,6 +30,8 @@ intellij {
     type.set(properties("platformType"))
     sandboxDir.set("${rootProject.rootDir}/idea-sandbox")
     downloadSources.set(true)
+//    sandboxDir.set("${rootProject.rootDir}/rider-sandbox")
+//    downloadSources.set(false)
     // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
     plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
 }
