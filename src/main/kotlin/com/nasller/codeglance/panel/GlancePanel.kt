@@ -50,7 +50,6 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
                                            fontStyleChanged: Boolean, foregroundColorChanged: Boolean
             ) = if(renderersChanged || foregroundColorChanged)updateImageSoon() else Unit
         })
-        if(config.hideOriginalScrollBar) myVcsPanel = MyVcsPanel(this)
         refresh()
     }
 

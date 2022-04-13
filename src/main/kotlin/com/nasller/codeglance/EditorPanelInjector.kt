@@ -12,6 +12,7 @@ import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import com.nasller.codeglance.panel.GlancePanel
+import com.nasller.codeglance.panel.MyVcsPanel
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Dimension
@@ -57,7 +58,7 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
                 (panel.layout as BorderLayout).getLayoutComponent(BorderLayout.LINE_END)?.removeComponent(panel, editor)
                 val myPanel = getMyPanel(editor,panel)
                 panel.add(myPanel, BorderLayout.LINE_END)
-                if (config.hideOriginalScrollBar && editor.editor is EditorEx) {
+                if (config.hideOriginalScrollBar) {
                     (editor.editor as EditorEx).scrollPane.verticalScrollBar.run {
                         this.preferredSize = Dimension(0, this.preferredSize.height)
                     }
@@ -106,7 +107,7 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
     private fun getMyPanel(editor: TextEditor,panel: JPanel): JPanel {
         val glancePanel = GlancePanel(project, editor, panel)
         return if(config.hideOriginalScrollBar && editor.file?.isWritable == true) MyPanel(glancePanel).apply {
-            glancePanel.myVcsPanel?.let{ add(it, BorderLayout.WEST) }
+            glancePanel.myVcsPanel = MyVcsPanel(glancePanel).apply { add(this, BorderLayout.WEST) }
         } else glancePanel
     }
 
@@ -115,10 +116,8 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         myPanel?.let {
             component.remove(this)
             Disposer.dispose(it)
-            if(editor.editor is EditorEx){
-                (editor.editor as EditorEx).scrollPane.verticalScrollBar.run{
-                    this.preferredSize = Dimension(myPanel.originalScrollbarWidth,this.preferredSize.height)
-                }
+            (editor.editor as EditorEx).scrollPane.verticalScrollBar.run {
+                this.preferredSize = Dimension(myPanel.originalScrollbarWidth, this.preferredSize.height)
             }
         }
     }
