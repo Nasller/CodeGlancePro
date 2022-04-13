@@ -2,10 +2,8 @@ package com.nasller.codeglance.panel
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.markup.RangeHighlighter
-import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.progress.ProgressIndicator
@@ -19,42 +17,22 @@ import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.Config
 import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
+import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
-import java.awt.event.ComponentAdapter
-import java.awt.event.ComponentEvent
-import java.awt.event.ComponentListener
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
 
-sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,private val panelParent: JPanel) : JPanel(), Disposable {
+sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,private val panelParent: JPanel) : JPanel(),
+    SettingsChangeListener,Disposable {
     val editor = textEditor.editor as EditorEx
     val originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
     val config: Config = ConfigInstance.state
     val scrollState = ScrollState()
     val trackerManager = LineStatusTrackerManager.getInstance(project)
     val changeListManager: ChangeListManagerImpl = ChangeListManagerImpl.getInstanceImpl(project)
-    val fileEditorManagerEx = FileEditorManager.getInstance(project) as FileEditorManagerEx
+    val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
     protected val renderLock = DirtyLock()
-    // Anonymous Listeners that should be cleaned up.
-    private val parentComponentListener: ComponentListener = object : ComponentAdapter() {
-        override fun componentResized(componentEvent: ComponentEvent?) = refresh()
-    }
-    private val componentListener: ComponentListener = object : ComponentAdapter() {
-        override fun componentResized(componentEvent: ComponentEvent?) = updateImage()
-    }
-    private val documentListener: DocumentListener = object : DocumentListener {
-        override fun beforeDocumentChange(event: DocumentEvent) {}
-
-        override fun documentChanged(event: DocumentEvent) = updateImage()
-    }
-    private val areaListener: VisibleAreaListener = VisibleAreaListener{
-        scrollState.recomputeVisible(it.newRectangle)
-        repaint()
-    }
-    private val selectionListener: SelectionListener = object : SelectionListener {
-        override fun selectionChanged(e: SelectionEvent) = repaint()
-    }
     private val updateTask: ReadTask = object :ReadTask() {
         override fun onCanceled(indicator: ProgressIndicator) {
             renderLock.release()
@@ -73,11 +51,6 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
     var myVcsPanel:MyVcsPanel? = null
 
     init {
-        panelParent.addComponentListener(parentComponentListener)
-        editor.contentComponent.addComponentListener(componentListener)
-        editor.document.addDocumentListener(documentListener)
-        editor.scrollingModel.addVisibleAreaListener(areaListener)
-        editor.selectionModel.addSelectionListener(selectionListener)
         isOpaque = false
         layout = BorderLayout()
     }
@@ -108,7 +81,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
     /**
      * Fires off a new task to the worker thread. This should only be called from the ui thread.
      */
-    protected fun updateImage() {
+    fun updateImage() {
         if (isDisabled) return
         if (project.isDisposed) return
         if (!renderLock.acquire()) return
@@ -220,14 +193,11 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         scrollbar?.paint(graphics2D)
     }
 
+    override fun onRefreshChanged() = refresh()
+
     abstract fun getDrawImage() : BufferedImage?
 
     override fun dispose() {
-        panelParent.removeComponentListener(parentComponentListener)
-        editor.contentComponent.removeComponentListener(componentListener)
-        editor.document.removeDocumentListener(documentListener)
-        editor.scrollingModel.removeVisibleAreaListener(areaListener)
-        editor.selectionModel.removeSelectionListener(selectionListener)
         scrollbar?.let {remove(it)}
     }
 

@@ -4,12 +4,8 @@ import com.intellij.codeHighlighting.HighlightDisplayLevel
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diff.LineStatusMarkerDrawUtil
-import com.intellij.openapi.editor.FoldRegion
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.colors.EditorColors
-import com.intellij.openapi.editor.event.CaretEvent
-import com.intellij.openapi.editor.event.CaretListener
-import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
@@ -21,6 +17,7 @@ import com.intellij.openapi.vcs.ex.LocalRange
 import com.intellij.util.ObjectUtils
 import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 import com.nasller.codeglance.config.SettingsChangeListener
+import com.nasller.codeglance.listener.GlanceListener
 import com.nasller.codeglance.render.Minimap
 import com.nasller.codeglance.util.attributesImpactForegroundColor
 import java.awt.Graphics2D
@@ -28,41 +25,31 @@ import java.awt.image.BufferedImage
 import java.lang.ref.SoftReference
 import javax.swing.JPanel
 
-class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) : AbstractGlancePanel(project,textEditor,panelParent), SettingsChangeListener {
+class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) : AbstractGlancePanel(project,textEditor,panelParent){
     private var mapRef = SoftReference<Minimap>(null)
+    private val glanceListener = GlanceListener(this)
     init {
         Disposer.register(textEditor, this)
         Disposer.register(this){mapRef.clear()}
         ApplicationManager.getApplication().messageBus.connect(this).subscribe(SettingsChangeListener.TOPIC, this)
         scrollbar = ScrollBar(textEditor,this)
         add(scrollbar)
-        editor.foldingModel.addListener(object : FoldingListener {
-            override fun onFoldRegionStateChange(region: FoldRegion) = updateImage()
-        }, this)
-        val myMarkupModelListener = object : MarkupModelListener {
-            override fun afterAdded(highlighter: RangeHighlighterEx) = repaint()
-
-            override fun beforeRemoved(highlighter: RangeHighlighterEx) = repaint()
-
-            override fun attributesChanged(highlighter: RangeHighlighterEx,
-                                           renderersChanged: Boolean, fontStyleChanged: Boolean, foregroundColorChanged: Boolean
-            ) = if(renderersChanged || foregroundColorChanged)repaint() else Unit
-        }
-        editor.markupModel.addMarkupModelListener(this, myMarkupModelListener)
-        val myFilterMarkupModelListener = object : MarkupModelListener {
+        addHierarchyBoundsListener(glanceListener)
+        editor.contentComponent.addComponentListener(glanceListener)
+        editor.document.addDocumentListener(glanceListener)
+        editor.scrollingModel.addVisibleAreaListener(glanceListener)
+        editor.selectionModel.addSelectionListener(glanceListener)
+        editor.foldingModel.addListener(glanceListener,this)
+        editor.caretModel.addCaretListener(glanceListener,this)
+        editor.markupModel.addMarkupModelListener(this, glanceListener)
+        editor.filteredDocumentMarkupModel.addMarkupModelListener(this, object : MarkupModelListener {
             override fun afterAdded(highlighter: RangeHighlighterEx) =
                 if (attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))updateImageSoon() else Unit
 
-            override fun attributesChanged(highlighter: RangeHighlighterEx,
-                renderersChanged: Boolean, fontStyleChanged: Boolean, foregroundColorChanged: Boolean
+            override fun attributesChanged(highlighter: RangeHighlighterEx, renderersChanged: Boolean,
+                                           fontStyleChanged: Boolean, foregroundColorChanged: Boolean
             ) = if(renderersChanged || foregroundColorChanged)updateImageSoon() else Unit
-        }
-        editor.filteredDocumentMarkupModel.addMarkupModelListener(this, myFilterMarkupModelListener)
-        editor.caretModel.addCaretListener(object : CaretListener {
-            override fun caretPositionChanged(event: CaretEvent) = repaint()
-            override fun caretAdded(event: CaretEvent) = repaint()
-            override fun caretRemoved(event: CaretEvent) = repaint()
-        },this)
+        })
         if(config.hideOriginalScrollBar) myVcsPanel = MyVcsPanel(this)
         refresh()
     }
@@ -181,8 +168,6 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
         }
     }
 
-    override fun onRefreshChanged() = refresh()
-
     override fun getDrawImage() : BufferedImage?{
         val minimap = mapRef.get()
         return if(minimap == null || (minimap.img == null)){
@@ -198,5 +183,14 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
             mapRef = SoftReference(map)
         }
         return map
+    }
+
+    override fun dispose() {
+        super.dispose()
+        removeHierarchyBoundsListener(glanceListener)
+        editor.contentComponent.removeComponentListener(glanceListener)
+        editor.document.removeDocumentListener(glanceListener)
+        editor.scrollingModel.removeVisibleAreaListener(glanceListener)
+        editor.selectionModel.removeSelectionListener(glanceListener)
     }
 }
