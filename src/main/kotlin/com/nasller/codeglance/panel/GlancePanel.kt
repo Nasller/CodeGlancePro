@@ -159,11 +159,13 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
     override fun paintErrorStripes(g: Graphics2D) {
         g.composite = srcOver
         val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
-        editor.filteredDocumentMarkupModel.allHighlighters.forEach {
-            val info = HighlightInfo.fromRangeHighlighter(it) ?: return
-            if (info.severity.myVal > minSeverity.myVal) {
-                drawMarkupLine(it, g,true)
+        editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0, editor.document.textLength) {
+            HighlightInfo.fromRangeHighlighter(it) ?.let {info ->
+                if (info.severity.myVal > minSeverity.myVal) {
+                    drawMarkupLine(it, g,true)
+                }
             }
+            return@processRangeHighlightersOverlappingWith true
         }
     }
 
