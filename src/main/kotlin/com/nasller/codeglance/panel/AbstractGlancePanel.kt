@@ -37,8 +37,11 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
     val fileEditorManagerEx = FileEditorManager.getInstance(project) as FileEditorManagerEx
     protected val renderLock = DirtyLock()
     // Anonymous Listeners that should be cleaned up.
-    private val componentListener: ComponentListener = object : ComponentAdapter() {
+    private val parentComponentListener: ComponentListener = object : ComponentAdapter() {
         override fun componentResized(componentEvent: ComponentEvent?) = refresh()
+    }
+    private val componentListener: ComponentListener = object : ComponentAdapter() {
+        override fun componentResized(componentEvent: ComponentEvent?) = updateImage()
     }
     private val documentListener: DocumentListener = object : DocumentListener {
         override fun beforeDocumentChange(event: DocumentEvent) {}
@@ -70,7 +73,8 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
     var myVcsPanel:MyVcsPanel? = null
 
     init {
-        panelParent.addComponentListener(componentListener)
+        panelParent.addComponentListener(parentComponentListener)
+        editor.contentComponent.addComponentListener(componentListener)
         editor.document.addDocumentListener(documentListener)
         editor.scrollingModel.addVisibleAreaListener(areaListener)
         editor.selectionModel.addSelectionListener(selectionListener)
@@ -91,7 +95,8 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         preferredSize = if (isDisabled) {
             Dimension(0, 0)
         } else {
-            Dimension(if(fileEditorManagerEx.isInSplitter && panelParent.width > 0) panelParent.width / 8 else config.width, 0)
+            val calWidth = panelParent.width / 9
+            Dimension(if(fileEditorManagerEx.isInSplitter && calWidth > 0 && calWidth < config.width) calWidth else config.width, 0)
         }
     }
 
@@ -215,7 +220,8 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
     abstract fun getDrawImage() : BufferedImage?
 
     override fun dispose() {
-        panelParent.removeComponentListener(componentListener)
+        panelParent.removeComponentListener(parentComponentListener)
+        editor.contentComponent.removeComponentListener(componentListener)
         editor.document.removeDocumentListener(documentListener)
         editor.scrollingModel.removeVisibleAreaListener(areaListener)
         editor.selectionModel.removeSelectionListener(selectionListener)
