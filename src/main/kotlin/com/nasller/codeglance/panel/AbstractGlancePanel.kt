@@ -95,8 +95,9 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         preferredSize = if (isDisabled) {
             Dimension(0, 0)
         } else {
-            val calWidth = panelParent.width / 9
-            Dimension(if(fileEditorManagerEx.isInSplitter && calWidth > 0 && calWidth < config.width) calWidth else config.width, 0)
+            var calWidth = panelParent.width / 9
+            calWidth = if (calWidth < 20) 20 else calWidth
+            Dimension(if(fileEditorManagerEx.isInSplitter && calWidth < config.width) calWidth else config.width, 0)
         }
     }
 
