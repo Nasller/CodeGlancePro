@@ -9,8 +9,9 @@ CodeGlance Pro
 - Support error stripes highlights
 - Support Vcs line highlights
 - Support caret line highlights
+- Support language ColorScheme 
 - Quick view code on Glance
-- ColorScheme Support
+- Automatically calculate width in splitter mode
 
 Show/Hide or Enable/Disable Minimap
 ===================

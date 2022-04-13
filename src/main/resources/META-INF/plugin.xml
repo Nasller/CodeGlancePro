@@ -6,8 +6,7 @@
 	<description><![CDATA[
 		IntelliJ plugin that displays a zoomed out overview or minimap similar to the one found in Sublime into the editor pane.
 		The minimap allows for quick scrolling letting you jump straight to sections of code.
-		Rework on CodeGlance,support two type minimap to choose
-
+		Rework on CodeGlance,support more feature
 		<ul>
 		<li>Hide original scrollbar.</li>
 		<li>Right click to quick config.</li>
@@ -15,11 +14,11 @@
 		<li>Support error stripes highlights.</li>
 		<li>Support Vcs line highlights.</li>
 		<li>Support caret line highlights.</li>
+		<li>Support language ColorScheme.</li>
 		<li>Quick view code on Glance.</li>
-		<li>Quick view code on Glance.</li>
+		<li>Automatically calculate width in splitter mode.</li>
 		<li>Ctrl-Shift-G to toggle Glance.</li>
 		</ul>
-
 	]]></description>
 
 	<change-notes><![CDATA[
