@@ -6,9 +6,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diff.LineStatusMarkerDrawUtil
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.colors.EditorColors
-import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
-import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.Project
@@ -19,7 +17,6 @@ import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.listener.GlanceListener
 import com.nasller.codeglance.render.Minimap
-import com.nasller.codeglance.util.attributesImpactForegroundColor
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.lang.ref.SoftReference
@@ -42,14 +39,7 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
         editor.foldingModel.addListener(glanceListener,this)
         editor.caretModel.addCaretListener(glanceListener,this)
         editor.markupModel.addMarkupModelListener(this, glanceListener)
-        editor.filteredDocumentMarkupModel.addMarkupModelListener(this, object : MarkupModelListener {
-            override fun afterAdded(highlighter: RangeHighlighterEx) =
-                if (attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))updateImageSoon() else Unit
-
-            override fun attributesChanged(highlighter: RangeHighlighterEx, renderersChanged: Boolean,
-                                           fontStyleChanged: Boolean, foregroundColorChanged: Boolean
-            ) = if(renderersChanged || foregroundColorChanged)updateImageSoon() else Unit
-        })
+        editor.filteredDocumentMarkupModel.addMarkupModelListener(this, glanceListener)
         refresh()
     }
 
@@ -148,9 +138,11 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
         editor.markupModel.processRangeHighlightersOverlappingWith(0, editor.document.textLength) {
             val key = (it.startOffset+it.endOffset).toString()
             val layer = map.value[key]
-            if(layer == null || layer < it.layer){
-                drawMarkupLine(it,g,false)
-                map.value[key] = it.layer
+            it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
+                if(layer == null || layer < it.layer){
+                    drawMarkupLine(it,g,this,false)
+                    map.value[key] = it.layer
+                }
             }
             return@processRangeHighlightersOverlappingWith true
         }
@@ -161,8 +153,8 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
         val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
         editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0, editor.document.textLength) {
             HighlightInfo.fromRangeHighlighter(it) ?.let {info ->
-                if (info.severity.myVal > minSeverity.myVal) {
-                    drawMarkupLine(it, g,true)
+                it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
+                    drawMarkupLine(it, g,this,info.severity.myVal > minSeverity.myVal)
                 }
             }
             return@processRangeHighlightersOverlappingWith true

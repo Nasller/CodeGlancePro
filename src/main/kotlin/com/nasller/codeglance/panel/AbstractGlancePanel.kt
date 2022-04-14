@@ -137,10 +137,8 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         return Pair(startAdd,endAdd)
     }
 
-    protected fun drawMarkupLine(it: RangeHighlighter, g: Graphics2D, compensateLine:Boolean){
-        val textAttributes = it.getTextAttributes(editor.colorsScheme)
-        g.color = it.getErrorStripeMarkColor(editor.colorsScheme) ?: textAttributes?.backgroundColor
-                ?: textAttributes?.foregroundColor ?: return
+    protected fun drawMarkupLine(it: RangeHighlighter, g: Graphics2D,color: Color, compensateLine:Boolean){
+        g.color = color
         val documentLine = getDocumentRenderLine(editor.offsetToLogicalPosition(it.startOffset).line, editor.offsetToLogicalPosition(it.endOffset).line)
         val start = editor.offsetToVisualPosition(it.startOffset)
         val end = editor.offsetToVisualPosition(it.endOffset)

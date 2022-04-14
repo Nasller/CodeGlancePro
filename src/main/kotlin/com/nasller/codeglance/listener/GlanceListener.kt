@@ -6,6 +6,7 @@ import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.nasller.codeglance.panel.AbstractGlancePanel
+import com.nasller.codeglance.util.attributesImpactForegroundColor
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
 import java.awt.event.HierarchyBoundsListener
@@ -17,13 +18,15 @@ class GlanceListener(private val glancePanel: AbstractGlancePanel) : ComponentAd
     override fun onFoldRegionStateChange(region: FoldRegion) = glancePanel.updateImage()
 
     /** MarkupModelListener */
-    override fun afterAdded(highlighter: RangeHighlighterEx) = glancePanel.repaint()
+    override fun afterAdded(highlighter: RangeHighlighterEx) =
+        if (attributesImpactForegroundColor(highlighter.getTextAttributes(glancePanel.editor.colorsScheme)))glancePanel.updateImageSoon()
+        else glancePanel.repaint()
 
     override fun beforeRemoved(highlighter: RangeHighlighterEx) = glancePanel.repaint()
 
-    override fun attributesChanged(highlighter: RangeHighlighterEx,
-                                   renderersChanged: Boolean, fontStyleChanged: Boolean, foregroundColorChanged: Boolean
-    ) = if(renderersChanged || foregroundColorChanged)glancePanel.repaint() else Unit
+    override fun attributesChanged(highlighter: RangeHighlighterEx, renderersChanged: Boolean,
+                                   fontStyleChanged: Boolean, foregroundColorChanged: Boolean
+    ) = if(renderersChanged || foregroundColorChanged)glancePanel.updateImageSoon() else glancePanel.repaint()
 
     /** CaretListener */
     override fun caretPositionChanged(event: CaretEvent) = glancePanel.repaint()

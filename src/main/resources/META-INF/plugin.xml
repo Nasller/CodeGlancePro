@@ -22,9 +22,14 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.2.9</h3>
+		<ul>
+			<li>fix in rider markup highlight and error highlight</li>
+			<li>fix config hide original scrollbar and disable</li>
+		</ul>
 		<h3>1.2.8</h3>
 		<ul>
-			<li>remove config minWindowWidth
+			<li>remove config minWindowWidth</li>
 			<li>feature: codeGlance window automatically calculate width in splitter mode</li>
 		</ul>
 		<h3>1.2.7</h3>
