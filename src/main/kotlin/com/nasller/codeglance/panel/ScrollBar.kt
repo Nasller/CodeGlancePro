@@ -66,7 +66,8 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlanceP
 
     private fun jumpToLineAt(y: Int) {
         val line = fitLineToEditor(editor,((y + scrollState.visibleStart)/ config.pixelsPerLine))
-        editor.scrollingModel.scrollTo(editor.visualToLogicalPosition(VisualPosition(line,0)),ScrollType.CENTER)
+        editor.caretModel.moveToVisualPosition(VisualPosition(line,0))
+        editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
     }
 
     private fun updateAlpha(y: Int) {
