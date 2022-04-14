@@ -39,12 +39,12 @@ class CustomScrollBarPopup(private val myProject: Project, private val myEditor:
             actionGroup.addSeparator()
             actionGroup.add(object : ToggleAction(IdeBundle.message("checkbox.show.editor.preview.popup")) {
                 override fun isSelected(e: AnActionEvent): Boolean {
-                    return UISettings.instance.showEditorToolTip
+                    return UISettings.getInstance().showEditorToolTip
                 }
 
                 override fun setSelected(e: AnActionEvent, state: Boolean) {
-                    UISettings.instance.showEditorToolTip = state
-                    UISettings.instance.fireUISettingsChanged()
+                    UISettings.getInstance().showEditorToolTip = state
+                    UISettings.getInstance().fireUISettingsChanged()
                 }
             })
         }
