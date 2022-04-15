@@ -15,7 +15,7 @@ import kotlin.math.max
 /**
  * A rendered minimap of a document
  */
-class Minimap(private val glancePanel: AbstractGlancePanel) {
+class Minimap(glancePanel: AbstractGlancePanel){
 	var img: BufferedImage? = null
 	private val editor = glancePanel.editor
 	private val config = glancePanel.config
@@ -108,6 +108,7 @@ class Minimap(private val glancePanel: AbstractGlancePanel) {
 				hlIter.advance()
 			while (!hlIter.atEnd() && hlIter.start < i)
 		}
+		g.dispose()
 	}
 
 	private fun getHighlightColor(offset:Int):Color?{

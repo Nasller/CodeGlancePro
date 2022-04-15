@@ -13,6 +13,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.ChangeListManagerImpl
 import com.intellij.openapi.vcs.impl.LineStatusTrackerManager
 import com.intellij.openapi.vfs.PersistentFSConstants
+import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.Config
@@ -167,13 +168,14 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         if (buf == null || buf?.width!! < width || buf?.height!! < height) {
             buf = BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR)
         }
-        val g = buf!!.createGraphics()
-        g.composite = AlphaComposite.getInstance(AlphaComposite.CLEAR)
-        g.fillRect(0, 0, width, height)
-        g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
-        if (editor.document.textLength != 0) {
-            g.drawImage(img, 0, 0, img.width, scrollState.drawHeight,
-                0, scrollState.visibleStart, img.width, scrollState.visibleEnd, null)
+        UIUtil.useSafely(buf!!.graphics){
+            it.composite = AlphaComposite.getInstance(AlphaComposite.CLEAR)
+            it.fillRect(0, 0, width, height)
+            it.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
+            if (editor.document.textLength != 0) {
+                it.drawImage(img, 0, 0, img.width, scrollState.drawHeight,
+                    0, scrollState.visibleStart, img.width, scrollState.visibleEnd, null)
+            }
         }
         val graphics2D = gfx as Graphics2D
         if(config.hideOriginalScrollBar) myVcsPanel?.repaint() else paintVcs(graphics2D)
@@ -183,6 +185,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         graphics2D.composite = srcOver0_8
         graphics2D.drawImage(buf, 0, 0, null)
         scrollbar?.paint(graphics2D)
+        graphics2D.dispose()
     }
 
     fun changeOriginScrollBarWidth(){

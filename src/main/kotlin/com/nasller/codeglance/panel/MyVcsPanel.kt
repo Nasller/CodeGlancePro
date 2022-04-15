@@ -27,6 +27,7 @@ class MyVcsPanel(private val panel: AbstractGlancePanel) : JPanel() {
 	override fun paint(gfx: Graphics?) {
 		val graphics2D = gfx as Graphics2D
 		panel.paintVcs(graphics2D)
+		graphics2D.dispose()
 	}
 
 	inner class MouseHandler : MouseAdapter() {

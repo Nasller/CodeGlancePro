@@ -12,17 +12,19 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vcs.ex.LocalRange
+import com.intellij.reference.SoftReference
+import com.intellij.ui.scale.ScaleContext
 import com.intellij.util.ObjectUtils
 import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 import com.nasller.codeglance.listener.GlanceListener
 import com.nasller.codeglance.render.Minimap
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
-import java.lang.ref.SoftReference
+import java.util.function.Function
 import javax.swing.JPanel
 
 class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) : AbstractGlancePanel(project,textEditor,panelParent){
-    private var mapRef = SoftReference<Minimap>(null)
+    private var mapRef = MinimapCache { MinimapRef(Minimap(this)) }
     private val glanceListener = GlanceListener(this)
     init {
         Disposer.register(textEditor, this)
@@ -43,7 +45,7 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
     }
 
     override fun computeInReadAction(indicator: ProgressIndicator) {
-        val map = getOrCreateMap()
+        val map = mapRef.get(ScaleContext.create(this))
         try {
             map.update(scrollState,indicator)
             scrollState.computeDimensions(editor,this)
@@ -161,20 +163,10 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
     }
 
     override fun getDrawImage() : BufferedImage?{
-        val minimap = mapRef.get()
-        return if(minimap == null || (minimap.img == null)){
-            updateImageSoon()
-            null
-        }else minimap.img
-    }
-
-    private fun getOrCreateMap() : Minimap {
-        var map = mapRef.get()
-        if (map == null) {
-            map = Minimap(this)
-            mapRef = SoftReference(map)
+        return mapRef.get(ScaleContext.create(this)).let{
+            if(it.img == null) updateImageSoon()
+            it.img
         }
-        return map
     }
 
     override fun dispose() {
@@ -185,5 +177,30 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
         editor.document.removeDocumentListener(glanceListener)
         editor.scrollingModel.removeVisibleAreaListener(glanceListener)
         editor.selectionModel.removeSelectionListener(glanceListener)
+    }
+}
+
+private class MinimapRef(minimap: Minimap) : SoftReference<Minimap?>(minimap) {
+    private var strongRef: Minimap?
+
+    init {
+        strongRef = minimap
+    }
+
+    override fun get(): Minimap? {
+        val minimap = strongRef ?: super.get()
+        // drop on first request
+        strongRef = null
+        return minimap
+    }
+}
+
+private class MinimapCache(imageProvider: Function<in ScaleContext, MinimapRef>) : ScaleContext.Cache<MinimapRef?>(imageProvider) {
+    fun get(ctx: ScaleContext): Minimap {
+        val ref = getOrProvide(ctx)
+        val image = SoftReference.dereference(ref)
+        if (image != null) return image
+        clear() // clear to recalculate the image
+        return get(ctx) // first recalculated image will be non-null
     }
 }
