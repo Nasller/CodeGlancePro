@@ -31,6 +31,7 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
         ApplicationManager.getApplication().messageBus.connect(this).subscribe(SettingsChangeListener.TOPIC, this)
         scrollbar = ScrollBar(textEditor,this)
         add(scrollbar)
+        addHierarchyListener(glanceListener)
         addHierarchyBoundsListener(glanceListener)
         editor.contentComponent.addComponentListener(glanceListener)
         editor.document.addDocumentListener(glanceListener)
@@ -40,18 +41,14 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
         editor.caretModel.addCaretListener(glanceListener,this)
         editor.markupModel.addMarkupModelListener(this, glanceListener)
         editor.filteredDocumentMarkupModel.addMarkupModelListener(this, glanceListener)
-        refresh()
+        refresh(true)
     }
 
     override fun computeInReadAction(indicator: ProgressIndicator) {
         val map = getOrCreateMap()
         try {
             map.update(scrollState,indicator)
-            scrollState.computeDimensions(editor,this)
-            ApplicationManager.getApplication().invokeLater {
-                scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
-                repaint()
-            }
+            calculateAndRepaint()
         }finally {
             renderLock.release()
             if (renderLock.dirty) {

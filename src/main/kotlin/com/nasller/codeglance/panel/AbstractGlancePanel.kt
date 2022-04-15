@@ -56,15 +56,13 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         layout = BorderLayout()
     }
 
-    fun refresh() {
+    fun refresh(refreshImage:Boolean = false) {
         updateSize()
-        updateImage()
+        if(refreshImage) updateImage()
+        else calculateAndRepaint()
         revalidate()
     }
 
-    /**
-     * Adjusts the panels size to be a percentage of the total window
-     */
     private fun updateSize() {
         preferredSize = if (isDisabled) {
             Dimension(0, 0)
@@ -79,14 +77,20 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
 
     fun updateImageSoon() = ApplicationManager.getApplication().invokeLater(this::updateImage)
 
-    /**
-     * Fires off a new task to the worker thread. This should only be called from the ui thread.
-     */
     fun updateImage() {
         if (isDisabled) return
         if (project.isDisposed) return
         if (!renderLock.acquire()) return
         ProgressIndicatorUtils.scheduleWithWriteActionPriority(updateTask)
+    }
+
+    fun calculateAndRepaint(){
+        if (isDisabled) return
+        ApplicationManager.getApplication().invokeLater {
+            scrollState.computeDimensions(editor,this)
+            scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
+            repaint()
+        }
     }
 
     private fun paintLast(gfx: Graphics?) {
@@ -179,8 +183,8 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         g.fillRect(0, 0, width, height)
         g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
         if (editor.document.textLength != 0) {
-            g.drawImage(img, 0, 0, scrollState.documentWidth, scrollState.drawHeight,
-                0, scrollState.visibleStart, scrollState.documentWidth, scrollState.visibleEnd, null)
+            g.drawImage(img, 0, 0, preferredSize.width, scrollState.drawHeight,
+                0, scrollState.visibleStart, preferredSize.width, scrollState.visibleEnd, null)
         }
         val graphics2D = gfx as Graphics2D
         if(config.hideOriginalScrollBar) myVcsPanel?.repaint() else paintVcs(graphics2D)

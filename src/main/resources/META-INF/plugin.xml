@@ -26,6 +26,7 @@
 		<ul>
 			<li>fix in rider markup highlight and error highlight</li>
 			<li>fix config hide original scrollbar and disable</li>
+			<li>fix jump to line move caret</li>
 		</ul>
 		<h3>1.2.8</h3>
 		<ul>

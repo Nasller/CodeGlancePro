@@ -7,13 +7,10 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import com.nasller.codeglance.util.attributesImpactForegroundColor
-import java.awt.event.ComponentAdapter
-import java.awt.event.ComponentEvent
-import java.awt.event.HierarchyBoundsListener
-import java.awt.event.HierarchyEvent
+import java.awt.event.*
 
 class GlanceListener(private val glancePanel: AbstractGlancePanel) : ComponentAdapter(), FoldingListener, MarkupModelListener,
-    CaretListener, DocumentListener, VisibleAreaListener,SelectionListener, HierarchyBoundsListener {
+    CaretListener, DocumentListener, VisibleAreaListener,SelectionListener, HierarchyBoundsListener, HierarchyListener {
     /** FoldingListener */
     override fun onFoldRegionStateChange(region: FoldRegion) = glancePanel.updateImage()
 
@@ -54,4 +51,9 @@ class GlanceListener(private val glancePanel: AbstractGlancePanel) : ComponentAd
     override fun ancestorMoved(e: HierarchyEvent) {}
 
     override fun ancestorResized(e: HierarchyEvent) = glancePanel.refresh()
+
+    /** HierarchyListener */
+    override fun hierarchyChanged(e: HierarchyEvent) = if(e.changeFlags == HierarchyEvent.PARENT_CHANGED.toLong())
+        glancePanel.refresh() else Unit
+
 }
