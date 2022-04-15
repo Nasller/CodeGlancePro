@@ -22,11 +22,11 @@ class Minimap(private val glancePanel: AbstractGlancePanel) {
 
 	@Synchronized
 	fun update(scrollState: ScrollState, indicator: ProgressIndicator) {
-		if (img == null || img!!.height < scrollState.documentHeight || img!!.width < glancePanel.preferredSize.width) {
+		if (img == null || img!!.height < scrollState.documentHeight || img!!.width < config.width) {
 			if (img != null) img!!.flush()
 			// Create an image that is a bit bigger then the one we need, so we don't need to re-create it again soon.
 			// Documents can get big, so rather than relative sizes lets just add a fixed amount on.
-			img = BufferedImage(glancePanel.preferredSize.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
+			img = BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 		}
 
 		val g = img!!.createGraphics()
@@ -78,7 +78,7 @@ class Minimap(private val glancePanel: AbstractGlancePanel) {
 					if (checkFold()) break
 					x += if (text[i++] == '\t') 4 else 1
 					// Abort if this line is getting too long...
-					if (x > glancePanel.preferredSize.width) break
+					if (x > config.width) break
 				}
 			}
 			while (i < hlIter.end) {

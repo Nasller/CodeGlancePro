@@ -14,7 +14,6 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vcs.ex.LocalRange
 import com.intellij.util.ObjectUtils
 import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
-import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.listener.GlanceListener
 import com.nasller.codeglance.render.Minimap
 import java.awt.Graphics2D
@@ -28,7 +27,6 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
     init {
         Disposer.register(textEditor, this)
         Disposer.register(this){mapRef.clear()}
-        ApplicationManager.getApplication().messageBus.connect(this).subscribe(SettingsChangeListener.TOPIC, this)
         scrollbar = ScrollBar(textEditor,this)
         add(scrollbar)
         addHierarchyListener(glanceListener)
@@ -41,14 +39,18 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
         editor.caretModel.addCaretListener(glanceListener,this)
         editor.markupModel.addMarkupModelListener(this, glanceListener)
         editor.filteredDocumentMarkupModel.addMarkupModelListener(this, glanceListener)
-        refresh(true)
+        refresh()
     }
 
     override fun computeInReadAction(indicator: ProgressIndicator) {
         val map = getOrCreateMap()
         try {
             map.update(scrollState,indicator)
-            calculateAndRepaint()
+            scrollState.computeDimensions(editor,this)
+            ApplicationManager.getApplication().invokeLater {
+                scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
+                repaint()
+            }
         }finally {
             renderLock.release()
             if (renderLock.dirty) {
@@ -177,6 +179,7 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
 
     override fun dispose() {
         super.dispose()
+        removeHierarchyListener(glanceListener)
         removeHierarchyBoundsListener(glanceListener)
         editor.contentComponent.removeComponentListener(glanceListener)
         editor.document.removeDocumentListener(glanceListener)

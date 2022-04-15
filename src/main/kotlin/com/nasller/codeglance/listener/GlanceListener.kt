@@ -1,16 +1,22 @@
 package com.nasller.codeglance.listener
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.FoldRegion
 import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
+import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import com.nasller.codeglance.util.attributesImpactForegroundColor
 import java.awt.event.*
 
 class GlanceListener(private val glancePanel: AbstractGlancePanel) : ComponentAdapter(), FoldingListener, MarkupModelListener,
-    CaretListener, DocumentListener, VisibleAreaListener,SelectionListener, HierarchyBoundsListener, HierarchyListener {
+    SettingsChangeListener, CaretListener, DocumentListener, VisibleAreaListener,SelectionListener,
+    HierarchyBoundsListener, HierarchyListener {
+    init {
+        ApplicationManager.getApplication().messageBus.connect(glancePanel).subscribe(SettingsChangeListener.TOPIC, this)
+    }
     /** FoldingListener */
     override fun onFoldRegionStateChange(region: FoldRegion) = glancePanel.updateImage()
 
@@ -41,6 +47,12 @@ class GlanceListener(private val glancePanel: AbstractGlancePanel) : ComponentAd
     /** DocumentListener */
     override fun documentChanged(event: DocumentEvent) = glancePanel.updateImage()
 
+    /** SettingsChangeListener */
+    override fun onRefreshChanged() {
+        glancePanel.refresh()
+        glancePanel.changeOriginScrollBarWidth()
+    }
+
     /** VisibleAreaListener */
     override fun visibleAreaChanged(e: VisibleAreaEvent) {
         glancePanel.scrollState.recomputeVisible(e.newRectangle)
@@ -50,10 +62,10 @@ class GlanceListener(private val glancePanel: AbstractGlancePanel) : ComponentAd
     /** HierarchyBoundsListener */
     override fun ancestorMoved(e: HierarchyEvent) {}
 
-    override fun ancestorResized(e: HierarchyEvent) = glancePanel.refresh()
+    override fun ancestorResized(e: HierarchyEvent) = glancePanel.refresh(false)
 
     /** HierarchyListener */
     override fun hierarchyChanged(e: HierarchyEvent) = if(e.changeFlags == HierarchyEvent.PARENT_CHANGED.toLong())
-        glancePanel.refresh() else Unit
+        glancePanel.refresh(false) else Unit
 
 }

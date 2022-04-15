@@ -17,14 +17,12 @@ import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.Config
 import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
-import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
 
-sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,private val panelParent: JPanel) : JPanel(),
-    SettingsChangeListener,Disposable {
+sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,private val panelParent: JPanel) : JPanel(),Disposable {
     val editor = textEditor.editor as EditorEx
     var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
     val config: Config = ConfigInstance.state
@@ -56,10 +54,10 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         layout = BorderLayout()
     }
 
-    fun refresh(refreshImage:Boolean = false) {
+    fun refresh(refreshImage:Boolean = true) {
         updateSize()
         if(refreshImage) updateImage()
-        else calculateAndRepaint()
+        else repaint()
         revalidate()
     }
 
@@ -82,15 +80,6 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         if (project.isDisposed) return
         if (!renderLock.acquire()) return
         ProgressIndicatorUtils.scheduleWithWriteActionPriority(updateTask)
-    }
-
-    fun calculateAndRepaint(){
-        if (isDisabled) return
-        ApplicationManager.getApplication().invokeLater {
-            scrollState.computeDimensions(editor,this)
-            scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
-            repaint()
-        }
     }
 
     private fun paintLast(gfx: Graphics?) {
@@ -183,8 +172,8 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         g.fillRect(0, 0, width, height)
         g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
         if (editor.document.textLength != 0) {
-            g.drawImage(img, 0, 0, preferredSize.width, scrollState.drawHeight,
-                0, scrollState.visibleStart, preferredSize.width, scrollState.visibleEnd, null)
+            g.drawImage(img, 0, 0, img.width, scrollState.drawHeight,
+                0, scrollState.visibleStart, img.width, scrollState.visibleEnd, null)
         }
         val graphics2D = gfx as Graphics2D
         if(config.hideOriginalScrollBar) myVcsPanel?.repaint() else paintVcs(graphics2D)
@@ -194,11 +183,6 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         graphics2D.composite = srcOver0_8
         graphics2D.drawImage(buf, 0, 0, null)
         scrollbar?.paint(graphics2D)
-    }
-
-    override fun onRefreshChanged() {
-        refresh()
-        changeOriginScrollBarWidth()
     }
 
     fun changeOriginScrollBarWidth(){
