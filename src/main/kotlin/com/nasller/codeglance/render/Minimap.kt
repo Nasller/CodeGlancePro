@@ -57,18 +57,16 @@ class Minimap(glancePanel: AbstractGlancePanel){
 			} catch (_: Exception){ null }
 			// Jump over folds
 			val checkFold = {
-				var isFolded = editor.foldingModel.isOffsetCollapsed(i)
-				if (isFolded) {
-					val fold = editor.foldingModel.getCollapsedRegionAtOffset(i)!!
-					if(!CodeGlancePlugin.isCustomFoldRegionImpl(fold) &&
-						fold.startOffset >= 0 && fold.endOffset >= 0){
-						foldedLines += editor.document.getLineNumber(fold.endOffset) - editor.document.getLineNumber(fold.startOffset)
-						i = fold.endOffset
+				editor.foldingModel.getCollapsedRegionAtOffset(i)?.let{
+					if(!CodeGlancePlugin.isCustomFoldRegionImpl(it) &&
+						it.startOffset >= 0 && it.endOffset >= 0){
+						foldedLines += editor.document.getLineNumber(it.endOffset) - editor.document.getLineNumber(it.startOffset)
+						i = it.endOffset
+						true
 					}else{
-						isFolded = false
+						false
 					}
-				}
-				isFolded
+				}?:false
 			}
 			// New line, pre-loop to count whitespace from start of line.
 			if (y != prevY) {
