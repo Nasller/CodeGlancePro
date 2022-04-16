@@ -187,6 +187,7 @@
           </grid>
         </constraints>
         <properties>
+          <selected value="true"/>
           <text value=""/>
           <toolTipText value="Enabling this possibility of display errors in the case of turning the Reader Mode"/>
         </properties>
