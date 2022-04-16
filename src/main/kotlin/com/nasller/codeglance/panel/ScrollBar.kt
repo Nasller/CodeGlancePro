@@ -165,7 +165,7 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlanceP
                     cursor = defaultCursor
                 }else{
                     cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-                    val enabled = UISettings.getInstance().showEditorToolTip && ((if(config.showRenderDoc && DocRenderEnabled != null){
+                    val enabled = UISettings.getInstance().showEditorToolTip && ((if(DocRenderEnabled != null){
                         !(editor.getUserData(DocRenderEnabled)?:false)
                     }else true) || textEditor.file?.isWritable?:false)
                     if (e.x > 10 && !resizing && !dragging && enabled && e.y < scrollState.drawHeight) {

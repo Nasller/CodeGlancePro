@@ -58,14 +58,11 @@ class Minimap(glancePanel: AbstractGlancePanel){
 			// Jump over folds
 			val checkFold = {
 				editor.foldingModel.getCollapsedRegionAtOffset(i)?.let{
-					if(it.startOffset >= 0 && it.endOffset >= 0){
-						if(config.showRenderDoc && CodeGlancePlugin.isCustomFoldRegionImpl(it))false
-						else{
-							foldedLines += editor.document.getLineNumber(it.endOffset) - editor.document.getLineNumber(it.startOffset)
-							i = it.endOffset
-							true
-						}
-					}else false
+					if(it.startOffset >= 0 && it.endOffset >= 0 && !CodeGlancePlugin.isCustomFoldRegionImpl(it)){
+						foldedLines += editor.document.getLineNumber(it.endOffset) - editor.document.getLineNumber(it.startOffset)
+						i = it.endOffset
+						true
+					} else false
 				}?:false
 			}
 			// New line, pre-loop to count whitespace from start of line.
