@@ -113,19 +113,21 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         }
     }
 
-    protected fun getDocumentRenderLine(lineStart:Int,lineEnd:Int):Pair<Int,Int>{
+    fun getDocumentRenderLine(lineStart:Int,lineEnd:Int):Pair<Int,Int>{
         var startAdd = 0
         var endAdd = 0
-        editor.foldingModel.allFoldRegions.filter{ CodeGlancePlugin.isCustomFoldRegionImpl(it) && !it.isExpanded &&
-                it.startOffset >= 0 && it.endOffset >= 0}.forEach{
-            val start = it.document.getLineNumber(it.startOffset)
-            val end = it.document.getLineNumber(it.endOffset)
-            val i = end - start
-            if(lineStart < start && end < lineEnd){
-                endAdd += i
-            }else if(end < lineEnd){
-                startAdd += i
-                endAdd += i
+        if(config.showRenderDoc){
+            editor.foldingModel.allFoldRegions.filter{ CodeGlancePlugin.isCustomFoldRegionImpl(it) && !it.isExpanded &&
+                    it.startOffset >= 0 && it.endOffset >= 0}.forEach{
+                val start = it.document.getLineNumber(it.startOffset)
+                val end = it.document.getLineNumber(it.endOffset)
+                val i = end - start
+                if(lineStart < start && end < lineEnd){
+                    endAdd += i
+                }else if(end < lineEnd){
+                    startAdd += i
+                    endAdd += i
+                }
             }
         }
         return Pair(startAdd,endAdd)

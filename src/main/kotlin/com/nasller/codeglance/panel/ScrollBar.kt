@@ -65,7 +65,10 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlanceP
     private fun isInRect(y: Int): Boolean = y in vOffset..(vOffset + scrollState.viewportHeight)
 
     private fun jumpToLineAt(y: Int) {
-        val line = fitLineToEditor(editor,((y + scrollState.visibleStart)/ config.pixelsPerLine))
+        val visualLine = (y + scrollState.visibleStart) / config.pixelsPerLine
+        val logical = editor.visualToLogicalPosition(VisualPosition(visualLine,0)).line
+        val documentLine = glancePanel.getDocumentRenderLine(logical, logical)
+        val line = fitLineToEditor(editor, visualLine - documentLine.first)
         editor.caretModel.moveToVisualPosition(VisualPosition(line,0))
         editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
     }
@@ -150,6 +153,7 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlanceP
             resizing = false
             updateAlpha(e.y)
             editor.scrollingModel.enableAnimation()
+            if(isInRect(e.y)) cursor = defaultCursor
         }
 
         override fun mouseMoved(e: MouseEvent) {
@@ -161,7 +165,7 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlanceP
                     cursor = defaultCursor
                 }else{
                     cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-                    val enabled = UISettings.getInstance().showEditorToolTip && ((if(DocRenderEnabled != null){
+                    val enabled = UISettings.getInstance().showEditorToolTip && ((if(config.showRenderDoc && DocRenderEnabled != null){
                         !(editor.getUserData(DocRenderEnabled)?:false)
                     }else true) || textEditor.file?.isWritable?:false)
                     if (e.x > 10 && !resizing && !dragging && enabled && e.y < scrollState.drawHeight) {

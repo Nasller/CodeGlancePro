@@ -13,6 +13,7 @@ class Config {
         }
     }
     var hideOriginalScrollBar: Boolean = false
+    var showRenderDoc: Boolean = false
     var jumpOnMouseDown: Boolean = true
     var width: Int = 110
     var viewportColor: String = "A0A0A0"

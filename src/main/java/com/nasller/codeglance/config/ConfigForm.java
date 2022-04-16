@@ -25,8 +25,9 @@ public class ConfigForm {
     private JSpinner width;
     private JTextField viewportColor;
     private JCheckBox hideOriginalScrollBar;
+	private JCheckBox showRenderDoc;
 
-    public ConfigForm() {
+	public ConfigForm() {
         pixelsPerLine.setModel(new DefaultComboBoxModel(new Integer[]{1, 2, 3, 4}));
         viewportColor.setInputVerifier(new InputVerifier() {
             private final Pattern pattern = Pattern.compile("[a-fA-F0-9]{6}");
@@ -118,6 +119,14 @@ public class ConfigForm {
 
     public void setHideOriginalScrollBar(boolean isDisabled) {
         hideOriginalScrollBar.getModel().setSelected(isDisabled);
+    }
+
+    public boolean isShowRenderDoc() {
+        return showRenderDoc.getModel().isSelected();
+    }
+
+    public void setShowRenderDoc(boolean isDisabled) {
+        showRenderDoc.getModel().setSelected(isDisabled);
     }
 
     public boolean isLocked() {

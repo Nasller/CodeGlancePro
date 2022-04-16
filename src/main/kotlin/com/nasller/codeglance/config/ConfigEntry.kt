@@ -36,6 +36,7 @@ class ConfigEntry : Configurable {
             || config.minLineCount != form!!.minLinesCount
             || config.clean != form!!.cleanStyle
             || config.hideOriginalScrollBar != form!!.isHideOriginalScrollBar
+            || config.showRenderDoc != form!!.isShowRenderDoc
     )
 
     @Throws(ConfigurationException::class)
@@ -55,6 +56,7 @@ class ConfigEntry : Configurable {
         config.minLineCount = form!!.minLinesCount
         config.clean = form!!.cleanStyle
         config.hideOriginalScrollBar = form!!.isHideOriginalScrollBar
+        config.showRenderDoc = form!!.isShowRenderDoc
         ApplicationManager.getApplication().invokeLater{
             SettingsChangePublisher.onGlobalChanged()
         }
@@ -72,6 +74,7 @@ class ConfigEntry : Configurable {
         form!!.minLinesCount = config.minLineCount
         form!!.cleanStyle = config.clean
         form!!.isHideOriginalScrollBar = config.hideOriginalScrollBar
+        form!!.isShowRenderDoc = config.showRenderDoc
     }
 
     override fun disposeUIResources() {
