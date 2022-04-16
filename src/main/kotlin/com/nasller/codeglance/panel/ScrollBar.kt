@@ -253,7 +253,7 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlanceP
 
         private val editorFragmentRendererShow: Method? = try {
                 val clazz = Class.forName("com.intellij.openapi.editor.impl.EditorFragmentRenderer")
-                val method = clazz.getMethod("show",Int::class.java,Collection::class.java,Boolean::class.java, HintHint::class.java)
+                val method = clazz.getDeclaredMethod("show",Int::class.java,Collection::class.java,Boolean::class.java, HintHint::class.java)
                 method.isAccessible = true
                 method
             }catch (e:Exception){
