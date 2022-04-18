@@ -7,6 +7,7 @@ import com.intellij.openapi.diff.LineStatusMarkerDrawUtil
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.ex.util.EditorUtil
+import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.Project
@@ -18,12 +19,13 @@ import com.intellij.util.ObjectUtils
 import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 import com.nasller.codeglance.listener.GlanceListener
 import com.nasller.codeglance.render.Minimap
+import java.awt.Color
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.util.function.Function
 import javax.swing.JPanel
 
-class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) : AbstractGlancePanel(project,textEditor,panelParent){
+class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel) : AbstractGlancePanel(project,textEditor,panelParent){
     private var mapRef = MinimapCache { MinimapRef(Minimap(this)) }
     private val glanceListener = GlanceListener(this)
     init {
@@ -34,9 +36,9 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
         addHierarchyListener(glanceListener)
         addHierarchyBoundsListener(glanceListener)
         editor.contentComponent.addComponentListener(glanceListener)
-        editor.document.addDocumentListener(glanceListener)
-        editor.scrollingModel.addVisibleAreaListener(glanceListener)
-        editor.selectionModel.addSelectionListener(glanceListener)
+        editor.document.addDocumentListener(glanceListener,this)
+        editor.selectionModel.addSelectionListener(glanceListener,this)
+        editor.scrollingModel.addVisibleAreaListener(glanceListener,this)
         editor.foldingModel.addListener(glanceListener,this)
         editor.caretModel.addCaretListener(glanceListener,this)
         editor.markupModel.addMarkupModelListener(this, glanceListener)
@@ -48,7 +50,7 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
         val map = mapRef.get(ScaleContext.create(this))
         try {
             map.update(scrollState,indicator)
-            scrollState.computeDimensions(editor,this)
+            scrollState.computeDimensions(this)
             ApplicationManager.getApplication().invokeLater {
                 scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
                 repaint()
@@ -162,6 +164,34 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
         }
     }
 
+    private fun drawMarkupLine(it: RangeHighlighter, g: Graphics2D, color: Color, compensateLine:Boolean){
+        g.color = color
+        val documentLine = getRenderLine(editor.offsetToLogicalPosition(it.startOffset).line, editor.offsetToLogicalPosition(it.endOffset).line)
+        val start = editor.offsetToVisualPosition(it.startOffset)
+        val end = editor.offsetToVisualPosition(it.endOffset)
+        var sX = if (start.column > (width - minGap)) width - minGap else start.column
+        val sY = (start.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
+        var eX = if (start.column < (width - minGap)) end.column + 1 else width
+        val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
+        val collapsed = editor.foldingModel.isOffsetCollapsed(it.startOffset)
+        if (sY == eY && !collapsed) {
+            val gap = eX - sX
+            if(compensateLine && gap < minGap){
+                eX += minGap-gap
+                if(eX > width) sX -= eX - width
+            }
+            g.fillRect(sX, sY, eX - sX, config.pixelsPerLine)
+        } else if(collapsed){
+            g.fillRect(0, sY, width / 2, config.pixelsPerLine)
+        } else {
+            g.fillRect(sX, sY, width - sX, config.pixelsPerLine)
+            g.fillRect(0, eY, eX, config.pixelsPerLine)
+            if (eY + config.pixelsPerLine != sY) {
+                g.fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
+            }
+        }
+    }
+
     override fun getDrawImage() : BufferedImage?{
         return mapRef.get(ScaleContext.create(this)).let{
             if(it.img == null) updateImageSoon()
@@ -174,9 +204,6 @@ class GlancePanel(project: Project, textEditor: TextEditor,panelParent: JPanel) 
         removeHierarchyListener(glanceListener)
         removeHierarchyBoundsListener(glanceListener)
         editor.contentComponent.removeComponentListener(glanceListener)
-        editor.document.removeDocumentListener(glanceListener)
-        editor.scrollingModel.removeVisibleAreaListener(glanceListener)
-        editor.selectionModel.removeSelectionListener(glanceListener)
     }
 }
 

@@ -3,7 +3,6 @@ package com.nasller.codeglance.panel
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.ex.EditorEx
-import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.progress.ProgressIndicator
@@ -116,7 +115,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
     fun getDocumentRenderLine(lineStart:Int,lineEnd:Int):Pair<Int,Int>{
         var startAdd = 0
         var endAdd = 0
-        editor.foldingModel.allFoldRegions.filter{ CodeGlancePlugin.isCustomFoldRegionImpl(it) && !it.isExpanded &&
+        editor.foldingModel.allFoldRegions.filter{ !it.isExpanded && CodeGlancePlugin.isCustomFoldRegionImpl(it) &&
                 it.startOffset >= 0 && it.endOffset >= 0}.forEach {
             val start = it.document.getLineNumber(it.startOffset)
             val end = it.document.getLineNumber(it.endOffset)

@@ -1,6 +1,5 @@
 package com.nasller.codeglance.render
 
-import com.intellij.openapi.editor.Editor
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import java.awt.Rectangle
 import kotlin.math.min
@@ -28,9 +27,9 @@ class ScrollState {
     var viewportHeight: Int = 0
         private set
 
-    fun computeDimensions(editor: Editor, glancePanel: AbstractGlancePanel) {
-        scale = glancePanel.config.pixelsPerLine.toDouble() / editor.lineHeight
-        documentHeight = (editor.contentComponent.height * scale).toInt()
+    fun computeDimensions(glancePanel: AbstractGlancePanel) {
+        scale = glancePanel.config.pixelsPerLine.toDouble() / glancePanel.editor.lineHeight
+        documentHeight = (glancePanel.editor.contentComponent.height * scale).toInt()
     }
 
     fun recomputeVisible(visibleArea: Rectangle) {
@@ -40,7 +39,7 @@ class ScrollState {
         viewportStart = (visibleArea.y * scale).toInt()
         viewportHeight = (visibleArea.height * scale).toInt()
 
-        visibleStart = ((viewportStart.toFloat() / (documentHeight - viewportHeight + 1)) * (documentHeight - visibleHeight + 1)).toInt().coerceAtLeast(0)
+        visibleStart = ((viewportStart.toDouble() / (documentHeight - viewportHeight + 1)) * (documentHeight - visibleHeight + 1)).toInt().coerceAtLeast(0)
         visibleEnd = visibleStart + drawHeight
     }
 }
