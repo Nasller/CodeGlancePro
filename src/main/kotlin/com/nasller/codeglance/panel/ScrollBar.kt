@@ -160,19 +160,19 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlanceP
             updateAlpha(e.y)
             if (isInResizeGutter(e.x)) {
                 cursor = Cursor(Cursor.W_RESIZE_CURSOR)
-            } else {
-                if(isInRect(e.y)){
-                    cursor = defaultCursor
-                }else{
-                    cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-                    val enabled = UISettings.getInstance().showEditorToolTip && ((if(DocRenderEnabled != null){
-                        !(editor.getUserData(DocRenderEnabled)?:false)
-                    }else true) || textEditor.file?.isWritable?:false)
-                    if (e.x > 10 && !resizing && !dragging && enabled && e.y < scrollState.drawHeight) {
-                        showToolTipByMouseMove(e)
-                        return
-                    }
+            } else if(isInRect(e.y)){
+                cursor = defaultCursor
+            } else if(e.x > 10 && !resizing && !dragging && e.y < scrollState.drawHeight){
+                cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                val enabled = UISettings.getInstance().showEditorToolTip && ((if(DocRenderEnabled != null){
+                    !(editor.getUserData(DocRenderEnabled)?:false)
+                }else true) || textEditor.file?.isWritable?:false)
+                if (enabled) {
+                    showToolTipByMouseMove(e)
+                    return
                 }
+            }else{
+                cursor = defaultCursor
             }
             hideMyEditorPreviewHint()
         }
