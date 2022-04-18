@@ -13,6 +13,7 @@ import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.ui.HintHint
 import com.intellij.util.ui.JBUI
+import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.CodeGlancePlugin.Companion.DocRenderEnabled
 import com.nasller.codeglance.config.SettingsChangePublisher
 import java.awt.*
@@ -66,9 +67,8 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlanceP
 
     private fun jumpToLineAt(y: Int) {
         val visualLine = (y + scrollState.visibleStart) / config.pixelsPerLine
-        val logical = editor.visualToLogicalPosition(VisualPosition(visualLine,0)).line
-        val documentLine = glancePanel.getDocumentRenderLine(logical, logical)
-        val line = fitLineToEditor(editor, visualLine - documentLine.first)
+        val renderLine = getRenderLine(visualLine)
+        val line = fitLineToEditor(editor, visualLine - renderLine)
         editor.caretModel.moveToVisualPosition(VisualPosition(line,0))
         editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
     }
@@ -78,6 +78,24 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlanceP
             isInRect(y) -> HOVER_ALPHA
             else -> DEFAULT_ALPHA
         }
+    }
+
+    private fun getRenderLine(visualLine:Int):Int{
+        return getDocumentRenderLine(visualLine)
+    }
+
+    private fun getDocumentRenderLine(visualLine:Int):Int{
+        var add = 0
+        val line = editor.visualToLogicalPosition(VisualPosition(visualLine,0)).line
+        editor.foldingModel.allFoldRegions.filter{ it.startOffset >= 0 && it.endOffset >= 0
+            !it.isExpanded && CodeGlancePlugin.isCustomFoldRegionImpl(it)}.forEach {
+            val end = it.document.getLineNumber(it.endOffset)
+            val i = end - it.document.getLineNumber(it.startOffset)
+            if (end < line) {
+                add += i
+            }
+        }
+        return add
     }
 
     override fun paint(gfx: Graphics?) {
