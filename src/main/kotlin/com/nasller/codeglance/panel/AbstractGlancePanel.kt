@@ -130,34 +130,6 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         return Pair(startAdd,endAdd)
     }
 
-    protected fun drawMarkupLine(it: RangeHighlighter, g: Graphics2D,color: Color, compensateLine:Boolean){
-        g.color = color
-        val documentLine = getDocumentRenderLine(editor.offsetToLogicalPosition(it.startOffset).line, editor.offsetToLogicalPosition(it.endOffset).line)
-        val start = editor.offsetToVisualPosition(it.startOffset)
-        val end = editor.offsetToVisualPosition(it.endOffset)
-        var sX = if (start.column > (width - minGap)) width - minGap else start.column
-        val sY = (start.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
-        var eX = if (start.column < (width - minGap)) end.column + 1 else width
-        val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
-        val collapsed = editor.foldingModel.isOffsetCollapsed(it.startOffset)
-        if (sY == eY && !collapsed) {
-            val gap = eX - sX
-            if(compensateLine && gap < minGap){
-                eX += minGap-gap
-                if(eX > width) sX -= eX - width
-            }
-            g.fillRect(sX, sY, eX - sX, config.pixelsPerLine)
-        } else if(collapsed){
-            g.fillRect(0, sY, width / 2, config.pixelsPerLine)
-        } else {
-            g.fillRect(sX, sY, width - sX, config.pixelsPerLine)
-            g.fillRect(0, eY, eX, config.pixelsPerLine)
-            if (eY + config.pixelsPerLine != sY) {
-                g.fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
-            }
-        }
-    }
-
     override fun paint(gfx: Graphics?) {
         if (renderLock.locked) {
             paintLast(gfx)

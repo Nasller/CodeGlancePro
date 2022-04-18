@@ -166,7 +166,7 @@ class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel)
 
     private fun drawMarkupLine(it: RangeHighlighter, g: Graphics2D, color: Color, compensateLine:Boolean){
         g.color = color
-        val documentLine = getRenderLine(editor.offsetToLogicalPosition(it.startOffset).line, editor.offsetToLogicalPosition(it.endOffset).line)
+        val documentLine = getDocumentRenderLine(editor.offsetToLogicalPosition(it.startOffset).line, editor.offsetToLogicalPosition(it.endOffset).line)
         val start = editor.offsetToVisualPosition(it.startOffset)
         val end = editor.offsetToVisualPosition(it.endOffset)
         var sX = if (start.column > (width - minGap)) width - minGap else start.column
