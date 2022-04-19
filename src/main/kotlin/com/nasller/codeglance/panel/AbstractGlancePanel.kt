@@ -127,7 +127,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
                 endAdd += i
             }
         }
-        return Pair(startAdd,endAdd)
+        return startAdd to endAdd
     }
 
     override fun paint(gfx: Graphics?) {

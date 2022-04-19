@@ -110,7 +110,7 @@ class Minimap(glancePanel: AbstractGlancePanel){
 		var color:Color? = null
 		val list = mutableListOf<RangeHighlighterEx>()
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(max(0, offset - 1),offset) {
-			if (it.isValid && it.getTextAttributes (editor.colorsScheme) != TextAttributes.ERASE_MARKER) {
+			if (it.errorStripeTooltip != null && it.isValid && it.getTextAttributes (editor.colorsScheme) != TextAttributes.ERASE_MARKER) {
 				list.add(it)
 			}
 			return@processRangeHighlightersOverlappingWith true
