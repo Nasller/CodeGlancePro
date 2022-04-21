@@ -28,12 +28,13 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlancePanel) : JPanel() {
+class ScrollBar(textEditor: TextEditor, private val glancePanel: GlancePanel) : JPanel() {
+    var hovering = false
     private val editor = textEditor.editor as EditorImpl
     private val config = glancePanel.config
     private val scrollState = glancePanel.scrollState
     private val defaultCursor = Cursor(Cursor.DEFAULT_CURSOR)
-    private val myPopHandler = CustomScrollBarPopup(glancePanel.project,editor)
+    private val myPopHandler = CustomScrollBarPopup(glancePanel)
 
     private var visibleRectAlpha = DEFAULT_ALPHA
         set(value) {
@@ -67,7 +68,7 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlanceP
 
     private fun jumpToLineAt(y: Int) {
         val visualLine = (y + scrollState.visibleStart) / config.pixelsPerLine
-        val renderLine = getRenderLine(visualLine)
+        val renderLine = getDocumentRenderLine(visualLine)
         val line = fitLineToEditor(editor, visualLine - renderLine)
         editor.caretModel.moveToVisualPosition(VisualPosition(line,0))
         editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
@@ -78,10 +79,6 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlanceP
             isInRect(y) -> HOVER_ALPHA
             else -> DEFAULT_ALPHA
         }
-    }
-
-    private fun getRenderLine(visualLine:Int):Int{
-        return getDocumentRenderLine(visualLine)
     }
 
     private fun getDocumentRenderLine(visualLine:Int):Int{
@@ -172,9 +169,11 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlanceP
             updateAlpha(e.y)
             editor.scrollingModel.enableAnimation()
             if(isInRect(e.y)) cursor = defaultCursor
+            hideScrollBar(e)
         }
 
         override fun mouseMoved(e: MouseEvent) {
+            hovering = true
             updateAlpha(e.y)
             if (isInResizeGutter(e.x)) {
                 cursor = Cursor(Cursor.W_RESIZE_CURSOR)
@@ -196,9 +195,11 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlanceP
         }
 
         override fun mouseExited(e: MouseEvent) {
-            hideMyEditorPreviewHint()
-            if (!dragging)
+            if (!dragging){
                 visibleRectAlpha = DEFAULT_ALPHA
+            }
+            hideMyEditorPreviewHint()
+            hideScrollBar(e)
         }
 
         override fun mouseWheelMoved(e: MouseWheelEvent) {
@@ -211,6 +212,13 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: AbstractGlanceP
                 showToolTipByMouseMove(e)
             }else{
                 editor.contentComponent.dispatchEvent(e)
+            }
+        }
+
+        private fun hideScrollBar(e: MouseEvent){
+            if(!dragging && !resizing && !e.isPopupTrigger && e.x < 0){
+                hovering = false
+                glancePanel.originalScrollBarListener.hideGlanceRequest()
             }
         }
 

@@ -46,7 +46,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         get() = config.disabled || editor.document.textLength > PersistentFSConstants.getMaxIntellisenseFileSize() ||
                 editor.document.lineCount < config.minLineCount
     private var buf: BufferedImage? = null
-    protected var scrollbar:ScrollBar? = null
+    var scrollbar:ScrollBar? = null
     var myVcsPanel:MyVcsPanel? = null
 
     init {

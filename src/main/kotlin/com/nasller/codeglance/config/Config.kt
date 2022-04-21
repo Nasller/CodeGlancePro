@@ -13,6 +13,11 @@ class Config {
         }
     }
     var hideOriginalScrollBar: Boolean = false
+    var hoveringToShowScrollBar: Boolean by Delegates.observable(false) { _, oldValue: Boolean, newValue: Boolean ->
+        if (oldValue != newValue) {
+            SettingsChangePublisher.onHoveringOriginalScrollBarChanged(newValue)
+        }
+    }
     var jumpOnMouseDown: Boolean = true
     var width: Int = 110
     var viewportColor: String = "A0A0A0"
@@ -26,6 +31,8 @@ val SettingsChangePublisher: SettingsChangeListener =
 interface SettingsChangeListener {
 
     fun onRefreshChanged() {}
+
+    fun onHoveringOriginalScrollBarChanged(value:Boolean) {}
 
     fun onGlobalChanged() {}
 
