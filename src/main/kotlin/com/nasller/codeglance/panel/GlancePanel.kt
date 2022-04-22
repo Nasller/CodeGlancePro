@@ -57,21 +57,23 @@ class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel)
                 editor.scrollPane.verticalScrollBar.addMouseListener(hideScrollBarListener)
                 editor.scrollPane.verticalScrollBar.addMouseMotionListener(hideScrollBarListener)
             }else{
-                myVcsPanel!!.addMouseListener(hideScrollBarListener)
-                myVcsPanel!!.addMouseMotionListener(hideScrollBarListener)
+                myVcsPanel?.addMouseListener(hideScrollBarListener)
+                myVcsPanel?.addMouseMotionListener(hideScrollBarListener)
             }
         }
     }
 
     fun removeHideScrollBarListener(){
-        this.isVisible = true
         if(!config.hideOriginalScrollBar){
             editor.scrollPane.verticalScrollBar.removeMouseListener(hideScrollBarListener)
             editor.scrollPane.verticalScrollBar.removeMouseMotionListener(hideScrollBarListener)
         }else{
-            myVcsPanel!!.removeMouseListener(hideScrollBarListener)
-            myVcsPanel!!.removeMouseMotionListener(hideScrollBarListener)
+            myVcsPanel?.removeMouseListener(hideScrollBarListener)
+            myVcsPanel?.removeMouseMotionListener(hideScrollBarListener)
         }
+        hideScrollBarListener.cancelAllRequest()
+        this.isVisible = true
+        hideScrollBarListener.showHideOriginScrollBar(true)
     }
 
     override fun computeInReadAction(indicator: ProgressIndicator) {
