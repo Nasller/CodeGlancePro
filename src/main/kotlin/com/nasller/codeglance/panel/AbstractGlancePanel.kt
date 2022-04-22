@@ -47,7 +47,6 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
                 editor.document.lineCount < config.minLineCount
     private var buf: BufferedImage? = null
     var scrollbar:ScrollBar? = null
-    var myVcsPanel:MyVcsPanel? = null
 
     init {
         isOpaque = false
@@ -174,7 +173,6 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
 
     override fun dispose() {
         scrollbar?.let {remove(it)}
-        myVcsPanel?.dispose()
     }
 
     companion object{

@@ -31,6 +31,7 @@ class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel)
     private val glanceListener = GlanceListener(this)
     val hideScrollBarListener = HideScrollBarListener(this)
     val myPopHandler = CustomScrollBarPopup(this)
+    var myVcsPanel:MyVcsPanel? = null
     init {
         Disposer.register(textEditor, this)
         Disposer.register(this){mapRef.clear()}
@@ -51,13 +52,13 @@ class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel)
 
     fun addHideScrollBarListener(){
         if(config.hoveringToShowScrollBar){
-            this.isVisible = false
+            ApplicationManager.getApplication().invokeLater { this.isVisible = false }
             if(!config.hideOriginalScrollBar){
                 editor.scrollPane.verticalScrollBar.addMouseListener(hideScrollBarListener)
                 editor.scrollPane.verticalScrollBar.addMouseMotionListener(hideScrollBarListener)
             }else{
-                myVcsPanel?.addMouseListener(hideScrollBarListener)
-                myVcsPanel?.addMouseMotionListener(hideScrollBarListener)
+                myVcsPanel!!.addMouseListener(hideScrollBarListener)
+                myVcsPanel!!.addMouseMotionListener(hideScrollBarListener)
             }
         }
     }
@@ -68,8 +69,8 @@ class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel)
             editor.scrollPane.verticalScrollBar.removeMouseListener(hideScrollBarListener)
             editor.scrollPane.verticalScrollBar.removeMouseMotionListener(hideScrollBarListener)
         }else{
-            myVcsPanel?.removeMouseListener(hideScrollBarListener)
-            myVcsPanel?.removeMouseMotionListener(hideScrollBarListener)
+            myVcsPanel!!.removeMouseListener(hideScrollBarListener)
+            myVcsPanel!!.removeMouseMotionListener(hideScrollBarListener)
         }
     }
 
@@ -228,6 +229,7 @@ class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel)
 
     override fun dispose() {
         super.dispose()
+        myVcsPanel?.dispose()
         removeHierarchyListener(glanceListener)
         removeHierarchyBoundsListener(glanceListener)
         editor.contentComponent.removeComponentListener(glanceListener)
