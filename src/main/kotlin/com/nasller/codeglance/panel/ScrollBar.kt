@@ -12,10 +12,12 @@ import com.intellij.openapi.editor.impl.EditorMarkupModelImpl
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.ui.HintHint
+import com.intellij.util.Alarm
 import com.intellij.util.ui.JBUI
 import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.CodeGlancePlugin.Companion.DocRenderEnabled
 import com.nasller.codeglance.config.SettingsChangePublisher
+import org.jetbrains.kotlin.idea.util.ifTrue
 import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -116,6 +118,7 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: GlancePanel) : 
         private var viewing = false
         private var myWheelAccumulator = 0
         private var myLastVisualLine = 0
+        private val alarm = Alarm(glancePanel)
 
         override fun mousePressed(e: MouseEvent) {
             if (e.button != MouseEvent.BUTTON1)
@@ -180,11 +183,15 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: GlancePanel) : 
                 cursor = defaultCursor
             } else if(e.x > 10 && !resizing && !dragging && e.y < scrollState.drawHeight){
                 cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-                val enabled = UISettings.getInstance().showEditorToolTip && ((if(DocRenderEnabled != null){
+                (UISettings.getInstance().showEditorToolTip && ((if(DocRenderEnabled != null){
                     !(editor.getUserData(DocRenderEnabled)?:false)
-                }else true) || textEditor.file?.isWritable?:false)
-                if (enabled) {
-                    showToolTipByMouseMove(e)
+                }else true) || textEditor.file?.isWritable?:false)).ifTrue {
+                    if (!viewing) {
+                        alarm.cancelAllRequests()
+                        alarm.addRequest({
+                            if (!viewing) showToolTipByMouseMove(e)
+                        }, 300)
+                    } else showToolTipByMouseMove(e)
                     return
                 }
             }else{
@@ -235,13 +242,14 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: GlancePanel) : 
                 collectRangeHighlighters(editor.markupModel, visualLine, highlighters)
                 collectRangeHighlighters(editor.filteredDocumentMarkupModel, visualLine, highlighters)
                 editorFragmentRendererShow.invoke(myEditorFragmentRenderer.get(editor.markupModel),visualLine,
-                    highlighters, me.isAltDown, createHint(me))
+                    highlighters, false, createHint(me))
                 viewing = true
             }
         }
 
         private fun hideMyEditorPreviewHint() {
             viewing = false
+            (alarm.activeRequestCount > 0).ifTrue{ alarm.cancelAllRequests() }
             myWheelAccumulator = 0
             myLastVisualLine = 0
         }
