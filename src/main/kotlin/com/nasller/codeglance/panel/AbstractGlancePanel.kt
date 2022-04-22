@@ -86,8 +86,8 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         val g = gfx as Graphics2D
         buf?.run{ g.drawImage(this,0, 0, width, height, 0, 0, width, height,null) }
         paintSelections(g)
-        if(config.hideOriginalScrollBar) myVcsPanel?.repaint() else paintVcs(g)
-        scrollbar!!.paint(gfx)
+        if(!config.hideOriginalScrollBar) paintVcs(g)
+        scrollbar?.paint(gfx)
     }
 
     abstract fun computeInReadAction(indicator: ProgressIndicator)
@@ -149,14 +149,13 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
             }
         }
         val graphics2D = gfx as Graphics2D
-        if(config.hideOriginalScrollBar) myVcsPanel?.repaint() else paintVcs(graphics2D)
+        if(!config.hideOriginalScrollBar) paintVcs(graphics2D)
         paintSelections(graphics2D)
         paintOtherHighlight(graphics2D)
         paintErrorStripes(graphics2D)
         graphics2D.composite = srcOver0_8
         graphics2D.drawImage(buf, 0, 0, null)
         scrollbar?.paint(graphics2D)
-        graphics2D.dispose()
     }
 
     fun changeOriginScrollBarWidth(){
@@ -175,6 +174,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
 
     override fun dispose() {
         scrollbar?.let {remove(it)}
+        myVcsPanel?.dispose()
     }
 
     companion object{

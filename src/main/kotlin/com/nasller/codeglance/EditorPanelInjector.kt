@@ -98,10 +98,12 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
 
     private fun getMyPanel(editor: TextEditor,panel: JPanel): JPanel {
         val glancePanel = GlancePanel(project, editor, panel)
-        return if(config.hideOriginalScrollBar && editor.file?.isWritable == true) MyPanel(glancePanel).apply {
+        val jPanel = if (config.hideOriginalScrollBar) MyPanel(glancePanel).apply {
             glancePanel.myVcsPanel = MyVcsPanel(glancePanel)
             add(glancePanel.myVcsPanel!!, BorderLayout.WEST)
         } else glancePanel
+        glancePanel.addHideScrollBarListener()
+        return jPanel
     }
 
     private fun Component.removeComponent(parent: JComponent,newComponent: JComponent){

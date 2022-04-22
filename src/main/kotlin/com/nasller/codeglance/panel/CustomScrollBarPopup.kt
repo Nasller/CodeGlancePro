@@ -22,6 +22,7 @@ import java.awt.Point
 import javax.swing.event.PopupMenuEvent
 
 class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler() {
+    var isVisible = false
 
     override fun invokePopup(comp: Component?, x: Int, y: Int) {
         if (ApplicationManager.getApplication() == null) return
@@ -33,8 +34,6 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
             override fun setSelected(selected: Boolean) {
                 glancePanel.config.hoveringToShowScrollBar = selected
             }
-            override fun isEnabled(): Boolean = !glancePanel.config.hideOriginalScrollBar
-            override fun isAlwaysVisible(): Boolean = true
         }))
         if (DaemonCodeAnalyzer.getInstance(glancePanel.project).isHighlightingAvailable(file)) {
             actionGroup.addSeparator()
@@ -62,9 +61,18 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
         }
         val menu = ActionManager.getInstance().createActionPopupMenu(ActionPlaces.RIGHT_EDITOR_GUTTER_POPUP, actionGroup).component
         menu.addPopupMenuListener(object :PopupMenuListenerAdapter(){
-            override fun popupMenuWillBecomeInvisible(e: PopupMenuEvent?) = glancePanel.originalScrollBarListener.hideGlanceRequest()
+            override fun popupMenuWillBecomeVisible(e: PopupMenuEvent?) {
+                isVisible = true
+            }
+            override fun popupMenuWillBecomeInvisible(e: PopupMenuEvent?) {
+                isVisible = false
+                glancePanel.hideScrollBarListener.hideGlanceRequest()
+            }
 
-            override fun popupMenuCanceled(e: PopupMenuEvent?) = glancePanel.originalScrollBarListener.hideGlanceRequest()
+            override fun popupMenuCanceled(e: PopupMenuEvent?) {
+                isVisible = false
+                glancePanel.hideScrollBarListener.hideGlanceRequest()
+            }
         })
         menu.show(comp,x,y)
     }

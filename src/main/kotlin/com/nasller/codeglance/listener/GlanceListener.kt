@@ -7,11 +7,11 @@ import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.nasller.codeglance.config.SettingsChangeListener
-import com.nasller.codeglance.panel.AbstractGlancePanel
+import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.attributesImpactForegroundColor
 import java.awt.event.*
 
-class GlanceListener(private val glancePanel: AbstractGlancePanel) : ComponentAdapter(), FoldingListener, MarkupModelListener,
+class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(), FoldingListener, MarkupModelListener,
     SettingsChangeListener, CaretListener, DocumentListener, VisibleAreaListener,SelectionListener,
     HierarchyBoundsListener, HierarchyListener {
     init {
@@ -51,6 +51,14 @@ class GlanceListener(private val glancePanel: AbstractGlancePanel) : ComponentAd
     override fun onRefreshChanged() {
         glancePanel.refresh()
         glancePanel.changeOriginScrollBarWidth()
+    }
+
+    override fun onHoveringOriginalScrollBarChanged(value:Boolean) {
+        if(value){
+            glancePanel.addHideScrollBarListener()
+        }else{
+            glancePanel.removeHideScrollBarListener()
+        }
     }
 
     /** VisibleAreaListener */

@@ -18,7 +18,7 @@ import com.intellij.ui.scale.ScaleContext
 import com.intellij.util.ObjectUtils
 import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 import com.nasller.codeglance.listener.GlanceListener
-import com.nasller.codeglance.listener.OriginalScrollBarListener
+import com.nasller.codeglance.listener.HideScrollBarListener
 import com.nasller.codeglance.render.Minimap
 import java.awt.Color
 import java.awt.Graphics2D
@@ -29,7 +29,8 @@ import javax.swing.JPanel
 class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel) : AbstractGlancePanel(project,textEditor,panelParent){
     private var mapRef = MinimapCache { MinimapRef(Minimap(this)) }
     private val glanceListener = GlanceListener(this)
-    val originalScrollBarListener = OriginalScrollBarListener(this)
+    val hideScrollBarListener = HideScrollBarListener(this)
+    val myPopHandler = CustomScrollBarPopup(this)
     init {
         Disposer.register(textEditor, this)
         Disposer.register(this){mapRef.clear()}
@@ -45,23 +46,30 @@ class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel)
         editor.caretModel.addCaretListener(glanceListener,this)
         editor.markupModel.addMarkupModelListener(this, glanceListener)
         editor.filteredDocumentMarkupModel.addMarkupModelListener(this, glanceListener)
-        addOriginalScrollBarListener()
         refresh()
     }
 
-    fun addOriginalScrollBarListener(){
-        if(!config.hideOriginalScrollBar && config.hoveringToShowScrollBar){
+    fun addHideScrollBarListener(){
+        if(config.hoveringToShowScrollBar){
             this.isVisible = false
-            editor.scrollPane.verticalScrollBar.addMouseListener(originalScrollBarListener)
-            editor.scrollPane.verticalScrollBar.addMouseMotionListener(originalScrollBarListener)
+            if(!config.hideOriginalScrollBar){
+                editor.scrollPane.verticalScrollBar.addMouseListener(hideScrollBarListener)
+                editor.scrollPane.verticalScrollBar.addMouseMotionListener(hideScrollBarListener)
+            }else{
+                myVcsPanel?.addMouseListener(hideScrollBarListener)
+                myVcsPanel?.addMouseMotionListener(hideScrollBarListener)
+            }
         }
     }
 
-    fun removeOriginalScrollBarListener(){
+    fun removeHideScrollBarListener(){
+        this.isVisible = true
         if(!config.hideOriginalScrollBar){
-            this.isVisible = true
-            editor.scrollPane.verticalScrollBar.removeMouseListener(originalScrollBarListener)
-            editor.scrollPane.verticalScrollBar.removeMouseMotionListener(originalScrollBarListener)
+            editor.scrollPane.verticalScrollBar.removeMouseListener(hideScrollBarListener)
+            editor.scrollPane.verticalScrollBar.removeMouseMotionListener(hideScrollBarListener)
+        }else{
+            myVcsPanel?.removeMouseListener(hideScrollBarListener)
+            myVcsPanel?.removeMouseMotionListener(hideScrollBarListener)
         }
     }
 
@@ -223,7 +231,7 @@ class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel)
         removeHierarchyListener(glanceListener)
         removeHierarchyBoundsListener(glanceListener)
         editor.contentComponent.removeComponentListener(glanceListener)
-        removeOriginalScrollBarListener()
+        removeHideScrollBarListener()
     }
 }
 

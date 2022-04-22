@@ -34,7 +34,6 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: GlancePanel) : 
     private val config = glancePanel.config
     private val scrollState = glancePanel.scrollState
     private val defaultCursor = Cursor(Cursor.DEFAULT_CURSOR)
-    private val myPopHandler = CustomScrollBarPopup(glancePanel)
 
     private var visibleRectAlpha = DEFAULT_ALPHA
         set(value) {
@@ -54,7 +53,7 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: GlancePanel) : 
         addMouseListener(mouseHandler)
         addMouseWheelListener(mouseHandler)
         addMouseMotionListener(mouseHandler)
-        addMouseListener(myPopHandler)
+        addMouseListener(glancePanel.myPopHandler)
     }
 
     private fun isInResizeGutter(x: Int): Boolean {
@@ -218,7 +217,7 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: GlancePanel) : 
         private fun hideScrollBar(e: MouseEvent){
             if(!dragging && !resizing && !e.isPopupTrigger && e.x < 0){
                 hovering = false
-                glancePanel.originalScrollBarListener.hideGlanceRequest()
+                glancePanel.hideScrollBarListener.hideGlanceRequest()
             }
         }
 
