@@ -215,7 +215,7 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: GlancePanel) : 
         }
 
         private fun hideScrollBar(e: MouseEvent){
-            if(!dragging && !resizing && !e.isPopupTrigger && e.x < 0){
+            if(!dragging && !resizing && !e.isPopupTrigger){
                 hovering = false
                 glancePanel.hideScrollBarListener.hideGlanceRequest()
             }
