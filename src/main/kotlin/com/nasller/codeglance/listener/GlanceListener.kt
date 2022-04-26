@@ -22,14 +22,11 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
     /** MarkupModelListener */
     override fun afterAdded(highlighter: RangeHighlighterEx) =
-        if (attributesImpactForegroundColor(highlighter.getTextAttributes(glancePanel.editor.colorsScheme)))glancePanel.updateImageSoon()
-        else glancePanel.repaint()
-
-    override fun beforeRemoved(highlighter: RangeHighlighterEx) = glancePanel.repaint()
+        if (attributesImpactForegroundColor(highlighter.getTextAttributes(glancePanel.editor.colorsScheme)))glancePanel.updateImageSoon() else Unit
 
     override fun attributesChanged(highlighter: RangeHighlighterEx, renderersChanged: Boolean,
                                    fontStyleChanged: Boolean, foregroundColorChanged: Boolean
-    ) = if(renderersChanged || foregroundColorChanged)glancePanel.updateImageSoon() else glancePanel.repaint()
+    ) = if(foregroundColorChanged)glancePanel.updateImageSoon() else Unit
 
     /** CaretListener */
     override fun caretPositionChanged(event: CaretEvent) = glancePanel.repaint()
@@ -42,7 +39,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     override fun selectionChanged(e: SelectionEvent) = glancePanel.repaint()
 
     /** ComponentAdapter */
-    override fun componentResized(componentEvent: ComponentEvent?) = glancePanel.updateImage()
+    override fun componentResized(componentEvent: ComponentEvent?) = glancePanel.updateImageSoon()
 
     /** DocumentListener */
     override fun documentChanged(event: DocumentEvent) = glancePanel.updateImage()
@@ -75,5 +72,13 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     /** HierarchyListener */
     override fun hierarchyChanged(e: HierarchyEvent) = if(e.changeFlags == HierarchyEvent.PARENT_CHANGED.toLong())
         glancePanel.refresh(false) else Unit
+}
 
+class GlanceOtherListener(private val glancePanel: GlancePanel) : MarkupModelListener {
+    override fun afterAdded(highlighter: RangeHighlighterEx) = glancePanel.repaint()
+
+    override fun beforeRemoved(highlighter: RangeHighlighterEx) = glancePanel.repaint()
+
+    override fun attributesChanged(highlighter: RangeHighlighterEx, renderersChanged: Boolean,
+        fontStyleChanged: Boolean, foregroundColorChanged: Boolean) = glancePanel.repaint()
 }

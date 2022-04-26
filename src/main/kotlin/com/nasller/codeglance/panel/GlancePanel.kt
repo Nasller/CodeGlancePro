@@ -18,6 +18,7 @@ import com.intellij.ui.scale.ScaleContext
 import com.intellij.util.ObjectUtils
 import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 import com.nasller.codeglance.listener.GlanceListener
+import com.nasller.codeglance.listener.GlanceOtherListener
 import com.nasller.codeglance.listener.HideScrollBarListener
 import com.nasller.codeglance.render.Minimap
 import java.awt.Color
@@ -29,6 +30,7 @@ import javax.swing.JPanel
 class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel) : AbstractGlancePanel(project,textEditor,panelParent){
     private var mapRef = MinimapCache { MinimapRef(Minimap(this)) }
     private val glanceListener = GlanceListener(this)
+    private val glanceOtherListener = GlanceOtherListener(this)
     val hideScrollBarListener = HideScrollBarListener(this)
     val myPopHandler = CustomScrollBarPopup(this)
     var myVcsPanel:MyVcsPanel? = null
@@ -45,7 +47,7 @@ class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel)
         editor.scrollingModel.addVisibleAreaListener(glanceListener,this)
         editor.foldingModel.addListener(glanceListener,this)
         editor.caretModel.addCaretListener(glanceListener,this)
-        editor.markupModel.addMarkupModelListener(this, glanceListener)
+        editor.markupModel.addMarkupModelListener(this, glanceOtherListener)
         editor.filteredDocumentMarkupModel.addMarkupModelListener(this, glanceListener)
         refresh()
     }
