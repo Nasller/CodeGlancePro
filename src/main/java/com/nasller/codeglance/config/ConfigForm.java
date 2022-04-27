@@ -21,7 +21,7 @@ public class ConfigForm {
     private JComboBox pixelsPerLine;
     private JComboBox renderStyle;
     private JPanel rootPanel;
-    private JSpinner minLinesCount;
+    private JSpinner maxLinesCount;
     private JSpinner width;
     private JTextField viewportColor;
     private JCheckBox hideOriginalScrollBar;
@@ -52,7 +52,7 @@ public class ConfigForm {
         });
 
         width.setModel(new SpinnerNumberModel(110, AbstractGlancePanel.minWidth, AbstractGlancePanel.maxWidth, 5));
-        minLinesCount.setModel(new SpinnerNumberModel(1, 0, 100, 10));
+        maxLinesCount.setModel(new SpinnerNumberModel(1, 0, 100, 10));
 
         // Spinner scroll support
         MouseWheelListener scrollListener = e -> {
@@ -77,7 +77,7 @@ public class ConfigForm {
             spinner.setValue(newValue);
         };
         width.addMouseWheelListener(scrollListener);
-        minLinesCount.addMouseWheelListener(scrollListener);
+        maxLinesCount.addMouseWheelListener(scrollListener);
 
         // ComboBox scroll support
         scrollListener = e -> {
@@ -160,12 +160,12 @@ public class ConfigForm {
         this.width.setValue(width);
     }
 
-    public int getMinLinesCount() {
-        return (int) minLinesCount.getValue();
+    public int getMaxLinesCount() {
+        return (int) maxLinesCount.getValue();
     }
 
-    public void setMinLinesCount(int minLinesCount) {
-        this.minLinesCount.setValue(minLinesCount);
+    public void setMaxLinesCount(int maxLinesCount) {
+        this.maxLinesCount.setValue(maxLinesCount);
     }
 
     {
@@ -223,8 +223,8 @@ public class ConfigForm {
         rootPanel.add(label6, new GridConstraints(5, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final Spacer spacer1 = new Spacer();
         rootPanel.add(spacer1, new GridConstraints(9, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
-        minLinesCount = new JSpinner();
-        rootPanel.add(minLinesCount, new GridConstraints(5, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        maxLinesCount = new JSpinner();
+        rootPanel.add(maxLinesCount, new GridConstraints(5, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final JLabel label7 = new JLabel();
         label7.setText("Render Style");
         rootPanel.add(label7, new GridConstraints(7, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
@@ -252,7 +252,7 @@ public class ConfigForm {
         label2.setLabelFor(jumpToPosition);
         label4.setLabelFor(width);
         label5.setLabelFor(viewportColor);
-        label6.setLabelFor(minLinesCount);
+        label6.setLabelFor(maxLinesCount);
         label7.setLabelFor(renderStyle);
     }
 

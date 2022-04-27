@@ -42,9 +42,9 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
             this@AbstractGlancePanel.computeInReadAction(indicator)
         }
     }
-    private val isDisabled: Boolean
+    val isDisabled: Boolean
         get() = config.disabled || editor.document.textLength > PersistentFSConstants.getMaxIntellisenseFileSize() ||
-                editor.document.lineCount < config.minLineCount
+                editor.document.lineCount > config.maxLinesCount
     private var buf: BufferedImage? = null
     var scrollbar:ScrollBar? = null
 
@@ -158,7 +158,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
     }
 
     fun changeOriginScrollBarWidth(){
-        if (config.hideOriginalScrollBar && !config.disabled) {
+        if (config.hideOriginalScrollBar && !isDisabled) {
             editor.scrollPane.verticalScrollBar.run {
                 this.preferredSize = Dimension(0, this.preferredSize.height)
             }

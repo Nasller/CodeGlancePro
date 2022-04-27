@@ -33,7 +33,7 @@ class ConfigEntry : Configurable {
             || config.width != form!!.width
             || config.locked != form!!.isLocked
             || config.viewportColor != form!!.viewportColor
-            || config.minLineCount != form!!.minLinesCount
+            || config.maxLinesCount != form!!.maxLinesCount
             || config.clean != form!!.cleanStyle
             || config.hideOriginalScrollBar != form!!.isHideOriginalScrollBar
     )
@@ -52,7 +52,7 @@ class ConfigEntry : Configurable {
         } else {
             config.viewportColor = "A0A0A0"
         }
-        config.minLineCount = form!!.minLinesCount
+        config.maxLinesCount = form!!.maxLinesCount
         config.clean = form!!.cleanStyle
         config.hideOriginalScrollBar = form!!.isHideOriginalScrollBar
         ApplicationManager.getApplication().invokeLater{
@@ -69,7 +69,7 @@ class ConfigEntry : Configurable {
         form!!.setJumpOnMouseDown(config.jumpOnMouseDown)
         form!!.viewportColor = config.viewportColor
         form!!.width = config.width
-        form!!.minLinesCount = config.minLineCount
+        form!!.maxLinesCount = config.maxLinesCount
         form!!.cleanStyle = config.clean
         form!!.isHideOriginalScrollBar = config.hideOriginalScrollBar
     }

@@ -6,7 +6,7 @@ import kotlin.properties.Delegates
 
 class Config {
     var pixelsPerLine: Int = 4
-    var minLineCount: Int = 1
+    var maxLinesCount: Int = 100000
     var disabled: Boolean by Delegates.observable(false) { _, oldValue: Boolean, newValue: Boolean ->
         if (oldValue != newValue) {
             SettingsChangePublisher.onRefreshChanged()

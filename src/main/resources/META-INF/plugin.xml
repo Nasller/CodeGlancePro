@@ -25,6 +25,7 @@
 		<h3>1.3.2</h3>
 		<ul>
 			<li>fix some refresh</li>
+			<li>fix maxLineCount config</li>
 		</ul>
 		<h3>1.3.1</h3>
 		<ul>
