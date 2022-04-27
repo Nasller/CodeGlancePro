@@ -30,7 +30,7 @@ class MyVcsPanel(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 		glancePanel.editor.document.addDocumentListener(myVcsListener,this)
 		glancePanel.editor.scrollingModel.addVisibleAreaListener(myVcsListener,this)
 		glancePanel.editor.foldingModel.addListener(myVcsListener,this)
-		preferredSize = Dimension(8,0)
+		preferredSize = Dimension(vcsWidth,0)
 		isOpaque = false
 	}
 
@@ -72,5 +72,8 @@ class MyVcsPanel(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 		removeHierarchyListener(myVcsListener)
 		removeHierarchyBoundsListener(myVcsListener)
 		glancePanel.editor.contentComponent.removeComponentListener(myVcsListener)
+	}
+	companion object{
+		const val vcsWidth:Int = 8
 	}
 }

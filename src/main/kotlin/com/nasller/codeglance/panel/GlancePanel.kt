@@ -33,7 +33,6 @@ class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel)
     private val glanceOtherListener = GlanceOtherListener(this)
     val hideScrollBarListener = HideScrollBarListener(this)
     val myPopHandler = CustomScrollBarPopup(this)
-    var myVcsPanel:MyVcsPanel? = null
     init {
         Disposer.register(textEditor, this)
         Disposer.register(this){mapRef.clear()}

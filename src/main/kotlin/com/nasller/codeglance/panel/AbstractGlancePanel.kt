@@ -47,6 +47,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
                 editor.document.lineCount > config.maxLinesCount
     private var buf: BufferedImage? = null
     var scrollbar:ScrollBar? = null
+    var myVcsPanel:MyVcsPanel? = null
 
     init {
         isOpaque = false
@@ -159,13 +160,11 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
 
     fun changeOriginScrollBarWidth(){
         if (config.hideOriginalScrollBar && !isDisabled) {
-            editor.scrollPane.verticalScrollBar.run {
-                this.preferredSize = Dimension(0, this.preferredSize.height)
-            }
+            myVcsPanel?.run { this.preferredSize = Dimension(MyVcsPanel.vcsWidth, this.preferredSize.height) }
+            editor.scrollPane.verticalScrollBar.run { this.preferredSize = Dimension(0, this.preferredSize.height) }
         }else{
-            editor.scrollPane.verticalScrollBar.run {
-                this.preferredSize = Dimension(originalScrollbarWidth, this.preferredSize.height)
-            }
+            myVcsPanel?.run { this.preferredSize = Dimension(0, this.preferredSize.height) }
+            editor.scrollPane.verticalScrollBar.run { this.preferredSize = Dimension(originalScrollbarWidth, this.preferredSize.height) }
         }
     }
 
