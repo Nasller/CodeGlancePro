@@ -76,8 +76,8 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
 
     fun updateImage() {
         if (isDisabled) return
-        if (project.isDisposed) return
         if (!renderLock.acquire()) return
+        if (project.isDisposed) return
         ProgressIndicatorUtils.scheduleWithWriteActionPriority(updateTask)
     }
 

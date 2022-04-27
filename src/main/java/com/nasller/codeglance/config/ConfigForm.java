@@ -52,7 +52,7 @@ public class ConfigForm {
         });
 
         width.setModel(new SpinnerNumberModel(110, AbstractGlancePanel.minWidth, AbstractGlancePanel.maxWidth, 5));
-        maxLinesCount.setModel(new SpinnerNumberModel(1, 0, 100, 10));
+        maxLinesCount.setModel(new SpinnerNumberModel(1, 0, Integer.MAX_VALUE, 10));
 
         // Spinner scroll support
         MouseWheelListener scrollListener = e -> {
