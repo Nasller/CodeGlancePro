@@ -225,7 +225,10 @@ class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel)
     }
 
     override fun getDrawImage() : BufferedImage?{
-        return mapRef.get(ScaleContext.create(this)).img
+        return mapRef.get(ScaleContext.create(this)).let{
+            if(it.img == null) updateImageSoon()
+            it.img
+        }
     }
 
     override fun dispose() {
