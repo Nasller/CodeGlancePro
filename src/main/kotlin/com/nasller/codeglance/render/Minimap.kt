@@ -8,6 +8,7 @@ import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.containers.ContainerUtil
 import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.panel.AbstractGlancePanel
+import org.jetbrains.kotlin.idea.util.ifTrue
 import java.awt.AlphaComposite
 import java.awt.Color
 import java.awt.image.BufferedImage
@@ -78,14 +79,16 @@ class Minimap(glancePanel: AbstractGlancePanel){
 				}
 			}
 			val region = foldRegion()
-			if(region != null && region.placeholderText.isNotEmpty()){
-				(editor.foldingModel.placeholderAttributes?.foregroundColor?:defaultColor).getRGBComponents(colorBuffer)
-				StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach{
-					x += when(it){
-						'\t' -> 4
-						else -> 1
+			if(region != null){
+				region.placeholderText.isNotEmpty().ifTrue {
+					(editor.foldingModel.placeholderAttributes?.foregroundColor?:defaultColor).getRGBComponents(colorBuffer)
+					StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach{
+						x += when(it){
+							'\t' -> 4
+							else -> 1
+						}
+						renderImage(x, y, it.code, null, colorBuffer, scaleBuffer)
 					}
-					renderImage(x, y, it.code, colorBuffer, scaleBuffer)
 				}
 			}else{
 				while (i < hlIter.end) {
@@ -99,10 +102,7 @@ class Minimap(glancePanel: AbstractGlancePanel){
 						'\t' -> x += 4
 						else -> x += 1
 					}
-					if (0 <= x && x < img!!.width && 0 <= y && y + config.pixelsPerLine < img!!.height) {
-						(getHighlightColor(i)?:color?:defaultColor).getRGBComponents(colorBuffer)
-						renderImage(x, y, text[i].code, colorBuffer, scaleBuffer)
-					}
+					renderImage(x, y, text[i].code,(getHighlightColor(i)?:color?:defaultColor), colorBuffer, scaleBuffer)
 					++i
 				}
 			}
@@ -114,11 +114,14 @@ class Minimap(glancePanel: AbstractGlancePanel){
 		g.dispose()
 	}
 
-	private fun renderImage(x: Int, y: Int, char: Int, colorBuffer: FloatArray, scaleBuffer: FloatArray) {
-		if (config.clean) {
-			renderClean(x, y, char, colorBuffer, scaleBuffer)
-		} else {
-			renderAccurate(x, y, char, colorBuffer, scaleBuffer)
+	private fun renderImage(x: Int, y: Int, char: Int,color:Color?, colorBuffer: FloatArray, scaleBuffer: FloatArray) {
+		if (0 <= x && x < img!!.width && 0 <= y && y + config.pixelsPerLine < img!!.height) {
+			color?.getRGBComponents(colorBuffer)
+			if (config.clean) {
+				renderClean(x, y, char, colorBuffer, scaleBuffer)
+			} else {
+				renderAccurate(x, y, char, colorBuffer, scaleBuffer)
+			}
 		}
 	}
 
