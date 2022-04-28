@@ -4,6 +4,7 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.view.IterationState
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.containers.ContainerUtil
 import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.panel.AbstractGlancePanel
@@ -56,47 +57,54 @@ class Minimap(glancePanel: AbstractGlancePanel){
 				hlIter.textAttributes.foregroundColor
 			} catch (_: Exception){ null }
 			// Jump over folds
-			val checkFold = {
+			val foldRegion = {
 				editor.foldingModel.getCollapsedRegionAtOffset(i)?.let{
 					if(it.startOffset >= 0 && it.endOffset >= 0 && !CodeGlancePlugin.isCustomFoldRegionImpl(it)){
 						foldedLines += editor.document.getLineNumber(it.endOffset) - editor.document.getLineNumber(it.startOffset)
 						i = it.endOffset
-						true
-					} else false
-				}?:false
+						it
+					} else null
+				}
 			}
 			// New line, pre-loop to count whitespace from start of line.
 			if (y != prevY) {
 				x = 0
 				i = line.start
 				while (i < tokenStart) {
-					if (checkFold()) break
+					if (foldRegion() != null)break
 					x += if (text[i++] == '\t') 4 else 1
 					// Abort if this line is getting too long...
 					if (x > config.width) break
 				}
 			}
-			while (i < hlIter.end) {
-				if (checkFold()) break
-				// Watch out for tokens that extend past the document... bad plugins? see issue #138
-				if (i >= text.length) return
-				when (text[i]) {
-					'\n' -> {
-						x = 0
-						y += config.pixelsPerLine
+			val region = foldRegion()
+			if(region != null && region.placeholderText.isNotEmpty()){
+				(editor.foldingModel.placeholderAttributes?.foregroundColor?:defaultColor).getRGBComponents(colorBuffer)
+				StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach{
+					x += when(it){
+						'\t' -> 4
+						else -> 1
 					}
-					'\t' -> x += 4
-					else -> x += 1
+					renderImage(x, y, it.code, colorBuffer, scaleBuffer)
 				}
-				if (0 <= x && x < img!!.width && 0 <= y && y + config.pixelsPerLine < img!!.height) {
-					(getHighlightColor(i)?:color?:defaultColor).getRGBComponents(colorBuffer)
-					if (config.clean) {
-						renderClean(x, y, text[i].code, colorBuffer, scaleBuffer)
-					} else {
-						renderAccurate(x, y, text[i].code, colorBuffer, scaleBuffer)
+			}else{
+				while (i < hlIter.end) {
+					// Watch out for tokens that extend past the document... bad plugins? see issue #138
+					if (i >= text.length) return
+					when (text[i]) {
+						'\n' -> {
+							x = 0
+							y += config.pixelsPerLine
+						}
+						'\t' -> x += 4
+						else -> x += 1
 					}
+					if (0 <= x && x < img!!.width && 0 <= y && y + config.pixelsPerLine < img!!.height) {
+						(getHighlightColor(i)?:color?:defaultColor).getRGBComponents(colorBuffer)
+						renderImage(x, y, text[i].code, colorBuffer, scaleBuffer)
+					}
+					++i
 				}
-				++i
 			}
 			prevY = y
 			do // Skip to end of fold
@@ -104,6 +112,14 @@ class Minimap(glancePanel: AbstractGlancePanel){
 			while (!hlIter.atEnd() && hlIter.start < i)
 		}
 		g.dispose()
+	}
+
+	private fun renderImage(x: Int, y: Int, char: Int, colorBuffer: FloatArray, scaleBuffer: FloatArray) {
+		if (config.clean) {
+			renderClean(x, y, char, colorBuffer, scaleBuffer)
+		} else {
+			renderAccurate(x, y, char, colorBuffer, scaleBuffer)
+		}
 	}
 
 	private fun getHighlightColor(offset:Int):Color?{
