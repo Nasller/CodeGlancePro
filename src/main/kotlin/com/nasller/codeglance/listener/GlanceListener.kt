@@ -21,13 +21,12 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
     /** MarkupModelListener */
     override fun afterAdded(highlighter: RangeHighlighterEx) =
-        if (isAvailable(highlighter)) glancePanel.updateImage() else Unit
+        if (isAvailable(highlighter)) glancePanel.updateImageSoon() else Unit
 
     override fun beforeRemoved(highlighter: RangeHighlighterEx) =
-        if (isAvailable(highlighter)) glancePanel.updateImage() else Unit
+        if (isAvailable(highlighter)) glancePanel.updateImageSoon() else Unit
 
-    private fun isAvailable(highlighter: RangeHighlighterEx):Boolean = highlighter.editorFilter.avaliableIn(glancePanel.editor) &&
-            highlighter.getErrorStripeMarkColor(glancePanel.editor.colorsScheme) != null
+    private fun isAvailable(highlighter: RangeHighlighterEx):Boolean = highlighter.editorFilter.avaliableIn(glancePanel.editor)
     /** CaretListener */
     override fun caretPositionChanged(event: CaretEvent) = glancePanel.repaint()
 
