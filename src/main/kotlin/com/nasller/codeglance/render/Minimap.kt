@@ -9,7 +9,6 @@ import com.intellij.util.containers.ContainerUtil
 import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import org.jetbrains.kotlin.idea.util.ifTrue
-import java.awt.AlphaComposite
 import java.awt.Color
 import java.awt.image.BufferedImage
 import kotlin.math.max
@@ -32,7 +31,7 @@ class Minimap(glancePanel: AbstractGlancePanel){
 		}
 
 		val g = img!!.createGraphics()
-		g.composite = CLEAR
+		g.composite = AbstractGlancePanel.CLEAR
 		g.fillRect(0, 0, img!!.width, img!!.height)
 
 		// These are just to reduce allocations. Premature optimization???
@@ -216,9 +215,5 @@ class Minimap(glancePanel: AbstractGlancePanel){
 			else -> max(alpha, 0f)
 		} * 0xFF
 		img!!.raster.setPixel(x, y, scaleBuffer)
-	}
-
-	companion object {
-		private val CLEAR = AlphaComposite.getInstance(AlphaComposite.CLEAR)
 	}
 }

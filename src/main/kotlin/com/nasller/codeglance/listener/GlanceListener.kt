@@ -8,7 +8,6 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.GlancePanel
-import com.nasller.codeglance.util.attributesImpactForegroundColor
 import java.awt.event.*
 
 class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(), FoldingListener, MarkupModelListener,
@@ -22,12 +21,13 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
     /** MarkupModelListener */
     override fun afterAdded(highlighter: RangeHighlighterEx) =
-        if (attributesImpactForegroundColor(highlighter.getTextAttributes(glancePanel.editor.colorsScheme)))glancePanel.updateImageSoon() else Unit
+        if (isAvailable(highlighter)) glancePanel.updateImage() else Unit
 
-    override fun attributesChanged(highlighter: RangeHighlighterEx, renderersChanged: Boolean,
-                                   fontStyleChanged: Boolean, foregroundColorChanged: Boolean
-    ) = if(foregroundColorChanged)glancePanel.updateImageSoon() else Unit
+    override fun beforeRemoved(highlighter: RangeHighlighterEx) =
+        if (isAvailable(highlighter)) glancePanel.updateImage() else Unit
 
+    private fun isAvailable(highlighter: RangeHighlighterEx):Boolean = highlighter.editorFilter.avaliableIn(glancePanel.editor) &&
+            highlighter.getErrorStripeMarkColor(glancePanel.editor.colorsScheme) != null
     /** CaretListener */
     override fun caretPositionChanged(event: CaretEvent) = glancePanel.repaint()
 
@@ -75,10 +75,12 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 }
 
 class GlanceOtherListener(private val glancePanel: GlancePanel) : MarkupModelListener {
-    override fun afterAdded(highlighter: RangeHighlighterEx) = glancePanel.repaint()
+    override fun afterAdded(highlighter: RangeHighlighterEx) = if(isAvailable(highlighter)) glancePanel.repaint() else Unit
 
-    override fun beforeRemoved(highlighter: RangeHighlighterEx) = glancePanel.repaint()
+    override fun beforeRemoved(highlighter: RangeHighlighterEx) = if(isAvailable(highlighter)) glancePanel.repaint() else Unit
 
     override fun attributesChanged(highlighter: RangeHighlighterEx, renderersChanged: Boolean,
-        fontStyleChanged: Boolean, foregroundColorChanged: Boolean) = glancePanel.repaint()
+        fontStyleChanged: Boolean, foregroundColorChanged: Boolean) = if(isAvailable(highlighter)) glancePanel.repaint() else Unit
+
+    private fun isAvailable(highlighter: RangeHighlighterEx):Boolean = highlighter.getErrorStripeMarkColor(glancePanel.editor.colorsScheme) != null
 }

@@ -140,9 +140,9 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
             buf = BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR)
         }
         UIUtil.useSafely(buf!!.graphics){
-            it.composite = AlphaComposite.getInstance(AlphaComposite.CLEAR)
+            it.composite = CLEAR
             it.fillRect(0, 0, width, height)
-            it.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
+            it.composite = srcOver
             if (editor.document.textLength != 0) {
                 it.drawImage(img, 0, 0, img.width, scrollState.drawHeight,
                     0, scrollState.visibleStart, img.width, scrollState.visibleEnd, null)
@@ -178,6 +178,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
         const val minGap = 15
         const val minWidth = 50
         const val maxWidth = 250
+        val CLEAR: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.CLEAR)
         val srcOver0_4: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.40f)
         val srcOver0_8: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
         val srcOver: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
