@@ -88,8 +88,10 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
             g.composite = srcOver0_8
             g.drawImage(this,0, 0, width, height, 0, 0, width, height,null)
         }
-        paintSelections(g)
         if(!config.hideOriginalScrollBar) paintVcs(g)
+        paintSelections(g)
+        paintOtherHighlight(g)
+        paintErrorStripes(g)
         scrollbar?.paint(gfx)
     }
 
