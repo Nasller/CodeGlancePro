@@ -29,7 +29,7 @@ class Minimap(glancePanel: AbstractGlancePanel){
 			// Documents can get big, so rather than relative sizes lets just add a fixed amount on.
 			img = BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 		}
-
+		if(editor.document.lineCount <= 0) return
 		val g = img!!.createGraphics()
 		g.composite = AbstractGlancePanel.CLEAR
 		g.fillRect(0, 0, img!!.width, img!!.height)
