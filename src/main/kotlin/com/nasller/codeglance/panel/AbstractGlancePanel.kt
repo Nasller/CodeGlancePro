@@ -9,7 +9,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.ProgressIndicatorUtils
 import com.intellij.openapi.progress.util.ReadTask
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vcs.changes.ChangeListManagerImpl
+import com.intellij.openapi.vcs.changes.ChangeListManager
 import com.intellij.openapi.vcs.impl.LineStatusTrackerManager
 import com.intellij.openapi.vfs.PersistentFSConstants
 import com.intellij.util.ui.UIUtil
@@ -28,7 +28,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
     val config: Config = ConfigInstance.state
     val scrollState = ScrollState()
     val trackerManager = LineStatusTrackerManager.getInstance(project)
-    val changeListManager: ChangeListManagerImpl = ChangeListManagerImpl.getInstanceImpl(project)
+    val changeListManager: ChangeListManager = ChangeListManager.getInstance(project)
     val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
     protected val renderLock = DirtyLock()
     private val updateTask: ReadTask = object :ReadTask() {
