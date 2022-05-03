@@ -8,7 +8,6 @@ import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.containers.ContainerUtil
 import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.panel.AbstractGlancePanel
-import org.jetbrains.kotlin.idea.util.ifTrue
 import java.awt.Color
 import java.awt.image.BufferedImage
 import kotlin.math.max
@@ -79,7 +78,7 @@ class Minimap(glancePanel: AbstractGlancePanel){
 			}
 			val region = foldRegion()
 			if(region != null){
-				region.placeholderText.isNotEmpty().ifTrue {
+				if(region.placeholderText.isNotEmpty()) {
 					(editor.foldingModel.placeholderAttributes?.foregroundColor?:defaultColor).getRGBComponents(colorBuffer)
 					StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach{
 						x += when(it){

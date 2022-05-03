@@ -17,7 +17,6 @@ import com.intellij.util.ui.JBUI
 import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.CodeGlancePlugin.Companion.DocRenderEnabled
 import com.nasller.codeglance.config.SettingsChangePublisher
-import org.jetbrains.kotlin.idea.util.ifTrue
 import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -183,9 +182,9 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: GlancePanel) : 
                 cursor = defaultCursor
             } else if(e.x > 10 && !resizing && !dragging && e.y < scrollState.drawHeight){
                 cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-                (UISettings.getInstance().showEditorToolTip && ((if(DocRenderEnabled != null){
+                if(UISettings.getInstance().showEditorToolTip && ((if(DocRenderEnabled != null){
                     !(editor.getUserData(DocRenderEnabled)?:false)
-                }else true) || textEditor.file?.isWritable?:false)).ifTrue {
+                }else true) || textEditor.file?.isWritable == true)) {
                     if (!viewing) {
                         alarm.cancelAllRequests()
                         alarm.addRequest({
@@ -249,7 +248,7 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: GlancePanel) : 
 
         private fun hideMyEditorPreviewHint() {
             viewing = false
-            (alarm.activeRequestCount > 0).ifTrue{ alarm.cancelAllRequests() }
+            if(alarm.activeRequestCount > 0){ alarm.cancelAllRequests() }
             myWheelAccumulator = 0
             myLastVisualLine = 0
         }
