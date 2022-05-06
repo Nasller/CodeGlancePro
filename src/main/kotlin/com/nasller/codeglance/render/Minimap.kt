@@ -54,7 +54,7 @@ class Minimap(glancePanel: AbstractGlancePanel){
 			y = (line.lineNumber - foldedLines) * config.pixelsPerLine
 			val color = try {
 				hlIter.textAttributes.foregroundColor
-			} catch (_: Exception){ null }
+			} catch (_: ConcurrentModificationException){ null }
 			// Jump over folds
 			val foldRegion = {
 				editor.foldingModel.getCollapsedRegionAtOffset(i)?.let{
