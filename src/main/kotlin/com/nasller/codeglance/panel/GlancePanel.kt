@@ -80,8 +80,8 @@ class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel)
     override fun computeInReadAction(indicator: ProgressIndicator) {
         val map = mapRef.get(ScaleContext.create(this))
         try {
-            map.update(scrollState,indicator)
             scrollState.computeDimensions(this)
+            map.update(scrollState,indicator)
             ApplicationManager.getApplication().invokeLater {
                 scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
                 repaint()
