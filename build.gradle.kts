@@ -15,6 +15,7 @@ group = properties("pluginGroup")
 version = properties("pluginVersion")
 
 dependencies {
+    implementation("net.coobird:thumbnailator:0.4.17")
     testCompileOnly("org.testng:testng:6.8.5")
 }
 
