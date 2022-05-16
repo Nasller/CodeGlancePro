@@ -21,7 +21,6 @@ class Minimap(glancePanel: AbstractGlancePanel){
 	private val editor = glancePanel.editor
 	private val config = glancePanel.config
 
-	@Synchronized
 	fun update(scrollState: ScrollState, indicator: ProgressIndicator) {
 		if (img == null || img!!.height < scrollState.documentHeight || img!!.width < config.width) {
 			// Create an image that is a bit bigger then the one we need, so we don't need to re-create it again soon.
@@ -30,10 +29,6 @@ class Minimap(glancePanel: AbstractGlancePanel){
 			else Thumbnails.of(img).forceSize(config.width,scrollState.documentHeight + (100 * config.pixelsPerLine)).asBufferedImage()
 		}
 		if(editor.document.lineCount <= 0) return
-		val g = img!!.createGraphics()
-		g.composite = AbstractGlancePanel.CLEAR
-		g.fillRect(0, 0, img!!.width, img!!.height)
-
 		// These are just to reduce allocations. Premature optimization???
 		val colorBuffer = FloatArray(4)
 		val scaleBuffer = FloatArray(4)
@@ -48,6 +43,10 @@ class Minimap(glancePanel: AbstractGlancePanel){
 		var prevY = -1
 		var foldedLines = 0
 		indicator.checkCanceled()
+
+		val g = img!!.createGraphics()
+		g.composite = AbstractGlancePanel.CLEAR
+		g.fillRect(0, 0, img!!.width, img!!.height)
 		while (!hlIter.atEnd()) {
 			val tokenStart = hlIter.start
 			var i = tokenStart

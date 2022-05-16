@@ -95,7 +95,8 @@ class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel)
         }
     }
 
-    override fun paintVcs(g: Graphics2D) {
+    override fun paintVcs(g: Graphics2D,notPaint:Boolean) {
+        if(notPaint) return
         val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> !isCustomFoldRegionImpl(fold) && !fold.isExpanded &&
                 fold.startOffset >= 0 && fold.endOffset >= 0 }
         val srcOver = if(config.hideOriginalScrollBar) srcOver else srcOver0_4

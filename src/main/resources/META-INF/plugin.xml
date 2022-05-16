@@ -75,6 +75,7 @@
 	]]></change-notes>
 
 	<depends>com.intellij.modules.lang</depends>
+	<depends>com.intellij.modules.vcs</depends>
 
 	<applicationListeners>
 		<listener topic="com.intellij.openapi.project.ProjectManagerListener"

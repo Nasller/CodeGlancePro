@@ -36,7 +36,7 @@ class MyVcsPanel(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 
 	override fun paint(gfx: Graphics?) {
 		val graphics2D = gfx as Graphics2D
-		glancePanel.paintVcs(graphics2D)
+		glancePanel.paintVcs(graphics2D,false)
 	}
 
 	inner class MouseHandler : MouseAdapter() {

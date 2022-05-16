@@ -88,7 +88,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
             g.composite = srcOver0_8
             g.drawImage(this,0, 0, width, height, 0, 0, width, height,null)
         }
-        if(!config.hideOriginalScrollBar) paintVcs(g)
+        paintVcs(g,config.hideOriginalScrollBar)
         paintSelections(g)
         paintOtherHighlight(g)
         paintErrorStripes(g)
@@ -97,7 +97,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
 
     abstract fun computeInReadAction(indicator: ProgressIndicator)
 
-    abstract fun paintVcs(g: Graphics2D)
+    abstract fun paintVcs(g: Graphics2D,notPaint:Boolean)
 
     abstract fun paintSelection(g: Graphics2D, startByte: Int, endByte: Int)
 
@@ -154,7 +154,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
             }
         }
         val graphics2D = gfx as Graphics2D
-        if(!config.hideOriginalScrollBar) paintVcs(graphics2D)
+        paintVcs(graphics2D,config.hideOriginalScrollBar)
         paintSelections(graphics2D)
         paintOtherHighlight(graphics2D)
         paintErrorStripes(graphics2D)

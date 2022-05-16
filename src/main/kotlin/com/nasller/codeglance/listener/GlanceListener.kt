@@ -38,7 +38,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     override fun selectionChanged(e: SelectionEvent) = glancePanel.repaint()
 
     /** ComponentAdapter */
-    override fun componentResized(componentEvent: ComponentEvent?) = glancePanel.updateImage()
+    override fun componentResized(componentEvent: ComponentEvent?) = glancePanel.updateImageSoon()
 
     /** DocumentListener */
     override fun documentChanged(event: DocumentEvent) = glancePanel.updateImage()
