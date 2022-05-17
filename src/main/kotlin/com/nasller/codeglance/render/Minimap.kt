@@ -8,7 +8,6 @@ import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.containers.ContainerUtil
 import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.panel.AbstractGlancePanel
-import net.coobird.thumbnailator.Thumbnails
 import java.awt.Color
 import java.awt.image.BufferedImage
 import kotlin.math.max
@@ -16,18 +15,13 @@ import kotlin.math.max
 /**
  * A rendered minimap of a document
  */
-class Minimap(glancePanel: AbstractGlancePanel){
-	var img: BufferedImage? = null
+class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollState){
 	private val editor = glancePanel.editor
 	private val config = glancePanel.config
+	private var preBuffer:BufferedImage? = null
+	var img = lazy { BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR) }
 
-	fun update(scrollState: ScrollState, indicator: ProgressIndicator) {
-		if (img == null || img!!.height < scrollState.documentHeight || img!!.width < config.width) {
-			// Create an image that is a bit bigger then the one we need, so we don't need to re-create it again soon.
-			// Documents can get big, so rather than relative sizes lets just add a fixed amount on.
-			img = if (img == null) BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
-			else Thumbnails.of(img).forceSize(config.width,scrollState.documentHeight + (100 * config.pixelsPerLine)).asBufferedImage()
-		}
+	fun update(indicator: ProgressIndicator) {
 		if(editor.document.lineCount <= 0) return
 		// These are just to reduce allocations. Premature optimization???
 		val colorBuffer = FloatArray(4)
@@ -43,10 +37,16 @@ class Minimap(glancePanel: AbstractGlancePanel){
 		var prevY = -1
 		var foldedLines = 0
 		indicator.checkCanceled()
-
-		val g = img!!.createGraphics()
+		var curImg = img.value
+		if (curImg.height < scrollState.documentHeight || curImg.width < config.width) {
+			// Create an image that is a bit bigger then the one we need, so we don't need to re-create it again soon.
+			// Documents can get big, so rather than relative sizes lets just add a fixed amount on.
+			preBuffer = img.value
+			curImg = BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
+		}
+		val g = curImg.createGraphics()
 		g.composite = AbstractGlancePanel.CLEAR
-		g.fillRect(0, 0, img!!.width, img!!.height)
+		g.fillRect(0, 0, curImg.width, curImg.height)
 		while (!hlIter.atEnd()) {
 			val tokenStart = hlIter.start
 			var i = tokenStart
@@ -110,10 +110,16 @@ class Minimap(glancePanel: AbstractGlancePanel){
 			while (!hlIter.atEnd() && hlIter.start < i)
 		}
 		g.dispose()
+		preBuffer?.let {
+			img = lazyOf(curImg)
+			it.flush()
+			null
+		}.also { preBuffer = it }
 	}
 
 	private fun renderImage(x: Int, y: Int, char: Int,color:Color?, colorBuffer: FloatArray, scaleBuffer: FloatArray) {
-		if (0 <= x && x < img!!.width && 0 <= y && y + config.pixelsPerLine < img!!.height) {
+		val image = img.value
+		if (0 <= x && x < image.width && 0 <= y && y + config.pixelsPerLine < image.height) {
 			color?.getRGBComponents(colorBuffer)
 			if (config.clean) {
 				renderClean(x, y, char, colorBuffer, scaleBuffer)
@@ -213,6 +219,6 @@ class Minimap(glancePanel: AbstractGlancePanel){
 			alpha > 1 -> rgba[3]
 			else -> max(alpha, 0f)
 		} * 0xFF
-		img!!.raster.setPixel(x, y, scaleBuffer)
+		img.value.raster.setPixel(x, y, scaleBuffer)
 	}
 }

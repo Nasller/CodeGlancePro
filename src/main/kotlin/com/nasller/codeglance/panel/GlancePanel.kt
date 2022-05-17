@@ -28,7 +28,7 @@ import java.util.function.Function
 import javax.swing.JPanel
 
 class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel) : AbstractGlancePanel(project,textEditor,panelParent){
-    private var mapRef = MinimapCache { MinimapRef(Minimap(this)) }
+    private var mapRef = MinimapCache { MinimapRef(Minimap(this,scrollState)) }
     private val glanceListener = GlanceListener(this)
     private val glanceOtherListener = GlanceOtherListener(this)
     val hideScrollBarListener = HideScrollBarListener(this)
@@ -81,7 +81,7 @@ class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel)
         val map = mapRef.get(ScaleContext.create(this))
         try {
             scrollState.computeDimensions(this)
-            map.update(scrollState,indicator)
+            map.update(indicator)
             ApplicationManager.getApplication().invokeLater {
                 scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
                 repaint()
@@ -227,8 +227,12 @@ class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel)
 
     override fun getDrawImage() : BufferedImage?{
         return mapRef.get(ScaleContext.create(this)).let{
-            if(it.img == null) updateImageSoon()
-            it.img
+            if(!it.img.isInitialized()) {
+                updateImageSoon()
+                null
+            }else{
+                it.img.value
+            }
         }
     }
 
