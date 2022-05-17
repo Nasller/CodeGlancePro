@@ -85,7 +85,7 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 							'\t' -> 4
 							else -> 1
 						}
-						renderImage(x, y, it.code, null, colorBuffer, scaleBuffer)
+						curImg.renderImage(x, y, it.code, null, colorBuffer, scaleBuffer)
 					}
 				}
 			}else{
@@ -100,7 +100,7 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 						'\t' -> x += 4
 						else -> x += 1
 					}
-					renderImage(x, y, text[i].code,(getHighlightColor(i)?:color?:defaultColor), colorBuffer, scaleBuffer)
+					curImg.renderImage(x, y, text[i].code,(getHighlightColor(i)?:color?:defaultColor), colorBuffer, scaleBuffer)
 					++i
 				}
 			}
@@ -117,9 +117,8 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		}.also { preBuffer = it }
 	}
 
-	private fun renderImage(x: Int, y: Int, char: Int,color:Color?, colorBuffer: FloatArray, scaleBuffer: FloatArray) {
-		val image = img.value
-		if (0 <= x && x < image.width && 0 <= y && y + config.pixelsPerLine < image.height) {
+	private fun BufferedImage.renderImage(x: Int, y: Int, char: Int,color:Color?, colorBuffer: FloatArray, scaleBuffer: FloatArray) {
+		if (0 <= x && x < this.width && 0 <= y && y + config.pixelsPerLine < this.height) {
 			color?.getRGBComponents(colorBuffer)
 			if (config.clean) {
 				renderClean(x, y, char, colorBuffer, scaleBuffer)
@@ -149,7 +148,7 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		return color
 	}
 
-	private fun renderClean(x: Int, y: Int, char: Int, color: FloatArray, buffer: FloatArray) {
+	private fun BufferedImage.renderClean(x: Int, y: Int, char: Int, color: FloatArray, buffer: FloatArray) {
 		val weight = when (char) {
 			in 0..32 -> 0.0f
 			in 33..126 -> 0.8f
@@ -179,7 +178,7 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		}
 	}
 
-	private fun renderAccurate(x: Int, y: Int, char: Int, color: FloatArray, buffer: FloatArray) {
+	private fun BufferedImage.renderAccurate(x: Int, y: Int, char: Int, color: FloatArray, buffer: FloatArray) {
 		val topWeight = getTopWeight(char)
 		val bottomWeight = getBottomWeight(char)
 		// No point rendering non-visible characters.
@@ -213,12 +212,12 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 	 * *
 	 * @param alpha     alpha percent from 0-1.
 	 */
-	private fun setPixel(x: Int, y: Int, rgba: FloatArray, alpha: Float, scaleBuffer: FloatArray) {
+	private fun BufferedImage.setPixel(x: Int, y: Int, rgba: FloatArray, alpha: Float, scaleBuffer: FloatArray) {
 		for (i in 0..2) scaleBuffer[i] = rgba[i] * 0xFF
 		scaleBuffer[3] = when {
 			alpha > 1 -> rgba[3]
 			else -> max(alpha, 0f)
 		} * 0xFF
-		img.value.raster.setPixel(x, y, scaleBuffer)
+		this.raster.setPixel(x, y, scaleBuffer)
 	}
 }
