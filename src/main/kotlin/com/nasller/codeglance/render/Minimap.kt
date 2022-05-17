@@ -218,6 +218,6 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 			alpha > 1 -> rgba[3]
 			else -> max(alpha, 0f)
 		} * 0xFF
-		this.raster.setPixel(x, y, scaleBuffer)
+		raster.setPixel(x, y, scaleBuffer)
 	}
 }
