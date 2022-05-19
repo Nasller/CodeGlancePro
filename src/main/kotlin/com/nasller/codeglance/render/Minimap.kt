@@ -47,7 +47,7 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		val g = curImg.createGraphics()
 		g.composite = AbstractGlancePanel.CLEAR
 		g.fillRect(0, 0, curImg.width, curImg.height)
-		while (!hlIter.atEnd()) {
+		loop@ while (!hlIter.atEnd()) {
 			val tokenStart = hlIter.start
 			var i = tokenStart
 			line.start(tokenStart)
@@ -80,18 +80,21 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 			if(region != null){
 				if(region.placeholderText.isNotEmpty()) {
 					(editor.foldingModel.placeholderAttributes?.foregroundColor?:defaultColor).getRGBComponents(colorBuffer)
+					if(y + config.pixelsPerLine > curImg.height) break@loop
 					StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach{
 						x += when(it){
 							'\t' -> 4
 							else -> 1
 						}
-						curImg.renderImage(x, y, it.code, null, colorBuffer, scaleBuffer)
+						if (x < curImg.width) {
+							curImg.renderImage(x, y, it.code, colorBuffer, scaleBuffer)
+						}
 					}
 				}
 			}else{
 				while (i < hlIter.end) {
 					// Watch out for tokens that extend past the document... bad plugins? see issue #138
-					if (i >= text.length) return
+					if (i >= text.length) break@loop
 					when (text[i]) {
 						'\n' -> {
 							x = 0
@@ -100,7 +103,11 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 						'\t' -> x += 4
 						else -> x += 1
 					}
-					curImg.renderImage(x, y, text[i].code,(getHighlightColor(i)?:color?:defaultColor), colorBuffer, scaleBuffer)
+					if(y + config.pixelsPerLine > curImg.height) break@loop
+					if (x < curImg.width) {
+						(getHighlightColor(i)?:color?:defaultColor).getRGBComponents(colorBuffer)
+						curImg.renderImage(x, y, text[i].code, colorBuffer, scaleBuffer)
+					}
 					++i
 				}
 			}
@@ -117,14 +124,11 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		}.also { preBuffer = it }
 	}
 
-	private fun BufferedImage.renderImage(x: Int, y: Int, char: Int,color:Color?, colorBuffer: FloatArray, scaleBuffer: FloatArray) {
-		if (0 <= x && x < this.width && 0 <= y && y + config.pixelsPerLine < this.height) {
-			color?.getRGBComponents(colorBuffer)
-			if (config.clean) {
-				renderClean(x, y, char, colorBuffer, scaleBuffer)
-			} else {
-				renderAccurate(x, y, char, colorBuffer, scaleBuffer)
-			}
+	private fun BufferedImage.renderImage(x: Int, y: Int, char: Int, colorBuffer: FloatArray, scaleBuffer: FloatArray) {
+		if (config.clean) {
+			renderClean(x, y, char, colorBuffer, scaleBuffer)
+		} else {
+			renderAccurate(x, y, char, colorBuffer, scaleBuffer)
 		}
 	}
 

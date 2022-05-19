@@ -1,6 +1,5 @@
 package com.nasller.codeglance.panel
 
-import com.intellij.codeHighlighting.HighlightDisplayLevel
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diff.LineStatusMarkerDrawUtil
@@ -15,7 +14,6 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vcs.ex.LocalRange
 import com.intellij.reference.SoftReference
 import com.intellij.ui.scale.ScaleContext
-import com.intellij.util.ObjectUtils
 import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 import com.nasller.codeglance.listener.GlanceListener
 import com.nasller.codeglance.listener.GlanceOtherListener
@@ -186,7 +184,6 @@ class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel)
 
     override fun paintErrorStripes(g: Graphics2D) {
         g.composite = srcOver
-        val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
         editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0, editor.document.textLength) {
             HighlightInfo.fromRangeHighlighter(it) ?.let {info ->
                 it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
