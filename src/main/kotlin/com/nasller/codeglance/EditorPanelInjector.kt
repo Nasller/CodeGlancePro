@@ -2,6 +2,7 @@ package com.nasller.codeglance
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
@@ -33,8 +34,9 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
     override fun fileOpened(fem: FileEditorManager, virtualFile: VirtualFile) {
         for (editor in fem.allEditors.filterIsInstance<TextEditor>()) {
             val panel = editor.editor.component as? JPanel ?: continue
-            if (panel.layout is BorderLayout && (panel.layout as BorderLayout).getLayoutComponent(BorderLayout.LINE_END) == null) {
-                val myPanel = getMyPanel(editor, panel)
+            if (panel.layout is BorderLayout && editor.editor is EditorImpl
+                && (panel.layout as BorderLayout).getLayoutComponent(BorderLayout.LINE_END) == null) {
+                val myPanel = getMyPanel(editor)
                 editor.editor.component.add(myPanel, BorderLayout.LINE_END)
                 when (myPanel) {
                     is MyPanel -> myPanel.panel.changeOriginScrollBarWidth()
@@ -52,8 +54,8 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         try {
             for (editor in FileEditorManager.getInstance(project).allEditors.filterIsInstance<TextEditor>()) {
                 val panel = editor.editor.component as? JPanel ?: continue
-                if (panel.layout is BorderLayout) {
-                    val myPanel = getMyPanel(editor,panel)
+                if (panel.layout is BorderLayout && editor.editor is EditorImpl) {
+                    val myPanel = getMyPanel(editor)
                     (panel.layout as BorderLayout).getLayoutComponent(BorderLayout.LINE_END)?.removeComponent(panel,myPanel)
                     panel.add(myPanel, BorderLayout.LINE_END)
                     when (myPanel) {
@@ -67,8 +69,8 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         }
     }
 
-    private fun getMyPanel(editor: TextEditor,panel: JPanel): JPanel {
-        val glancePanel = GlancePanel(project, editor, panel)
+    private fun getMyPanel(editor: TextEditor): JPanel {
+        val glancePanel = GlancePanel(project, editor)
         val jPanel = if (config.hideOriginalScrollBar) MyPanel(glancePanel).apply {
             glancePanel.myVcsPanel = MyVcsPanel(glancePanel)
             add(glancePanel.myVcsPanel!!, BorderLayout.WEST)

@@ -9,7 +9,6 @@ import com.intellij.openapi.editor.ex.MarkupModelEx
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.impl.EditorMarkupModelImpl
-import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.ui.HintHint
 import com.intellij.util.Alarm
@@ -29,9 +28,8 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-class ScrollBar(textEditor: TextEditor, private val glancePanel: GlancePanel) : JPanel() {
+class ScrollBar(private val editor: EditorImpl, private val glancePanel: GlancePanel) : JPanel() {
     var hovering = false
-    private val editor = textEditor.editor as EditorImpl
     private val config = glancePanel.config
     private val scrollState = glancePanel.scrollState
     private val defaultCursor = Cursor(Cursor.DEFAULT_CURSOR)
@@ -50,7 +48,7 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: GlancePanel) : 
         get() = scrollState.viewportStart - scrollState.visibleStart
 
     init {
-        val mouseHandler = MouseHandler(textEditor)
+        val mouseHandler = MouseHandler(editor)
         addMouseListener(mouseHandler)
         addMouseWheelListener(mouseHandler)
         addMouseMotionListener(mouseHandler)
@@ -102,8 +100,7 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: GlancePanel) : 
         g.fillRect(0, vOffset, width, scrollState.viewportHeight)
     }
 
-    inner class MouseHandler(private val textEditor: TextEditor) : MouseAdapter() {
-        private val editor = textEditor.editor as EditorImpl
+    inner class MouseHandler(private val editor: EditorImpl) : MouseAdapter() {
         private var resizing = false
         private var resizeStart: Int = 0
 
@@ -184,7 +181,7 @@ class ScrollBar(textEditor: TextEditor, private val glancePanel: GlancePanel) : 
                 cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
                 if(UISettings.getInstance().showEditorToolTip && ((if(DocRenderEnabled != null){
                     !(editor.getUserData(DocRenderEnabled)?:false)
-                }else true) || textEditor.file?.isWritable == true)) {
+                }else true) || editor.virtualFile?.isWritable == true)) {
                     if (!viewing) {
                         alarm.cancelAllRequests()
                         alarm.addRequest({

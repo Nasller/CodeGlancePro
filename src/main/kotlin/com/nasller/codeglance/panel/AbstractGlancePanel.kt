@@ -24,7 +24,7 @@ import java.awt.*
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
 
-sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,private val panelParent: JPanel) : JPanel(),Disposable {
+sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) : JPanel(),Disposable {
     val editor = textEditor.editor as EditorEx
     var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
     val config: Config = ConfigInstance.state
@@ -33,6 +33,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
     val changeListManager: ChangeListManager = ChangeListManager.getInstance(project)
     val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
     protected val renderLock = DirtyLock()
+    private val panelParent = textEditor.editor.component as JPanel
     private val updateTask: ReadTask = object :ReadTask() {
         override fun onCanceled(indicator: ProgressIndicator) {
             renderLock.release()

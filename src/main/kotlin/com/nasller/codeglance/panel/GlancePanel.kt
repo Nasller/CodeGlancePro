@@ -6,6 +6,7 @@ import com.intellij.openapi.diff.LineStatusMarkerDrawUtil
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.ex.util.EditorUtil
+import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.progress.ProgressIndicator
@@ -23,9 +24,8 @@ import java.awt.Color
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.util.function.Function
-import javax.swing.JPanel
 
-class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel) : AbstractGlancePanel(project,textEditor,panelParent){
+class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePanel(project,textEditor){
     private var mapRef = MinimapCache { MinimapRef(Minimap(this,scrollState)) }
     private val glanceListener = GlanceListener(this)
     private val glanceOtherListener = GlanceOtherListener(this)
@@ -34,7 +34,7 @@ class GlancePanel(project: Project, textEditor: TextEditor, panelParent: JPanel)
     init {
         Disposer.register(textEditor, this)
         Disposer.register(this){mapRef.clear()}
-        scrollbar = ScrollBar(textEditor,this)
+        scrollbar = ScrollBar(textEditor.editor as EditorImpl,this)
         add(scrollbar)
         addHierarchyListener(glanceListener)
         addHierarchyBoundsListener(glanceListener)
