@@ -53,6 +53,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor,pr
 
     init {
         isOpaque = false
+        panelParent.isOpaque = false
         layout = BorderLayout()
     }
 
