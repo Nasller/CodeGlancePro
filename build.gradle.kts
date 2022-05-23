@@ -28,7 +28,7 @@ intellij {
     pluginName.set(properties("pluginName"))
     version.set(properties("platformVersion"))
     type.set(properties("platformType"))
-//    sandboxDir.set("${rootProject.rootDir}/idea-sandbox")
+    sandboxDir.set("${rootProject.rootDir}/idea-sandbox")
     downloadSources.set(true)
 //    sandboxDir.set("${rootProject.rootDir}/rider-sandbox")
 //    sandboxDir.set("${rootProject.rootDir}/clion-sandbox")
