@@ -80,13 +80,12 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 			if(region != null){
 				if(region.placeholderText.isNotEmpty()) {
 					(editor.foldingModel.placeholderAttributes?.foregroundColor?:defaultColor).getRGBComponents(colorBuffer)
-					if(y + config.pixelsPerLine >= curImg.height) break@loop
 					StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach{
 						x += when(it){
 							'\t' -> 4
 							else -> 1
 						}
-						if (x < curImg.width) {
+						if (0 <= x && x < curImg.width && 0 <= y && y + config.pixelsPerLine < curImg.height) {
 							curImg.renderImage(x, y, it.code, colorBuffer, scaleBuffer)
 						}
 					}
@@ -103,8 +102,7 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 						'\t' -> x += 4
 						else -> x += 1
 					}
-					if(y + config.pixelsPerLine >= curImg.height) break@loop
-					if (x < curImg.width) {
+					if (0 <= x && x < curImg.width && 0 <= y && y + config.pixelsPerLine < curImg.height) {
 						(getHighlightColor(i)?:color?:defaultColor).getRGBComponents(colorBuffer)
 						curImg.renderImage(x, y, text[i].code, colorBuffer, scaleBuffer)
 					}
