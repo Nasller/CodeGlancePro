@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 public class ConfigForm {
     private JCheckBox disabled;
     private JCheckBox locked;
+    private JComboBox alignment;
     private JComboBox jumpToPosition;
     private JComboBox pixelsPerLine;
     private JComboBox renderStyle;
@@ -26,7 +27,7 @@ public class ConfigForm {
     private JTextField viewportColor;
     private JCheckBox hideOriginalScrollBar;
 
-	public ConfigForm() {
+    public ConfigForm() {
         pixelsPerLine.setModel(new DefaultComboBoxModel(new Integer[]{1, 2, 3, 4}));
         viewportColor.setInputVerifier(new InputVerifier() {
             private final Pattern pattern = Pattern.compile("[a-fA-F0-9]{6}");
@@ -87,6 +88,7 @@ public class ConfigForm {
             // Cyclic Scroll
             // comboBox.setSelectedIndex(Math.abs((comboBox.getSelectedIndex() + e.getWheelRotation()) % comboBox.getItemCount()));
         };
+        alignment.addMouseWheelListener(scrollListener);
         jumpToPosition.addMouseWheelListener(scrollListener);
         pixelsPerLine.addMouseWheelListener(scrollListener);
         renderStyle.addMouseWheelListener(scrollListener);
@@ -150,6 +152,14 @@ public class ConfigForm {
 
     public void setCleanStyle(boolean isClean) {
         renderStyle.setSelectedIndex(isClean ? 0 : 1);
+    }
+
+    public boolean isRightAligned() {
+        return alignment.getSelectedIndex() == 0;
+    }
+
+    public void setRightAligned(boolean isRightAligned) {
+        alignment.setSelectedIndex(isRightAligned ? 0 : 1);
     }
 
     public int getWidth() {

@@ -19,6 +19,7 @@ import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 import com.nasller.codeglance.listener.GlanceListener
 import com.nasller.codeglance.listener.GlanceOtherListener
 import com.nasller.codeglance.listener.HideScrollBarListener
+import com.nasller.codeglance.panel.scroll.ScrollBar
 import com.nasller.codeglance.render.Minimap
 import java.awt.Color
 import java.awt.Graphics2D

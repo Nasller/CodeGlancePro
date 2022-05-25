@@ -30,6 +30,8 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
         val actionGroup = DefaultActionGroup()
         actionGroup.add(ToggleOptionAction(object :ToggleOptionAction.Option{
             override fun getName(): String = "Show Minimap on scrollbar hover"
+            override fun isEnabled(): Boolean = glancePanel.config.isRightAligned
+            override fun isAlwaysVisible():Boolean = true
             override fun isSelected(): Boolean = glancePanel.config.hoveringToShowScrollBar
             override fun setSelected(selected: Boolean) {
                 glancePanel.config.hoveringToShowScrollBar = selected

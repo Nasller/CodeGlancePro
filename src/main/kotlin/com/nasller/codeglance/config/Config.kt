@@ -13,6 +13,7 @@ class Config {
         }
     }
     var hideOriginalScrollBar: Boolean = false
+    var isRightAligned: Boolean = true
     var hoveringToShowScrollBar: Boolean by Delegates.observable(false) { _, oldValue: Boolean, newValue: Boolean ->
         if (oldValue != newValue) {
             SettingsChangePublisher.onHoveringOriginalScrollBarChanged(newValue)

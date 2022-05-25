@@ -17,7 +17,7 @@ class ConfigEntry : Configurable {
     }
 
     override fun getHelpTopic(): String {
-        return "Configuration for the CodeGlance minimap"
+        return "Configuration for the CodeGlancePro minimap"
     }
 
     override fun createComponent(): JComponent? {
@@ -27,16 +27,17 @@ class ConfigEntry : Configurable {
     }
 
     override fun isModified(): Boolean = form != null && (
-        config.disabled != form!!.isDisabled
-            || config.pixelsPerLine != form!!.pixelsPerLine
-            || config.jumpOnMouseDown != form!!.jumpOnMouseDown()
-            || config.width != form!!.width
-            || config.locked != form!!.isLocked
-            || config.viewportColor != form!!.viewportColor
-            || config.maxLinesCount != form!!.maxLinesCount
-            || config.clean != form!!.cleanStyle
-            || config.hideOriginalScrollBar != form!!.isHideOriginalScrollBar
-    )
+            config.disabled != form!!.isDisabled
+                    || config.pixelsPerLine != form!!.pixelsPerLine
+                    || config.jumpOnMouseDown != form!!.jumpOnMouseDown()
+                    || config.width != form!!.width
+                    || config.locked != form!!.isLocked
+                    || config.viewportColor != form!!.viewportColor
+                    || config.maxLinesCount != form!!.maxLinesCount
+                    || config.clean != form!!.cleanStyle
+                    || config.hideOriginalScrollBar != form!!.isHideOriginalScrollBar
+                    || config.isRightAligned != form!!.isRightAligned
+            )
 
     @Throws(ConfigurationException::class)
     override fun apply() {
@@ -55,6 +56,8 @@ class ConfigEntry : Configurable {
         config.maxLinesCount = form!!.maxLinesCount
         config.clean = form!!.cleanStyle
         config.hideOriginalScrollBar = form!!.isHideOriginalScrollBar
+        config.isRightAligned = form!!.isRightAligned
+        if(!config.isRightAligned && config.hoveringToShowScrollBar) config.hoveringToShowScrollBar = false
         ApplicationManager.getApplication().invokeLater{
             SettingsChangePublisher.onGlobalChanged()
         }
@@ -62,7 +65,6 @@ class ConfigEntry : Configurable {
 
     override fun reset() {
         if (form == null) return
-
         form!!.pixelsPerLine = config.pixelsPerLine
         form!!.isDisabled = config.disabled
         form!!.isLocked= config.locked
@@ -72,6 +74,7 @@ class ConfigEntry : Configurable {
         form!!.maxLinesCount = config.maxLinesCount
         form!!.cleanStyle = config.clean
         form!!.isHideOriginalScrollBar = config.hideOriginalScrollBar
+        form!!.isRightAligned = config.isRightAligned
     }
 
     override fun disposeUIResources() {

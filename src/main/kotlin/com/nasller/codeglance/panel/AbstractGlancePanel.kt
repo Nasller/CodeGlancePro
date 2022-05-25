@@ -19,6 +19,7 @@ import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.Config
 import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
+import com.nasller.codeglance.panel.scroll.ScrollBar
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
 import java.awt.image.BufferedImage
@@ -49,7 +50,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         get() = config.disabled || editor.document.textLength > PersistentFSConstants.getMaxIntellisenseFileSize() ||
                 editor.document.lineCount > config.maxLinesCount
     private var buf: BufferedImage? = null
-    var scrollbar:ScrollBar? = null
+    var scrollbar: ScrollBar? = null
     var myVcsPanel:MyVcsPanel? = null
 
     init {
@@ -180,7 +181,10 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     abstract fun getDrawImage() : BufferedImage?
 
     override fun dispose() {
-        scrollbar?.let {remove(it)}
+        scrollbar?.let {
+            it.dispose()
+            remove(it)
+        }
     }
 
     companion object{

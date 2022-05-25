@@ -32,12 +32,13 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
     }
 
     override fun fileOpened(fem: FileEditorManager, virtualFile: VirtualFile) {
+        val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
         for (editor in fem.allEditors.filterIsInstance<TextEditor>()) {
             val panel = editor.editor.component as? JPanel ?: continue
-            if (panel.layout is BorderLayout && editor.editor is EditorImpl
-                && (panel.layout as BorderLayout).getLayoutComponent(BorderLayout.LINE_END) == null) {
+            val layout = panel.layout
+            if (layout is BorderLayout && editor.editor is EditorImpl && layout.getLayoutComponent(where) == null) {
                 val myPanel = getMyPanel(editor)
-                editor.editor.component.add(myPanel, BorderLayout.LINE_END)
+                panel.add(myPanel, where)
                 when (myPanel) {
                     is MyPanel -> myPanel.panel.changeOriginScrollBarWidth()
                     is AbstractGlancePanel -> myPanel.changeOriginScrollBarWidth()
@@ -51,13 +52,16 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
     override fun fileClosed(source: FileEditorManager, file: VirtualFile) {}
 
     override fun onGlobalChanged() {
+        val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
         try {
             for (editor in FileEditorManager.getInstance(project).allEditors.filterIsInstance<TextEditor>()) {
                 val panel = editor.editor.component as? JPanel ?: continue
-                if (panel.layout is BorderLayout && editor.editor is EditorImpl) {
+                val layout = panel.layout
+                if (layout is BorderLayout && editor.editor is EditorImpl) {
                     val myPanel = getMyPanel(editor)
-                    (panel.layout as BorderLayout).getLayoutComponent(BorderLayout.LINE_END)?.removeComponent(panel,myPanel)
-                    panel.add(myPanel, BorderLayout.LINE_END)
+                    layout.getLayoutComponent(BorderLayout.LINE_START)?.removeComponent(panel,myPanel)
+                    layout.getLayoutComponent(BorderLayout.LINE_END)?.removeComponent(panel,myPanel)
+                    panel.add(myPanel, where)
                     when (myPanel) {
                         is MyPanel -> myPanel.panel.updateImageSoon()
                         is AbstractGlancePanel -> myPanel.updateImageSoon()
