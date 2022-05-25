@@ -268,15 +268,6 @@ class ScrollBar(private val editor: EditorImpl, private val glancePanel: GlanceP
         private fun getOffset(visualLine: Int, startLine: Boolean): Int {
             return editor.visualPositionToOffset(VisualPosition(visualLine, if (startLine) 0 else Int.MAX_VALUE))
         }
-
-        private fun createHint(me: MouseEvent): HintHint {
-            return HintHint(me)
-                .setAwtTooltip(true)
-                .setPreferredPosition(Balloon.Position.atLeft)
-                .setBorderInsets(JBUI.insets(1))
-                .setShowImmediately(true)
-                .setAnimationEnabled(false)
-        }
     }
 
     override fun dispose() {
@@ -297,6 +288,15 @@ class ScrollBar(private val editor: EditorImpl, private val glancePanel: GlanceP
                 shift = if (sequence.isEmpty()) 0 else if (sequence[sequence.length - 1] == '\n') 1 else 0
             }
             return 0.coerceAtLeast((lineCount - shift).coerceAtMost(visualLine))
+        }
+
+        private fun createHint(me: MouseEvent): HintHint {
+            return HintHint(me)
+                .setAwtTooltip(true)
+                .setPreferredPosition(Balloon.Position.atLeft)
+                .setBorderInsets(JBUI.insets(CustomEditorFragmentRenderer.EDITOR_FRAGMENT_POPUP_BORDER))
+                .setShowImmediately(true)
+                .setAnimationEnabled(false)
         }
     }
 }

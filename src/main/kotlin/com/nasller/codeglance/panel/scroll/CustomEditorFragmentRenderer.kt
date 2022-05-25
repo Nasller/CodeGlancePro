@@ -38,7 +38,6 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 	private var isDirty = false
 	private val myPointHolder = AtomicReference<Point>()
 	private val myHintHolder = AtomicReference<HintHint>()
-
 	private var myEditorPreviewHint: LightweightHint? = null
 
 	fun getEditorPreviewHint(): LightweightHint? {
@@ -80,7 +79,7 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 		if (myEditorPreviewHint == null) {
 			needDelay = true
 			val editorFragmentPreviewPanel = EditorFragmentPreviewPanel(contentInsets, rangeHighlighters)
-			editorFragmentPreviewPanel.putClientProperty(BalloonImpl.FORCED_NO_SHADOW, java.lang.Boolean.TRUE)
+			editorFragmentPreviewPanel.putClientProperty(BalloonImpl.FORCED_NO_SHADOW, true)
 			myEditorPreviewHint = object : LightweightHint(editorFragmentPreviewPanel) {
 				override fun hide(ok: Boolean) {
 					super.hide(ok)
@@ -132,13 +131,8 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 			var width = ((myEditor.gutterComponentEx as EditorGutterComponentEx).width + myEditor.scrollingModel.visibleArea.width
 					- myEditor.scrollPane.verticalScrollBar.width)
 			width -= JBUIScale.scale(EDITOR_FRAGMENT_POPUP_BORDER) * 2 + myContentInsets
-			return Dimension(
-				width - BalloonImpl.POINTER_LENGTH.get(),
-				min(
-					2 * PREVIEW_LINES * myEditor.lineHeight,
-					myEditor.visualLineToY(myEndVisualLine) - myEditor.visualLineToY(myStartVisualLine)
-				)
-			)
+			return Dimension(width - BalloonImpl.POINTER_LENGTH.get(),
+				min(2 * PREVIEW_LINES * myEditor.lineHeight, myEditor.visualLineToY(myEndVisualLine) - myEditor.visualLineToY(myStartVisualLine)))
 		}
 
 		@DirtyUI
@@ -152,15 +146,10 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 			val lineHeight = myEditor.lineHeight
 			if (myCacheLevel2 != null && (myEditor.visualLineToY(myStartVisualLine) < myCacheFromY ||
 						myEditor.visualLineToY(myEndVisualLine) + lineHeight > myCacheToY)
-			) {
-				myCacheLevel2 = null
-			}
+			) myCacheLevel2 = null
 			if (myCacheLevel2 == null) {
 				myCacheFromY = max(0, myEditor.visualLineToY(myVisualLine) - CACHE_PREVIEW_LINES * lineHeight)
-				myCacheToY = min(
-					myEditor.visualLineToY(myEditor.visibleLineCount),
-					myCacheFromY + (2 * CACHE_PREVIEW_LINES + 1) * lineHeight
-				)
+				myCacheToY = min(myEditor.visualLineToY(myEditor.visibleLineCount), myCacheFromY + (2 * CACHE_PREVIEW_LINES + 1) * lineHeight)
 				myCacheLevel2 = ImageUtil.createImage(g, size.width, myCacheToY - myCacheFromY, BufferedImage.TYPE_INT_RGB)
 				val cg = myCacheLevel2!!.createGraphics()
 				val t = cg.transform
@@ -171,7 +160,7 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 				val contentAT = AffineTransform.getTranslateInstance((gutterWidth - shift).toDouble(), lineShift.toDouble())
 				gutterAT.preConcatenate(t)
 				contentAT.preConcatenate(t)
-				EditorTextField.SUPPLEMENTARY_KEY[myEditor] = java.lang.Boolean.TRUE
+				EditorTextField.SUPPLEMENTARY_KEY[myEditor] = true
 				try {
 					cg.transform = gutterAT
 					cg.setClip(0, -lineShift, gutterWidth, myCacheLevel2!!.height)
@@ -195,10 +184,7 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 				GraphicsUtil.setupAAPainting(g2d)
 				g2d.color = myEditor.backgroundColor
 				g2d.fillRect(0, 0, width, height)
-				val topDisplayedY = max(
-					myEditor.visualLineToY(myStartVisualLine),
-					myEditor.visualLineToY(myVisualLine) - PREVIEW_LINES * lineHeight
-				)
+				val topDisplayedY = max(myEditor.visualLineToY(myStartVisualLine), myEditor.visualLineToY(myVisualLine) - PREVIEW_LINES * lineHeight)
 				val translateInstance = AffineTransform.getTranslateInstance(gutterWidth.toDouble(), (myCacheFromY - topDisplayedY).toDouble())
 				translateInstance.preConcatenate(transform)
 				g2d.transform = translateInstance
@@ -206,7 +192,7 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 				val rightEdges = Int2IntOpenHashMap()
 				val h = lineHeight - 2
 				val colorsScheme = myEditor.colorsScheme
-				val font: Font = UIUtil.getFontWithFallback(colorsScheme.getFont(EditorFontType.PLAIN))
+				val font = UIUtil.getFontWithFallback(colorsScheme.getFont(EditorFontType.PLAIN))
 				g2d.font = font.deriveFont(font.size * .8f)
 				for (ex in myHighlighters) {
 					if (!ex.isValid) continue
@@ -220,7 +206,7 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 					val endOfLineOffset = myEditor.document.getLineEndOffset(logicalPosition.line)
 					logicalPosition = myEditor.offsetToLogicalPosition(endOfLineOffset)
 					val placeToShow = myEditor.logicalPositionToXY(logicalPosition)
-					logicalPosition = myEditor.xyToLogicalPosition(placeToShow) //wraps&foldings workaround
+					logicalPosition = myEditor.xyToLogicalPosition(placeToShow) //wraps&folding workaround
 					placeToShow.x += R * 3 / 2
 					placeToShow.y -= myCacheFromY - 1
 					val w = g2d.fontMetrics.stringWidth(s)
@@ -244,15 +230,15 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 				UIUtil.drawImage(g2, myCacheLevel1!!, 0, 0, this)
 				if (StartupUiUtil.isUnderDarcula()) {
 					//Add glass effect
-					val s: Shape = Rectangle(0, 0, size.width, size.height)
+					val s = Rectangle(0, 0, size.width, size.height)
 					val cx = size.width / 2.0
 					val rx = size.width / 10.0
 					val ry = lineHeight * 3 / 2
 					g2.paint = GradientPaint(0f, 0f, Gray._255.withAlpha(75), 0f, ry.toFloat(), Gray._255.withAlpha(10))
 					val pseudoMajorAxis = size.width - rx * 9 / 5
 					val cy = 0.0
-					val topShape1: Shape = Ellipse2D.Double(cx - rx - pseudoMajorAxis / 2, cy - ry, 2 * rx, (2 * ry).toDouble())
-					val topShape2: Shape = Ellipse2D.Double(cx - rx + pseudoMajorAxis / 2, cy - ry, 2 * rx, (2 * ry).toDouble())
+					val topShape1 = Ellipse2D.Double(cx - rx - pseudoMajorAxis / 2, cy - ry, 2 * rx, (2 * ry).toDouble())
+					val topShape2 = Ellipse2D.Double(cx - rx + pseudoMajorAxis / 2, cy - ry, 2 * rx, (2 * ry).toDouble())
 					val topArea = Area(topShape1)
 					topArea.add(Area(topShape2))
 					topArea.add(Area(Rectangle2D.Double(cx - pseudoMajorAxis / 2, cy, pseudoMajorAxis, ry.toDouble())))
@@ -268,9 +254,9 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 		}
 	}
 
-	private companion object{
+	companion object{
 		const val EDITOR_FRAGMENT_POPUP_BORDER = 1
-		const val CACHE_PREVIEW_LINES = 100
-		const val R = 6
+		private const val CACHE_PREVIEW_LINES = 100
+		private const val R = 6
 	}
 }
