@@ -160,7 +160,9 @@ class ScrollBar(private val editor: EditorImpl, private val glancePanel: GlanceP
         }
 
         override fun mouseReleased(e: MouseEvent) {
-            if(resizing && !dragging){
+            if (!dragging && !resizing && !config.jumpOnMouseDown) {
+                jumpToLineAt(e.y)
+            }else if(resizing && !dragging){
                 SettingsChangePublisher.onRefreshChanged()
             }
             dragging = false
