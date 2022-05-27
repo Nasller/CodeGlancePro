@@ -3,7 +3,6 @@ package com.nasller.codeglance.render
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.view.IterationState
 import com.intellij.openapi.editor.markup.TextAttributes
-import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.containers.ContainerUtil
 import com.nasller.codeglance.CodeGlancePlugin
@@ -21,7 +20,7 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 	private var preBuffer:BufferedImage? = null
 	var img = lazy { BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR) }
 
-	fun update(indicator: ProgressIndicator) {
+	fun update() {
 		if(editor.document.lineCount <= 0) return
 		// These are just to reduce allocations. Premature optimization???
 		val colorBuffer = FloatArray(4)
@@ -31,12 +30,12 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val line = editor.document.createLineIterator()
 		val hlIter = editor.highlighter.createIterator(0)
+		val softWrapEnable = editor.softWrapModel.isSoftWrappingEnabled
 
 		var x = 0
 		var y: Int
-		var prevY = -1
 		var foldedLines = 0
-		indicator.checkCanceled()
+		var softWrapLines = 0
 		var curImg = img.value
 		if (curImg.height < scrollState.documentHeight || curImg.width < config.width) {
 			// Create an image that is a bit bigger then the one we need, so we don't need to re-create it again soon.
@@ -51,7 +50,7 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 			val tokenStart = hlIter.start
 			var i = tokenStart
 			line.start(tokenStart)
-			y = (line.lineNumber - foldedLines) * config.pixelsPerLine
+			y = (line.lineNumber + softWrapLines - foldedLines) * config.pixelsPerLine
 			val color = try {
 				hlIter.textAttributes.foregroundColor
 			} catch (_: ConcurrentModificationException){ null }
@@ -65,35 +64,28 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 					} else null
 				}
 			}
-			// New line, pre-loop to count whitespace from start of line.
-			if (y != prevY) {
-				x = 0
-				i = line.start
-				while (i < tokenStart) {
-					if (foldRegion() != null)break
-					x += if (text[i++] == '\t') 4 else 1
-					// Abort if this line is getting too long...
-					if (x > config.width) break
-				}
-			}
 			val region = foldRegion()
 			if(region != null){
 				if(region.placeholderText.isNotEmpty()) {
 					(editor.foldingModel.placeholderAttributes?.foregroundColor?:defaultColor).getRGBComponents(colorBuffer)
-					StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach{
-						x += when(it){
+					StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach {
+						x += when (it) {
 							'\t' -> 4
 							else -> 1
 						}
-						if (0 <= x && x < curImg.width && 0 <= y && y + config.pixelsPerLine < curImg.height) {
-							curImg.renderImage(x, y, it.code, colorBuffer, scaleBuffer)
-						}
+						curImg.renderImage(x, y, it.code, colorBuffer, scaleBuffer)
 					}
 				}
 			}else{
 				while (i < hlIter.end) {
 					// Watch out for tokens that extend past the document... bad plugins? see issue #138
 					if (i >= text.length) break@loop
+					if(softWrapEnable){
+						val softWrap = renderSoftWrap(i, y, curImg, colorBuffer, scaleBuffer)
+						softWrapLines += softWrap.second
+						y += softWrap.second * config.pixelsPerLine
+						if(softWrap.first > 0) x = softWrap.first
+					}
 					when (text[i]) {
 						'\n' -> {
 							x = 0
@@ -102,14 +94,11 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 						'\t' -> x += 4
 						else -> x += 1
 					}
-					if (0 <= x && x < curImg.width && 0 <= y && y + config.pixelsPerLine < curImg.height) {
-						(getHighlightColor(i)?:color?:defaultColor).getRGBComponents(colorBuffer)
-						curImg.renderImage(x, y, text[i].code, colorBuffer, scaleBuffer)
-					}
+					(getHighlightColor(i) ?: color ?: defaultColor).getRGBComponents(colorBuffer)
+					curImg.renderImage(x, y, text[i].code, colorBuffer, scaleBuffer)
 					++i
 				}
 			}
-			prevY = y
 			do // Skip to end of fold
 				hlIter.advance()
 			while (!hlIter.atEnd() && hlIter.start < i)
@@ -122,12 +111,25 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		}.also { preBuffer = it }
 	}
 
-	private fun BufferedImage.renderImage(x: Int, y: Int, char: Int, colorBuffer: FloatArray, scaleBuffer: FloatArray) {
-		if (config.clean) {
-			renderClean(x, y, char, colorBuffer, scaleBuffer)
-		} else {
-			renderAccurate(x, y, char, colorBuffer, scaleBuffer)
+	private fun renderSoftWrap(i:Int,y:Int,curImg:BufferedImage,colorBuffer: FloatArray,scaleBuffer: FloatArray):Pair<Int,Int>{
+		var renderX = 0
+		var renderY = y
+		val currentOrPrevWrap = editor.softWrapModel.getSoftWrap(i)
+		if (currentOrPrevWrap != null) {
+			editor.colorsScheme.defaultForeground.getRGBComponents(colorBuffer)
+			currentOrPrevWrap.chars?.forEach {
+				when (it) {
+					'\n' -> {
+						renderX = 0
+						renderY += config.pixelsPerLine
+					}
+					'\t' -> renderX += 4
+					else -> renderX += 1
+				}
+				curImg.renderImage(renderX, renderY, it.code, colorBuffer, scaleBuffer)
+			}
 		}
+		return renderX to (renderY-y)/config.pixelsPerLine
 	}
 
 	private fun getHighlightColor(offset:Int):Color?{
@@ -148,6 +150,16 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 			}
 		}
 		return color
+	}
+
+	private fun BufferedImage.renderImage(x: Int, y: Int, char: Int, colorBuffer: FloatArray, scaleBuffer: FloatArray) {
+		if (x in 0 until width && y in 0 until y + config.pixelsPerLine) {
+			if (config.clean) {
+				renderClean(x, y, char, colorBuffer, scaleBuffer)
+			} else {
+				renderAccurate(x, y, char, colorBuffer, scaleBuffer)
+			}
+		}
 	}
 
 	private fun BufferedImage.renderClean(x: Int, y: Int, char: Int, color: FloatArray, buffer: FloatArray) {

@@ -63,8 +63,8 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
                     layout.getLayoutComponent(BorderLayout.LINE_END)?.removeComponent(panel,myPanel)
                     panel.add(myPanel, where)
                     when (myPanel) {
-                        is MyPanel -> myPanel.panel.updateImageSoon()
-                        is AbstractGlancePanel -> myPanel.updateImageSoon()
+                        is MyPanel -> myPanel.panel.updateImage()
+                        is AbstractGlancePanel -> myPanel.updateImage()
                     }
                 }
             }

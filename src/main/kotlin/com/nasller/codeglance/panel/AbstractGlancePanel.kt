@@ -6,9 +6,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
-import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.util.ProgressIndicatorUtils
-import com.intellij.openapi.progress.util.ReadTask
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.ChangeListManager
 import com.intellij.openapi.vcs.impl.LineStatusTrackerManager
@@ -35,17 +32,6 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
     protected val renderLock = DirtyLock()
     private val panelParent = textEditor.editor.component as JPanel
-    private val updateTask: ReadTask = object :ReadTask() {
-        override fun onCanceled(indicator: ProgressIndicator) {
-            renderLock.release()
-            renderLock.clean()
-            updateImageSoon()
-        }
-
-        override fun computeInReadAction(indicator: ProgressIndicator) {
-            this@AbstractGlancePanel.computeInReadAction(indicator)
-        }
-    }
     val isDisabled: Boolean
         get() = config.disabled || editor.document.textLength > PersistentFSConstants.getMaxIntellisenseFileSize() ||
                 editor.document.lineCount > config.maxLinesCount
@@ -78,13 +64,11 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         }
     }
 
-    fun updateImageSoon() = ApplicationManager.getApplication().invokeLater(this::updateImage)
-
     fun updateImage() {
         if (isDisabled) return
-        if (!renderLock.acquire()) return
         if (project.isDisposed) return
-        ProgressIndicatorUtils.scheduleWithWriteActionPriority(updateTask)
+        if (!renderLock.acquire()) return
+        ApplicationManager.getApplication().invokeLater(this::runUpdateTask)
     }
 
     private fun paintLast(gfx: Graphics?) {
@@ -100,7 +84,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         scrollbar?.paint(gfx)
     }
 
-    abstract fun computeInReadAction(indicator: ProgressIndicator)
+    abstract fun runUpdateTask()
 
     abstract fun paintVcs(g: Graphics2D,notPaint:Boolean)
 

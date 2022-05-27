@@ -21,10 +21,10 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
     /** MarkupModelListener */
     override fun afterAdded(highlighter: RangeHighlighterEx) =
-        if (isAvailable(highlighter)) glancePanel.updateImageSoon() else Unit
+        if (isAvailable(highlighter)) glancePanel.updateImage() else Unit
 
     override fun beforeRemoved(highlighter: RangeHighlighterEx) =
-        if (isAvailable(highlighter)) glancePanel.updateImageSoon() else Unit
+        if (isAvailable(highlighter)) glancePanel.updateImage() else Unit
 
     private fun isAvailable(highlighter: RangeHighlighterEx):Boolean = highlighter.editorFilter.avaliableIn(glancePanel.editor)
     /** CaretListener */
@@ -38,7 +38,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     override fun selectionChanged(e: SelectionEvent) = glancePanel.repaint()
 
     /** ComponentAdapter */
-    override fun componentResized(componentEvent: ComponentEvent?) = glancePanel.updateImageSoon()
+    override fun componentResized(componentEvent: ComponentEvent?) = glancePanel.updateImage()
 
     /** DocumentListener */
     override fun documentChanged(event: DocumentEvent) = glancePanel.updateImage()

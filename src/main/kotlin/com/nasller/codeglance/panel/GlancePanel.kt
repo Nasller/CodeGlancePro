@@ -9,7 +9,6 @@ import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.fileEditor.TextEditor
-import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vcs.ex.LocalRange
@@ -76,22 +75,19 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         hideScrollBarListener.showHideOriginScrollBar(true)
     }
 
-    override fun computeInReadAction(indicator: ProgressIndicator) {
-        val map = mapRef.get(ScaleContext.create(this))
+    override fun runUpdateTask() {
         try {
             scrollState.computeDimensions(this)
-            map.update(indicator)
-            ApplicationManager.getApplication().invokeLater {
-                scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
-                repaint()
-            }
-        }finally {
+            scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
+            mapRef.get(ScaleContext.create(this)).update()
+        } finally {
             renderLock.release()
             if (renderLock.dirty) {
                 renderLock.clean()
-                updateImageSoon()
+                updateImage()
             }
         }
+        repaint()
     }
 
     override fun paintVcs(g: Graphics2D,notPaint:Boolean) {
@@ -226,7 +222,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
     override fun getDrawImage() : BufferedImage?{
         return mapRef.get(ScaleContext.create(this)).let{
             if(!it.img.isInitialized()) {
-                updateImageSoon()
+                updateImage()
                 null
             }else{
                 it.img.value
