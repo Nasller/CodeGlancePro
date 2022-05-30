@@ -153,7 +153,7 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 	}
 
 	private fun BufferedImage.renderImage(x: Int, y: Int, char: Int, colorBuffer: FloatArray, scaleBuffer: FloatArray) {
-		if (x in 0 until width && y in 0 until y + config.pixelsPerLine) {
+		if (x in 0 until width && 0 <= y && y + config.pixelsPerLine < height) {
 			if (config.clean) {
 				renderClean(x, y, char, colorBuffer, scaleBuffer)
 			} else {
