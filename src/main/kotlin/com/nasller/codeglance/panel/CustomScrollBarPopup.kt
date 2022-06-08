@@ -17,6 +17,7 @@ import com.intellij.ui.PopupHandler
 import com.intellij.ui.PopupMenuListenerAdapter
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.ui.UIUtil
+import com.nasller.codeglance.message
 import java.awt.Component
 import java.awt.Point
 import javax.swing.event.PopupMenuEvent
@@ -29,7 +30,7 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
         val file = PsiDocumentManager.getInstance(glancePanel.project).getPsiFile(glancePanel.editor.document) ?: return
         val actionGroup = DefaultActionGroup()
         actionGroup.add(ToggleOptionAction(object :ToggleOptionAction.Option{
-            override fun getName(): String = "Show Minimap on scrollbar hover"
+            override fun getName(): String = message("popup.hover.minimap")
             override fun isEnabled(): Boolean = glancePanel.config.isRightAligned
             override fun isAlwaysVisible():Boolean = true
             override fun isSelected(): Boolean = glancePanel.config.hoveringToShowScrollBar
