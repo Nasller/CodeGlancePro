@@ -132,8 +132,6 @@ class ScrollBar(private val editor: EditorImpl, private val glancePanel: GlanceP
                     visibleRectAlpha = DRAG_ALPHA
                     dragStart = e.y
                     dragStartDelta = scrollState.viewportStart - scrollState.visibleStart
-                    // Disable animation when dragging for better experience.
-                    editor.scrollingModel.disableAnimation()
                 }
                 config.jumpOnMouseDown -> jumpToLineAt(e.y)
             }
@@ -168,7 +166,6 @@ class ScrollBar(private val editor: EditorImpl, private val glancePanel: GlanceP
             dragging = false
             resizing = false
             updateAlpha(e.y)
-            editor.scrollingModel.enableAnimation()
             if(isInRect(e.y)) cursor = defaultCursor
             hideScrollBar(e)
         }
@@ -243,7 +240,7 @@ class ScrollBar(private val editor: EditorImpl, private val glancePanel: GlanceP
             val highlighters = mutableListOf<RangeHighlighterEx>()
             collectRangeHighlighters(editor.markupModel, visualLine, highlighters)
             collectRangeHighlighters(editor.filteredDocumentMarkupModel, visualLine, highlighters)
-            myEditorFragmentRenderer.show( visualLine, highlighters, true, createHint(me))
+            myEditorFragmentRenderer.show(visualLine, highlighters, true, createHint(me))
         }
 
         private fun hideMyEditorPreviewHint() {
