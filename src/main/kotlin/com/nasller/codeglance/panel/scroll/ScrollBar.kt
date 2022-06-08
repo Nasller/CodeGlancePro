@@ -155,7 +155,7 @@ class ScrollBar(private val editor: EditorImpl, private val glancePanel: GlanceP
                     // ...Solve for newPos...
                     delta * (documentHeight - viewportHeight + 1) / (visibleHeight - viewportHeight)
                 }
-                editor.scrollingModel.scrollVertically((newPos / scrollState.scale).roundToInt())
+                editor.scrollPane.verticalScrollBar.value = (newPos / scrollState.scale).roundToInt()
             }
         }
 

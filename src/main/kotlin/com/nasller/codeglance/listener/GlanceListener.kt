@@ -1,23 +1,31 @@
 package com.nasller.codeglance.listener
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.FoldRegion
 import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.ex.FoldingListener
+import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
+import com.intellij.openapi.editor.ex.SoftWrapChangeListener
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.event.*
 
 class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(), FoldingListener, MarkupModelListener,
-    SettingsChangeListener, CaretListener, DocumentListener, VisibleAreaListener,SelectionListener,
-    HierarchyBoundsListener, HierarchyListener {
+    SettingsChangeListener, CaretListener, PrioritizedDocumentListener, VisibleAreaListener, SelectionListener,
+    HierarchyBoundsListener, HierarchyListener, SoftWrapChangeListener {
     init {
         ApplicationManager.getApplication().messageBus.connect(glancePanel).subscribe(SettingsChangeListener.TOPIC, this)
     }
     /** FoldingListener */
     override fun onFoldRegionStateChange(region: FoldRegion) = glancePanel.updateImage()
+
+    /** SoftWrapChangeListener */
+    override fun softWrapsChanged() = glancePanel.updateImage()
+
+    override fun recalculationEnds() = Unit
 
     /** MarkupModelListener */
     override fun afterAdded(highlighter: RangeHighlighterEx) =
@@ -27,6 +35,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
         if (isAvailable(highlighter)) glancePanel.updateImage() else Unit
 
     private fun isAvailable(highlighter: RangeHighlighterEx):Boolean = highlighter.editorFilter.avaliableIn(glancePanel.editor)
+
     /** CaretListener */
     override fun caretPositionChanged(event: CaretEvent) = glancePanel.repaint()
 
@@ -38,10 +47,14 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     override fun selectionChanged(e: SelectionEvent) = glancePanel.repaint()
 
     /** ComponentAdapter */
-    override fun componentResized(componentEvent: ComponentEvent?) = glancePanel.updateImage()
+    override fun componentResized(componentEvent: ComponentEvent) = glancePanel.updateScrollState()
 
     /** DocumentListener */
-    override fun documentChanged(event: DocumentEvent) = glancePanel.updateImage()
+    override fun documentChanged(event: DocumentEvent) = if(!event.document.isInBulkUpdate) glancePanel.updateImage() else Unit
+
+    override fun bulkUpdateFinished(document: Document) = glancePanel.updateImage()
+
+    override fun getPriority(): Int = 170 //EditorDocumentPriorities
 
     /** SettingsChangeListener */
     override fun onRefreshChanged() {

@@ -65,26 +65,16 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     }
 
     fun updateImage() {
-        if (isDisabled) return
-        if (project.isDisposed) return
-        if (!renderLock.acquire()) return
-        ApplicationManager.getApplication().invokeLater(this::runUpdateTask)
+        if (isDisabled || project.isDisposed || !renderLock.acquire()) return
+        ApplicationManager.getApplication().invokeLater(this::updateImgTask)
     }
 
-    private fun paintLast(gfx: Graphics?) {
-        val g = gfx as Graphics2D
-        buf?.run{
-            g.composite = srcOver0_8
-            g.drawImage(this,0, 0, width, height, 0, 0, width, height,null)
-        }
-        paintVcs(g,config.hideOriginalScrollBar)
-        paintSelections(g)
-        paintOtherHighlight(g)
-        paintErrorStripes(g)
-        scrollbar?.paint(gfx)
+    fun updateScrollState(){
+        scrollState.computeDimensions(this)
+        scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
     }
 
-    abstract fun runUpdateTask()
+    abstract fun updateImgTask()
 
     abstract fun paintVcs(g: Graphics2D,notPaint:Boolean)
 
@@ -150,6 +140,19 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         graphics2D.composite = srcOver0_8
         graphics2D.drawImage(buf, 0, 0, null)
         scrollbar?.paint(graphics2D)
+    }
+
+    private fun paintLast(gfx: Graphics?) {
+        val g = gfx as Graphics2D
+        buf?.run{
+            g.composite = srcOver0_8
+            g.drawImage(this,0, 0, width, height, 0, 0, width, height,null)
+        }
+        paintVcs(g,config.hideOriginalScrollBar)
+        paintSelections(g)
+        paintOtherHighlight(g)
+        paintErrorStripes(g)
+        scrollbar?.paint(gfx)
     }
 
     fun changeOriginScrollBarWidth(){

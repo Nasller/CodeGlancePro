@@ -43,6 +43,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         editor.selectionModel.addSelectionListener(glanceListener,this)
         editor.scrollingModel.addVisibleAreaListener(glanceListener,this)
         editor.foldingModel.addListener(glanceListener,this)
+        editor.softWrapModel.addSoftWrapChangeListener(glanceListener)
         editor.caretModel.addCaretListener(glanceListener,this)
         editor.markupModel.addMarkupModelListener(this, glanceOtherListener)
         editor.filteredDocumentMarkupModel.addMarkupModelListener(this, glanceListener)
@@ -75,10 +76,8 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         hideScrollBarListener.showHideOriginScrollBar(true)
     }
 
-    override fun runUpdateTask() {
+    override fun updateImgTask() {
         try {
-            scrollState.computeDimensions(this)
-            scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
             mapRef.get(ScaleContext.create(this)).update()
         } finally {
             renderLock.release()

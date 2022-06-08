@@ -47,24 +47,20 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		g.composite = AbstractGlancePanel.CLEAR
 		g.fillRect(0, 0, curImg.width, curImg.height)
 		loop@ while (!hlIter.atEnd()) {
-			val tokenStart = hlIter.start
-			var i = tokenStart
-			line.start(tokenStart)
+			var i = hlIter.start
+			line.start(i)
 			y = (line.lineNumber + softWrapLines - foldedLines) * config.pixelsPerLine
 			val color = try {
 				hlIter.textAttributes.foregroundColor
 			} catch (_: ConcurrentModificationException){ null }
 			// Jump over folds
-			val foldRegion = {
-				editor.foldingModel.getCollapsedRegionAtOffset(i)?.let{
-					if(it.startOffset >= 0 && it.endOffset >= 0 && !CodeGlancePlugin.isCustomFoldRegionImpl(it)){
-						foldedLines += editor.document.getLineNumber(it.endOffset) - editor.document.getLineNumber(it.startOffset)
-						i = it.endOffset
-						it
-					} else null
-				}
+			val region = editor.foldingModel.getCollapsedRegionAtOffset(i)?.let{
+				if(it.startOffset >= 0 && it.endOffset >= 0 && !CodeGlancePlugin.isCustomFoldRegionImpl(it)){
+					foldedLines += editor.document.getLineNumber(it.endOffset) - editor.document.getLineNumber(it.startOffset)
+					i = it.endOffset
+					it
+				} else null
 			}
-			val region = foldRegion()
 			if(region != null){
 				if(region.placeholderText.isNotEmpty()) {
 					(editor.foldingModel.placeholderAttributes?.foregroundColor?:defaultColor).getRGBComponents(colorBuffer)
@@ -84,7 +80,7 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 						val softWrap = renderSoftWrap(i, y, curImg, colorBuffer, scaleBuffer)
 						softWrapLines += softWrap.second
 						y += softWrap.second * config.pixelsPerLine
-						if(softWrap.first > 0) x = softWrap.first
+						if(softWrap.first > 0 || softWrap.second > 0) x = softWrap.first
 					}
 					when (text[i]) {
 						'\n' -> {
