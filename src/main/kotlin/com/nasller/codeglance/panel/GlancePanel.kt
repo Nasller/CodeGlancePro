@@ -115,8 +115,10 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
                         }
                         val start = (visualLine1 + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
                         val end = (visualLine2 + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
-                        g.fillRect(0, start, width, config.pixelsPerLine)
-                        g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
+                        if(start > 0 || end - start - config.pixelsPerLine > 0) {
+                            g.fillRect(0, start, width, config.pixelsPerLine)
+                            g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
+                        }
                     }catch (_:ConcurrentModificationException){}
                 }
             }
@@ -135,42 +137,46 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
 
         g.composite = srcOver
         g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
-        // Single line is real easy
-        if (start.line == end.line) {
-            g.fillRect(sX, sY, eX - sX, config.pixelsPerLine)
-        } else {
-            // Draw the line leading in
-            g.fillRect(sX, sY, width - sX, config.pixelsPerLine)
-            // Then the line at the end
-            g.fillRect(0, eY, eX, config.pixelsPerLine)
-            if (eY + config.pixelsPerLine != sY) {
-                // And if there is anything in between, fill it in
-                g.fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
+        if(sY > 0 || eY > 0) {
+            // Single line is real easy
+            if (start.line == end.line) {
+                g.fillRect(sX, sY, eX - sX, config.pixelsPerLine)
+            } else {
+                // Draw the line leading in
+                g.fillRect(sX, sY, width - sX, config.pixelsPerLine)
+                // Then the line at the end
+                g.fillRect(0, eY, eX, config.pixelsPerLine)
+                if (eY + config.pixelsPerLine != sY) {
+                    // And if there is anything in between, fill it in
+                    g.fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
+                }
             }
         }
     }
 
-    override fun paintCaretPosition(g: Graphics2D) {
+    override fun paintCaretPosition(g: Graphics2D): MutableList<VisualPosition> {
         g.composite = srcOver
+        val allCarets = mutableListOf<VisualPosition>()
         editor.caretModel.allCarets.forEach{
             g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
             val documentLine = getDocumentRenderLine(it.logicalPosition.line,it.logicalPosition.line)
             val start = (it.visualPosition.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
-            val end = (it.visualPosition.line + documentLine.second + 1) * config.pixelsPerLine - scrollState.visibleStart
-            g.fillRect(0, start, width, config.pixelsPerLine)
-            g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
+            if(start > 0){
+                g.fillRect(0, start, width, config.pixelsPerLine)
+                allCarets.add(VisualPosition(start,it.visualPosition.column))
+            }
         }
+        return allCarets
     }
 
-    override fun paintOtherHighlight(g: Graphics2D) {
+    override fun paintOtherHighlight(g: Graphics2D,allCarets:List<VisualPosition>) {
         val map = lazy{ hashMapOf<String,Int>() }
-        g.composite = srcOver
         editor.markupModel.processRangeHighlightersOverlappingWith(0, editor.document.textLength) {
             val key = (it.startOffset+it.endOffset).toString()
             val layer = map.value[key]
             it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
                 if(layer == null || layer < it.layer){
-                    drawMarkupLine(it,g,this,false)
+                    drawMarkupLine(it,g,this,false,allCarets)
                     map.value[key] = it.layer
                 }
             }
@@ -178,20 +184,20 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         }
     }
 
-    override fun paintErrorStripes(g: Graphics2D) {
-        g.composite = srcOver
+    override fun paintErrorStripes(g: Graphics2D,allCarets:List<VisualPosition>) {
         editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0, editor.document.textLength) {
             HighlightInfo.fromRangeHighlighter(it) ?.let {info ->
                 it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-                    drawMarkupLine(it, g,this,info.severity.myVal > minSeverity.myVal)
+                    drawMarkupLine(it, g,this,info.severity.myVal > minSeverity.myVal,allCarets)
                 }
             }
             return@processRangeHighlightersOverlappingWith true
         }
     }
 
-    private fun drawMarkupLine(it: RangeHighlighter, g: Graphics2D, color: Color, compensateLine:Boolean){
+    private fun drawMarkupLine(it: RangeHighlighter, g: Graphics2D, color: Color, compensateLine:Boolean,allCarets:List<VisualPosition>){
         g.color = color
+        g.composite = srcOver0_8
         val documentLine = getDocumentRenderLine(editor.offsetToLogicalPosition(it.startOffset).line, editor.offsetToLogicalPosition(it.endOffset).line)
         val start = editor.offsetToVisualPosition(it.startOffset)
         val end = editor.offsetToVisualPosition(it.endOffset)
@@ -200,20 +206,28 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         var eX = if (start.column < (width - minGap)) end.column + 1 else width
         val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
         val collapsed = editor.foldingModel.isOffsetCollapsed(it.startOffset)
-        if (sY == eY && !collapsed) {
-            val gap = eX - sX
-            if(compensateLine && gap < minGap){
-                eX += minGap-gap
-                if(eX > width) sX -= eX - width
+        if(sY > 0 || eY > 0){
+            if (allCarets.any { it.line == sY }) {
+                g.composite = srcOver
+                g.color = g.color.brighter()
             }
-            g.fillRect(sX, sY, eX - sX, config.pixelsPerLine)
-        } else if(collapsed){
-            g.fillRect(0, sY, width / 2, config.pixelsPerLine)
-        } else {
-            g.fillRect(sX, sY, width - sX, config.pixelsPerLine)
-            g.fillRect(0, eY, eX, config.pixelsPerLine)
-            if (eY + config.pixelsPerLine != sY) {
-                g.fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
+            if (sY == eY && !collapsed) {
+                if(compensateLine && eX - sX < minGap){
+                    eX += minGap-(eX - sX)
+                    if(eX > width) sX -= eX - width
+                }
+                g.fillRect(sX, sY, eX - sX, config.pixelsPerLine)
+            } else if (collapsed) {
+                g.fillRect(0, sY, width / 2, config.pixelsPerLine)
+            } else {
+                val notEqual = eY + config.pixelsPerLine != sY
+                if (allCarets.any {it.line == eY || (notEqual && (it.line in sY + config.pixelsPerLine..eY))}) {
+                    g.composite = srcOver
+                    g.color = g.color.brighter()
+                }
+                g.fillRect(sX, sY, width - sX, config.pixelsPerLine)
+                if (notEqual) g.fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
+                g.fillRect(0, eY, eX, config.pixelsPerLine)
             }
         }
     }

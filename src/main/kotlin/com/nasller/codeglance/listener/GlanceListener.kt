@@ -47,7 +47,11 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     override fun selectionChanged(e: SelectionEvent) = glancePanel.repaint()
 
     /** ComponentAdapter */
-    override fun componentResized(componentEvent: ComponentEvent) = glancePanel.updateScrollState()
+    override fun componentResized(componentEvent: ComponentEvent) {
+        glancePanel.scrollState.computeDimensions(glancePanel)
+        glancePanel.scrollState.recomputeVisible(glancePanel.editor.scrollingModel.visibleArea)
+        glancePanel.repaint()
+    }
 
     /** DocumentListener */
     override fun documentChanged(event: DocumentEvent) = if(!event.document.isInBulkUpdate) glancePanel.updateImage() else Unit
