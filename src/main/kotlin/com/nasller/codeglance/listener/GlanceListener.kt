@@ -35,10 +35,8 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     override fun beforeRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter)
 
     private fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
-        if (highlighter.editorFilter.avaliableIn(glancePanel.editor)) {
-            if(alarm.activeRequestCount == 0){
-                alarm.addRequest({ glancePanel.updateImage() }, 150)
-            }
+        if (highlighter.editorFilter.avaliableIn(glancePanel.editor) && alarm.activeRequestCount == 0) {
+            alarm.addRequest({ glancePanel.updateImage() }, 150)
         } else Unit
     }
 
