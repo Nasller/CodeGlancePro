@@ -70,6 +70,11 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         ApplicationManager.getApplication().invokeLater(this::updateImgTask)
     }
 
+    fun updateScrollState(){
+        scrollState.computeDimensions(this)
+        scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
+    }
+
     abstract fun updateImgTask()
 
     abstract fun paintVcs(g: Graphics2D,notPaint:Boolean)

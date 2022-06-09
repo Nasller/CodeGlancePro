@@ -48,8 +48,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
     /** ComponentAdapter */
     override fun componentResized(componentEvent: ComponentEvent) {
-        glancePanel.scrollState.computeDimensions(glancePanel)
-        glancePanel.scrollState.recomputeVisible(glancePanel.editor.scrollingModel.visibleArea)
+        glancePanel.updateScrollState()
         glancePanel.repaint()
     }
 

@@ -16,7 +16,6 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.MouseEventAdapter
 import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.CodeGlancePlugin.Companion.DocRenderEnabled
-import com.nasller.codeglance.config.SettingsChangePublisher
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.*
@@ -160,8 +159,6 @@ class ScrollBar(private val editor: EditorImpl, private val glancePanel: GlanceP
         override fun mouseReleased(e: MouseEvent) {
             if (!dragging && !resizing && !config.jumpOnMouseDown) {
                 jumpToLineAt(e.y)
-            }else if(resizing && !dragging){
-                SettingsChangePublisher.onRefreshChanged()
             }
             dragging = false
             resizing = false
