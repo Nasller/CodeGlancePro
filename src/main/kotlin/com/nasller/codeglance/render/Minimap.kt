@@ -1,11 +1,11 @@
 package com.nasller.codeglance.render
 
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
+import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.editor.impl.view.IterationState
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.containers.ContainerUtil
-import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import java.awt.Color
 import java.awt.image.BufferedImage
@@ -55,7 +55,7 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 			} catch (_: ConcurrentModificationException){ null }
 			// Jump over folds
 			val region = editor.foldingModel.getCollapsedRegionAtOffset(i)?.let{
-				if(it.startOffset >= 0 && it.endOffset >= 0 && !CodeGlancePlugin.isCustomFoldRegionImpl(it)){
+				if(it.startOffset >= 0 && it.endOffset >= 0 && it !is CustomFoldRegionImpl){
 					foldedLines += editor.document.getLineNumber(it.endOffset) - editor.document.getLineNumber(it.startOffset)
 					i = it.endOffset
 					it

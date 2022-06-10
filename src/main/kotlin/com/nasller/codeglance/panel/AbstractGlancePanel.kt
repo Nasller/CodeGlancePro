@@ -5,6 +5,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
@@ -13,7 +14,6 @@ import com.intellij.openapi.vcs.impl.LineStatusTrackerManager
 import com.intellij.openapi.vfs.PersistentFSConstants
 import com.intellij.util.ObjectUtils
 import com.intellij.util.ui.UIUtil
-import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.Config
 import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
@@ -104,7 +104,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     fun getDocumentRenderLine(lineStart:Int,lineEnd:Int):Pair<Int,Int>{
         var startAdd = 0
         var endAdd = 0
-        editor.foldingModel.allFoldRegions.filter{ !it.isExpanded && CodeGlancePlugin.isCustomFoldRegionImpl(it) &&
+        editor.foldingModel.allFoldRegions.filter{ !it.isExpanded && it is CustomFoldRegionImpl &&
                 it.startOffset >= 0 && it.endOffset >= 0}.forEach {
             val start = it.document.getLineNumber(it.startOffset)
             val end = it.document.getLineNumber(it.endOffset)

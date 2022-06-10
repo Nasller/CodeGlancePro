@@ -8,13 +8,13 @@ import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.ex.MarkupModelEx
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
+import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.ui.HintHint
 import com.intellij.util.Alarm
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.MouseEventAdapter
-import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.CodeGlancePlugin.Companion.DocRenderEnabled
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import com.nasller.codeglance.panel.GlancePanel
@@ -84,7 +84,8 @@ class ScrollBar(private val editor: EditorImpl, private val glancePanel: GlanceP
         var add = 0
         val line = editor.visualToLogicalPosition(VisualPosition(visualLine,0)).line
         editor.foldingModel.allFoldRegions.filter{ it.startOffset >= 0 && it.endOffset >= 0
-            !it.isExpanded && CodeGlancePlugin.isCustomFoldRegionImpl(it)}.forEach {
+            !it.isExpanded && it is CustomFoldRegionImpl
+        }.forEach {
             val end = it.document.getLineNumber(it.endOffset)
             val i = end - it.document.getLineNumber(it.startOffset)
             if (end < line) {

@@ -6,6 +6,7 @@ import com.intellij.openapi.diff.LineStatusMarkerDrawUtil
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.ex.util.EditorUtil
+import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.fileEditor.TextEditor
@@ -14,7 +15,6 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vcs.ex.LocalRange
 import com.intellij.reference.SoftReference
 import com.intellij.ui.scale.ScaleContext
-import com.nasller.codeglance.CodeGlancePlugin.Companion.isCustomFoldRegionImpl
 import com.nasller.codeglance.listener.GlanceListener
 import com.nasller.codeglance.listener.GlanceOtherListener
 import com.nasller.codeglance.listener.HideScrollBarListener
@@ -91,7 +91,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
 
     override fun paintVcs(g: Graphics2D,notPaint:Boolean) {
         if(notPaint) return
-        val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> !isCustomFoldRegionImpl(fold) && !fold.isExpanded &&
+        val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> fold !is CustomFoldRegionImpl && !fold.isExpanded &&
                 fold.startOffset >= 0 && fold.endOffset >= 0 }
         val srcOver = if(config.hideOriginalScrollBar) srcOver else srcOver0_4
         trackerManager.getLineStatusTracker(editor.document)?.getRanges()?.run {
