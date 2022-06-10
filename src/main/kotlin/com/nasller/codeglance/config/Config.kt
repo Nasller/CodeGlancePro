@@ -5,29 +5,28 @@ import com.intellij.util.messages.Topic
 import kotlin.properties.Delegates
 
 class Config {
-    var pixelsPerLine: Int = 4
-    var maxLinesCount: Int = 100000
-    var disabled: Boolean by Delegates.observable(false) { _, oldValue: Boolean, newValue: Boolean ->
+    var pixelsPerLine = 4
+    var maxLinesCount = 100000
+    var disabled by Delegates.observable(false) { _, oldValue, newValue ->
         if (oldValue != newValue) {
             SettingsChangePublisher.onRefreshChanged()
         }
     }
-    var hideOriginalScrollBar: Boolean = false
-    var isRightAligned: Boolean = true
-    var hoveringToShowScrollBar: Boolean by Delegates.observable(false) { _, oldValue: Boolean, newValue: Boolean ->
+    var hideOriginalScrollBar = false
+    var isRightAligned = true
+    var hoveringToShowScrollBar by Delegates.observable(false) { _, oldValue, newValue ->
         if (oldValue != newValue) {
             SettingsChangePublisher.onHoveringOriginalScrollBarChanged(newValue)
         }
     }
-    var jumpOnMouseDown: Boolean = true
-    var width: Int = 110
-    var viewportColor: String = "A0A0A0"
-    var clean: Boolean = true
-    var locked: Boolean = false
+    var jumpOnMouseDown = true
+    var width = 110
+    var viewportColor = "A0A0A0"
+    var clean = true
+    var locked = false
 }
 
-val SettingsChangePublisher: SettingsChangeListener =
-    ApplicationManager.getApplication().messageBus.syncPublisher(SettingsChangeListener.TOPIC)
+val SettingsChangePublisher = ApplicationManager.getApplication().messageBus.syncPublisher(SettingsChangeListener.TOPIC)
 
 interface SettingsChangeListener {
 
@@ -38,7 +37,6 @@ interface SettingsChangeListener {
     fun onGlobalChanged() {}
 
     companion object {
-        val TOPIC: Topic<SettingsChangeListener> =
-            Topic.create("CodeGlanceSettingsChanged", SettingsChangeListener::class.java)
+        val TOPIC = Topic.create("CodeGlanceSettingsChanged", SettingsChangeListener::class.java)
     }
 }

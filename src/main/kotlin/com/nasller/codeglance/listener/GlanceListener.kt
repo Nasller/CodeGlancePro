@@ -17,7 +17,7 @@ import java.awt.event.*
 class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(), FoldingListener, MarkupModelListener,
     SettingsChangeListener, CaretListener, PrioritizedDocumentListener, VisibleAreaListener, SelectionListener,
     HierarchyBoundsListener, HierarchyListener, SoftWrapChangeListener {
-    private val alarm = Alarm(glancePanel)
+    private val alarm = Alarm(Alarm.ThreadToUse.POOLED_THREAD,glancePanel)
     init {
         ApplicationManager.getApplication().messageBus.connect(glancePanel).subscribe(SettingsChangeListener.TOPIC, this)
     }

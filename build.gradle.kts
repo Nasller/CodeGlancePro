@@ -67,8 +67,4 @@ tasks{
             kotlinOptions.jvmTarget = it
         }
     }
-
-    buildSearchableOptions{
-        enabled=false
-    }
 }

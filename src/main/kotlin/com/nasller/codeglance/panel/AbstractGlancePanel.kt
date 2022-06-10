@@ -48,7 +48,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
 
     fun refresh(refreshImage:Boolean = true) {
         updateSize()
-        if(refreshImage) updateImage()
+        if(refreshImage) updateImage(::updateScrollState)
         else repaint()
         revalidate()
     }
@@ -65,9 +65,12 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         }
     }
 
-    fun updateImage() {
+    fun updateImage(consumer: (() -> Unit)? = null) {
         if (isDisabled || project.isDisposed || !renderLock.acquire()) return
-        ApplicationManager.getApplication().invokeLater(this::updateImgTask)
+        ApplicationManager.getApplication().invokeLater{
+            consumer?.invoke()
+            updateImgTask()
+        }
     }
 
     fun updateScrollState(){
