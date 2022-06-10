@@ -20,7 +20,7 @@ dependencies {
 
 kotlin {
     jvmToolchain {
-        (this as JavaToolchainSpec).languageVersion.set(JavaLanguageVersion.of(11))
+        languageVersion.set(JavaLanguageVersion.of(11))
     }
 }
 
@@ -45,6 +45,15 @@ tasks{
         // Path to IDE distribution that will be used to run the IDE with the plugin.
         // ideDir.set(File("path to IDE-dependency"))
     }
+
+//    buildSearchableOptions{
+//        pluginsDir.set(File(pluginsDir.asFile.get().path+"-language"))
+//        jvmArgs("-Dintellij.searchableOptions.i18n.enabled=true")
+//    }
+//
+//    jarSearchableOptions{
+//        include { it.name.contains(rootProject.name+"-"+properties("platformVersion")) }
+//    }
 
     wrapper {
         gradleVersion = properties("gradleVersion")
