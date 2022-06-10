@@ -16,7 +16,7 @@ import javax.swing.SpinnerNumberModel
 import kotlin.math.max
 import kotlin.math.min
 
-class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","default"){
+class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com.nasller.CodeGlancePro"){
 	private val config = ConfigInstance.state
 
 	override fun createPanel(): DialogPanel {
