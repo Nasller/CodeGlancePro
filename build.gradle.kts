@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
 
 fun properties(key: String) = project.findProperty(key).toString()
 
@@ -36,6 +37,9 @@ intellij {
 //    downloadSources.set(false)
     // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
     plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
+    project.hasProperty("languagePlugins").ifTrue {
+        plugins.add(properties("languagePlugins"))
+    }
 }
 
 tasks{
@@ -46,24 +50,23 @@ tasks{
         // ideDir.set(File("path to IDE-dependency"))
     }
 
-//    buildSearchableOptions{
-//        pluginsDir.set(File(pluginsDir.asFile.get().path+"-language"))
-//        jvmArgs("-Dintellij.searchableOptions.i18n.enabled=true")
-//    }
-//
-//    jarSearchableOptions{
-//        include { it.name.contains(rootProject.name+"-"+properties("platformVersion")) }
-//    }
+    buildSearchableOptions {
+        jvmArgs("-Dintellij.searchableOptions.i18n.enabled=true")
+    }
 
-    wrapper {
-        gradleVersion = properties("gradleVersion")
-        distributionType = Wrapper.DistributionType.ALL
+    jarSearchableOptions {
+        include { it.name.contains(rootProject.name+"-"+properties("pluginVersion")) }
     }
 
     patchPluginXml {
         version.set(properties("pluginVersion"))
         sinceBuild.set(properties("pluginSinceBuild"))
         untilBuild.set(properties("pluginUntilBuild"))
+    }
+
+    wrapper {
+        gradleVersion = properties("gradleVersion")
+        distributionType = Wrapper.DistributionType.ALL
     }
 
     properties("javaVersion").let {

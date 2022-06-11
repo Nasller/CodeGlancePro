@@ -28,7 +28,10 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-class ScrollBar(private val editor: EditorImpl, private val glancePanel: GlancePanel) : JPanel(),Disposable {
+class ScrollBar(
+    private val glancePanel: GlancePanel,
+    private val editor: EditorImpl = glancePanel.editor as EditorImpl
+) : JPanel(), Disposable {
     var hovering = false
     private val config = glancePanel.config
     private val scrollState = glancePanel.scrollState

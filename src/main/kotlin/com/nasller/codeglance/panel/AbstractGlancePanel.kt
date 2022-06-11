@@ -25,16 +25,16 @@ import javax.swing.JPanel
 
 sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) : JPanel(),Disposable {
     val editor = textEditor.editor as EditorEx
-    var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
     val config: Config = ConfigInstance.state
     val scrollState = ScrollState()
     val trackerManager = LineStatusTrackerManager.getInstance(project)
     val changeListManager: ChangeListManager = ChangeListManager.getInstance(project)
     val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
+    var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
     protected val renderLock = DirtyLock()
     private val panelParent = textEditor.editor.component as JPanel
     val isDisabled: Boolean
-        get() = config.disabled || editor.document.textLength > PersistentFSConstants.getMaxIntellisenseFileSize() ||
+        get() = config.disabled || editor.virtualFile.length > PersistentFSConstants.getMaxIntellisenseFileSize() ||
                 editor.document.lineCount > config.maxLinesCount
     private var buf: BufferedImage? = null
     var scrollbar: ScrollBar? = null

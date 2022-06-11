@@ -1,5 +1,6 @@
 package com.nasller.codeglance.listener
 
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.FoldRegion
@@ -16,9 +17,21 @@ import java.awt.event.*
 
 class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(), FoldingListener, MarkupModelListener,
     SettingsChangeListener, CaretListener, PrioritizedDocumentListener, VisibleAreaListener, SelectionListener,
-    HierarchyBoundsListener, HierarchyListener, SoftWrapChangeListener {
+    HierarchyBoundsListener, HierarchyListener, SoftWrapChangeListener,Disposable {
     private val alarm = Alarm(Alarm.ThreadToUse.POOLED_THREAD,glancePanel)
     init {
+        glancePanel.addHierarchyListener(this)
+        glancePanel.addHierarchyBoundsListener(this)
+        val editor = glancePanel.editor
+        editor.contentComponent.addComponentListener(this)
+        editor.document.addDocumentListener(this,glancePanel)
+        editor.selectionModel.addSelectionListener(this,glancePanel)
+        editor.scrollingModel.addVisibleAreaListener(this,glancePanel)
+        editor.foldingModel.addListener(this,glancePanel)
+        editor.softWrapModel.addSoftWrapChangeListener(this)
+        editor.caretModel.addCaretListener(this,glancePanel)
+        editor.markupModel.addMarkupModelListener(glancePanel, GlanceOtherListener(glancePanel))
+        editor.filteredDocumentMarkupModel.addMarkupModelListener(glancePanel, this)
         ApplicationManager.getApplication().messageBus.connect(glancePanel).subscribe(SettingsChangeListener.TOPIC, this)
     }
     /** FoldingListener */
@@ -91,6 +104,12 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     /** HierarchyListener */
     override fun hierarchyChanged(e: HierarchyEvent) = if(e.changeFlags == HierarchyEvent.PARENT_CHANGED.toLong())
         glancePanel.refresh(false) else Unit
+
+    override fun dispose() {
+        glancePanel.removeHierarchyListener(this)
+        glancePanel.removeHierarchyBoundsListener(this)
+        glancePanel.editor.contentComponent.removeComponentListener(this)
+    }
 }
 
 class GlanceOtherListener(private val glancePanel: GlancePanel) : MarkupModelListener {

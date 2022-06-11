@@ -7,7 +7,6 @@ import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
-import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
@@ -16,7 +15,6 @@ import com.intellij.openapi.vcs.ex.LocalRange
 import com.intellij.reference.SoftReference
 import com.intellij.ui.scale.ScaleContext
 import com.nasller.codeglance.listener.GlanceListener
-import com.nasller.codeglance.listener.GlanceOtherListener
 import com.nasller.codeglance.listener.HideScrollBarListener
 import com.nasller.codeglance.panel.scroll.ScrollBar
 import com.nasller.codeglance.render.Minimap
@@ -28,25 +26,12 @@ import java.util.function.Function
 class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePanel(project,textEditor){
     private var mapRef = MinimapCache { MinimapRef(Minimap(this,scrollState)) }
     private val glanceListener = GlanceListener(this)
-    private val glanceOtherListener = GlanceOtherListener(this)
     val hideScrollBarListener = HideScrollBarListener(this)
     val myPopHandler = CustomScrollBarPopup(this)
     init {
-        Disposer.register(textEditor, this)
-        Disposer.register(this){mapRef.clear()}
-        scrollbar = ScrollBar(textEditor.editor as EditorImpl,this)
+        Disposer.register(textEditor,this)
+        scrollbar = ScrollBar(this)
         add(scrollbar)
-        addHierarchyListener(glanceListener)
-        addHierarchyBoundsListener(glanceListener)
-        editor.contentComponent.addComponentListener(glanceListener)
-        editor.document.addDocumentListener(glanceListener,this)
-        editor.selectionModel.addSelectionListener(glanceListener,this)
-        editor.scrollingModel.addVisibleAreaListener(glanceListener,this)
-        editor.foldingModel.addListener(glanceListener,this)
-        editor.softWrapModel.addSoftWrapChangeListener(glanceListener)
-        editor.caretModel.addCaretListener(glanceListener,this)
-        editor.markupModel.addMarkupModelListener(this, glanceOtherListener)
-        editor.filteredDocumentMarkupModel.addMarkupModelListener(this, glanceListener)
         refresh()
     }
 
@@ -245,10 +230,9 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
 
     override fun dispose() {
         super.dispose()
+        mapRef.clear()
         myVcsPanel?.dispose()
-        removeHierarchyListener(glanceListener)
-        removeHierarchyBoundsListener(glanceListener)
-        editor.contentComponent.removeComponentListener(glanceListener)
+        glanceListener.dispose()
         removeHideScrollBarListener()
     }
 }
