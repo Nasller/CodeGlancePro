@@ -24,6 +24,12 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		if(editor.document.lineCount <= 0) return
 		// These are just to reduce allocations. Premature optimization???
 		val scaleBuffer = FloatArray(4)
+		val setColorRgba: (Color).() -> Unit = {
+			scaleBuffer[0] = red.toFloat()
+			scaleBuffer[1] = green.toFloat()
+			scaleBuffer[2] = blue.toFloat()
+			scaleBuffer[3] = alpha.toFloat()
+		}
 
 		val text = editor.document.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground
@@ -68,11 +74,11 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 				} else null
 			}
 			if (region != null && region.placeholderText.isNotEmpty()) {
-				val color = editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor
+				(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor).apply(setColorRgba)
 				StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach {
 					val charCode = it.code
 					moveCharIndex(charCode)
-					curImg.renderImage(x, y, charCode, color, scaleBuffer)
+					curImg.renderImage(x, y, charCode, scaleBuffer)
 				}
 			} else {
 				val color = try {
@@ -90,7 +96,9 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 					}
 					val charCode = text[i].code
 					moveCharIndex(charCode)
-					curImg.renderImage(x, y, charCode, getHighlightColor(i) ?: color ?: defaultColor, scaleBuffer)
+					curImg.renderImage(x, y, charCode, scaleBuffer){
+						(getHighlightColor(i) ?: color ?: defaultColor).apply(setColorRgba)
+					}
 					++i
 				}
 			}
@@ -126,84 +134,78 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		return color
 	}
 
-	private fun BufferedImage.renderImage(x: Int, y: Int, char: Int, color: Color, scaleBuffer: FloatArray) {
+	private fun BufferedImage.renderImage(x: Int, y: Int, char: Int, scaleBuffer: FloatArray,consumer: (()->Unit)? = null) {
 		if (char !in 0..32 && x in 0 until width && 0 <= y && y + config.pixelsPerLine < height) {
+			consumer?.invoke()
 			if (config.clean) {
-				renderClean(x, y, char, color, scaleBuffer)
+				renderClean(x, y, char, scaleBuffer)
 			} else {
-				renderAccurate(x, y, char, color, scaleBuffer)
+				renderAccurate(x, y, char, scaleBuffer)
 			}
 		}
 	}
 
-	private fun BufferedImage.renderClean(x: Int, y: Int, char: Int, color: Color, buffer: FloatArray) {
+	private fun BufferedImage.renderClean(x: Int, y: Int, char: Int, buffer: FloatArray) {
 		val weight = when (char) {
 			in 33..126 -> 0.8f
 			else -> 0.4f
 		}
 		when (config.pixelsPerLine) {
 			1 -> // Can't show whitespace between lines anymore. This looks rather ugly...
-				setPixel(x, y + 1, color, weight * 0.6f, buffer)
+				setPixel(x, y + 1, weight * 0.6f, buffer)
 			2 -> {
 				// Two lines we make the top line a little lighter to give the illusion of whitespace between lines.
-				setPixel(x, y, color, weight * 0.3f, buffer)
-				setPixel(x, y + 1, color, weight * 0.6f, buffer)
+				setPixel(x, y, weight * 0.3f, buffer)
+				setPixel(x, y + 1, weight * 0.6f, buffer)
 			}
 			3 -> {
 				// Three lines we make the top nearly empty, and fade the bottom a little too
-				setPixel(x, y, color, weight * 0.1f, buffer)
-				setPixel(x, y + 1, color, weight * 0.6f, buffer)
-				setPixel(x, y + 2, color, weight * 0.6f, buffer)
+				setPixel(x, y, weight * 0.1f, buffer)
+				setPixel(x, y + 1, weight * 0.6f, buffer)
+				setPixel(x, y + 2, weight * 0.6f, buffer)
 			}
 			4 -> {
 				// Empty top line, Nice blend for everything else
-				setPixel(x, y + 1, color, weight * 0.6f, buffer)
-				setPixel(x, y + 2, color, weight * 0.6f, buffer)
-				setPixel(x, y + 3, color, weight * 0.6f, buffer)
+				setPixel(x, y + 1, weight * 0.6f, buffer)
+				setPixel(x, y + 2, weight * 0.6f, buffer)
+				setPixel(x, y + 3, weight * 0.6f, buffer)
 			}
 		}
 	}
 
-	private fun BufferedImage.renderAccurate(x: Int, y: Int, char: Int, color: Color, buffer: FloatArray) {
+	private fun BufferedImage.renderAccurate(x: Int, y: Int, char: Int, buffer: FloatArray) {
 		val topWeight = getTopWeight(char)
 		val bottomWeight = getBottomWeight(char)
 		when (config.pixelsPerLine) {
 			1 -> // Can't show whitespace between lines anymore. This looks rather ugly...
-				setPixel(x, y + 1, color, ((topWeight + bottomWeight) / 2.0).toFloat(), buffer)
+				setPixel(x, y + 1, ((topWeight + bottomWeight) / 2.0).toFloat(), buffer)
 			2 -> {
 				// Two lines we make the top line a little lighter to give the illusion of whitespace between lines.
-				setPixel(x, y, color, topWeight * 0.5f, buffer)
-				setPixel(x, y + 1, color, bottomWeight, buffer)
+				setPixel(x, y, topWeight * 0.5f, buffer)
+				setPixel(x, y + 1, bottomWeight, buffer)
 			}
 			3 -> {
 				// Three lines we make the top nearly empty, and fade the bottom a little too
-				setPixel(x, y, color, topWeight * 0.3f, buffer)
-				setPixel(x, y + 1, color, ((topWeight + bottomWeight) / 2.0).toFloat(), buffer)
-				setPixel(x, y + 2, color, bottomWeight * 0.7f, buffer)
+				setPixel(x, y, topWeight * 0.3f, buffer)
+				setPixel(x, y + 1, ((topWeight + bottomWeight) / 2.0).toFloat(), buffer)
+				setPixel(x, y + 2, bottomWeight * 0.7f, buffer)
 			}
 			4 -> {
 				// Empty top line, Nice blend for everything else
-				setPixel(x, y + 1, color, topWeight, buffer)
-				setPixel(x, y + 2, color, ((topWeight + bottomWeight) / 2.0).toFloat(), buffer)
-				setPixel(x, y + 3, color, bottomWeight, buffer)
+				setPixel(x, y + 1, topWeight, buffer)
+				setPixel(x, y + 2, ((topWeight + bottomWeight) / 2.0).toFloat(), buffer)
+				setPixel(x, y + 3, bottomWeight, buffer)
 			}
 		}
 	}
 
 	/**
 	 * mask out the alpha component and set it to the given value.
-	 * @param color      Color A
 	 * *
 	 * @param alpha     alpha percent from 0-1.
 	 */
-	private fun BufferedImage.setPixel(x: Int, y: Int, color: Color, alpha: Float, scaleBuffer: FloatArray) {
-		scaleBuffer[0] = color.red.toFloat()
-		scaleBuffer[1] = color.green.toFloat()
-		scaleBuffer[2] = color.blue.toFloat()
-		scaleBuffer[3] = when {
-			alpha > 1 -> color.alpha.toFloat()
-			else -> alpha
-		} * 0xFF
+	private fun BufferedImage.setPixel(x: Int, y: Int, alpha: Float, scaleBuffer: FloatArray) {
+		if(alpha < 1) scaleBuffer[3] = alpha * 0xFF
 		raster.setPixel(x, y, scaleBuffer)
 	}
 
