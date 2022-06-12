@@ -18,7 +18,7 @@ import java.awt.event.*
 class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(), FoldingListener, MarkupModelListener,
     SettingsChangeListener, CaretListener, PrioritizedDocumentListener, VisibleAreaListener, SelectionListener,
     HierarchyBoundsListener, HierarchyListener, SoftWrapChangeListener,Disposable {
-    private val alarm = SingleAlarm({ glancePanel.updateImgTask() }, 500, glancePanel)
+    private val alarm = SingleAlarm({ glancePanel.updateImage(true) }, 500, glancePanel)
     init {
         glancePanel.addHierarchyListener(this)
         glancePanel.addHierarchyBoundsListener(this)
@@ -48,7 +48,8 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     override fun beforeRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter)
 
     private fun updateRangeHighlight(highlighter: RangeHighlighterEx) =
-        if (highlighter.editorFilter.avaliableIn(glancePanel.editor)) alarm.cancelAndRequest() else Unit
+        if (highlighter.editorFilter.avaliableIn(glancePanel.editor) && !glancePanel.shouldNotUpdate()) alarm.cancelAndRequest()
+        else Unit
 
     /** CaretListener */
     override fun caretPositionChanged(event: CaretEvent) = glancePanel.repaint()
@@ -69,8 +70,9 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     /** DocumentListener */
     override fun documentChanged(event: DocumentEvent) {
         if(!event.document.isInBulkUpdate) {
-            if(event.document.lineCount > glancePanel.config.moreThanLineDelay) alarm.cancelAndRequest()
-            else glancePanel.updateImage()
+            if(event.document.lineCount > glancePanel.config.moreThanLineDelay) {
+                if(!glancePanel.shouldNotUpdate()) alarm.cancelAndRequest()
+            } else glancePanel.updateImage()
         }
     }
 
