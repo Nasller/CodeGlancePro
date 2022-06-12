@@ -4,7 +4,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.dsl.builder.*
-import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
+import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.message
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import java.awt.event.InputEvent
@@ -101,15 +101,24 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 							.applyToComponent { addMouseWheelListener(numberScrollListener) }
 					}
 				).bottomGap(BottomGap.SMALL)
-				row {
-					textField().label(message("settings.viewport.color"))
-						.accessibleName(message("settings.viewport.color"))
-						.bindText(config::viewportColor)
-						.validationOnInput {
-							if (it.text.length != 6 || !"[a-fA-F\\d]{6}".toRegex().matches(it.text)) error(message("settings.viewport.error"))
-							else null
-						}
-				}
+				twoColumnsRow(
+					{
+						textField().label(message("settings.viewport.color"))
+							.accessibleName(message("settings.viewport.color"))
+							.bindText(config::viewportColor)
+							.validationOnInput {
+								if (it.text.length != 6 || !"[a-fA-F\\d]{6}".toRegex().matches(it.text)) error(message("settings.viewport.error"))
+								else null
+							}
+					},
+					{
+						spinner(2000..Int.MAX_VALUE, 100)
+							.label(message("settings.more.than.line.delay"))
+							.bindIntValue(config::moreThanLineDelay)
+							.accessibleName(message("settings.more.than.line.delay"))
+							.applyToComponent { addMouseWheelListener(numberScrollListener) }
+					}
+				)
 			}
 		}
 	}

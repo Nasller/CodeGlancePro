@@ -13,7 +13,6 @@ import com.intellij.openapi.ui.MessageType
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.ui.*
 import com.intellij.ui.scale.JBUIScale
-import com.intellij.util.Alarm
 import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.ImageUtil
 import com.intellij.util.ui.StartupUiUtil
@@ -34,7 +33,6 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 	private var myStartVisualLine = 0
 	private var myEndVisualLine = 0
 	private var myRelativeY = 0
-	private var myDelayed = false
 	private var isDirty = false
 	private val myPointHolder = AtomicReference<Point>()
 	private val myHintHolder = AtomicReference<HintHint>()
@@ -60,12 +58,7 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 		hintManager.showEditorHint(myEditorPreviewHint!!, myEditor, point, flags, 0, false, hintInfo)
 	}
 
-	fun show(
-		visualLine: Int,
-		rangeHighlighters: MutableList<RangeHighlighterEx>,
-		showInstantly: Boolean,
-		hintInfo: HintHint
-	) {
+	fun show(visualLine: Int, rangeHighlighters: MutableList<RangeHighlighterEx>, hintInfo: HintHint) {
 		update(visualLine)
 		rangeHighlighters.sortWith { ex1: RangeHighlighterEx, ex2: RangeHighlighterEx ->
 			val startPos1 = myEditor.offsetToLogicalPosition(ex1.affectedAreaStartOffset)
@@ -75,17 +68,10 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 		}
 		val contentInsets = JBUIScale.scale(2) // BalloonPopupBuilderImpl.myContentInsets
 		val hintManager = HintManagerImpl.getInstanceImpl()
-		var needDelay = false
 		if (myEditorPreviewHint == null) {
-			needDelay = true
 			val editorFragmentPreviewPanel = EditorFragmentPreviewPanel(contentInsets, rangeHighlighters)
 			editorFragmentPreviewPanel.putClientProperty(BalloonImpl.FORCED_NO_SHADOW, true)
-			myEditorPreviewHint = object : LightweightHint(editorFragmentPreviewPanel) {
-				override fun hide(ok: Boolean) {
-					super.hide(ok)
-					myDelayed = false
-				}
-			}
+			myEditorPreviewHint = LightweightHint(editorFragmentPreviewPanel)
 			myEditorPreviewHint!!.setForceLightweightPopup(true)
 		}
 		var point = Point(hintInfo.originalPoint)
@@ -95,17 +81,7 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 		point = SwingUtilities.convertPoint(myEditor.scrollPane.verticalScrollBar, point, myEditor.component.rootPane)
 		myPointHolder.set(point)
 		myHintHolder.set(hintInfo)
-		if (needDelay && !showInstantly) {
-			myDelayed = true
-			val alarm = Alarm()
-			alarm.addRequest({
-				if (myEditorPreviewHint == null || !myDelayed) return@addRequest
-				showEditorHint(hintManager, myPointHolder.get(), myHintHolder.get())
-				myDelayed = false
-			}, 300)
-		} else if (!myDelayed) {
-			showEditorHint(hintManager, point, hintInfo)
-		}
+		showEditorHint(hintManager, point, hintInfo)
 	}
 
 	fun clearHint() {

@@ -2,7 +2,7 @@ package com.nasller.codeglance.actions
 
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
+import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
 
 class ShowHideGlanceAction : AnAction() {
 

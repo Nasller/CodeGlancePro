@@ -23,7 +23,6 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 	fun update() {
 		if(editor.document.lineCount <= 0) return
 		// These are just to reduce allocations. Premature optimization???
-		val colorBuffer = FloatArray(4)
 		val scaleBuffer = FloatArray(4)
 
 		val text = editor.document.immutableCharSequence
@@ -69,11 +68,11 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 				} else null
 			}
 			if (region != null && region.placeholderText.isNotEmpty()) {
-				(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor).getRGBComponents(colorBuffer)
+				val color = editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor
 				StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach {
 					val charCode = it.code
 					moveCharIndex(charCode)
-					curImg.renderImage(x, y, charCode, colorBuffer, scaleBuffer)
+					curImg.renderImage(x, y, charCode, color, scaleBuffer)
 				}
 			} else {
 				val color = try {
@@ -91,9 +90,7 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 					}
 					val charCode = text[i].code
 					moveCharIndex(charCode)
-					curImg.renderImage(x, y, charCode, colorBuffer, scaleBuffer) {
-						(getHighlightColor(i) ?: color ?: defaultColor).getRGBComponents(colorBuffer)
-					}
+					curImg.renderImage(x, y, charCode, getHighlightColor(i) ?: color ?: defaultColor, scaleBuffer)
 					++i
 				}
 			}
@@ -119,9 +116,9 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 			return@processRangeHighlightersOverlappingWith true
 		}
 		list.apply {
-			if(this.size > 1) ContainerUtil.quickSort(this,IterationState.createByLayerThenByAttributesComparator(editor.colorsScheme))
+			if(size > 1) ContainerUtil.quickSort(this,IterationState.createByLayerThenByAttributesComparator(editor.colorsScheme))
 		}.forEach{
-			it.getTextAttributes(editor.colorsScheme)?.foregroundColor?.run {
+			it.getTextAttributes(editor.colorsScheme)?.foregroundColor?.apply {
 				color = this
 				return@forEach
 			}
@@ -129,27 +126,21 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		return color
 	}
 
-	private fun BufferedImage.renderImage(
-		x: Int, y: Int, char: Int, colorBuffer: FloatArray,
-		scaleBuffer: FloatArray, consumer: (() -> Unit)? = null
-	) {
-		if (shouldRenderChar(char) && x in 0 until width && 0 <= y && y + config.pixelsPerLine < height) {
-			consumer?.invoke()
+	private fun BufferedImage.renderImage(x: Int, y: Int, char: Int, color: Color, scaleBuffer: FloatArray) {
+		if (char !in 0..32 && x in 0 until width && 0 <= y && y + config.pixelsPerLine < height) {
 			if (config.clean) {
-				renderClean(x, y, char, colorBuffer, scaleBuffer)
+				renderClean(x, y, char, color, scaleBuffer)
 			} else {
-				renderAccurate(x, y, char, colorBuffer, scaleBuffer)
+				renderAccurate(x, y, char, color, scaleBuffer)
 			}
 		}
 	}
 
-	private fun BufferedImage.renderClean(x: Int, y: Int, char: Int, color: FloatArray, buffer: FloatArray) {
+	private fun BufferedImage.renderClean(x: Int, y: Int, char: Int, color: Color, buffer: FloatArray) {
 		val weight = when (char) {
-			in 0..32 -> 0.0f
 			in 33..126 -> 0.8f
 			else -> 0.4f
 		}
-		if (weight == 0.0f) return
 		when (config.pixelsPerLine) {
 			1 -> // Can't show whitespace between lines anymore. This looks rather ugly...
 				setPixel(x, y + 1, color, weight * 0.6f, buffer)
@@ -173,11 +164,9 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		}
 	}
 
-	private fun BufferedImage.renderAccurate(x: Int, y: Int, char: Int, color: FloatArray, buffer: FloatArray) {
+	private fun BufferedImage.renderAccurate(x: Int, y: Int, char: Int, color: Color, buffer: FloatArray) {
 		val topWeight = getTopWeight(char)
 		val bottomWeight = getBottomWeight(char)
-		// No point rendering non-visible characters.
-		if (topWeight == 0.0f && bottomWeight == 0.0f) return
 		when (config.pixelsPerLine) {
 			1 -> // Can't show whitespace between lines anymore. This looks rather ugly...
 				setPixel(x, y + 1, color, ((topWeight + bottomWeight) / 2.0).toFloat(), buffer)
@@ -203,15 +192,17 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 
 	/**
 	 * mask out the alpha component and set it to the given value.
-	 * @param rgba      Color A
+	 * @param color      Color A
 	 * *
 	 * @param alpha     alpha percent from 0-1.
 	 */
-	private fun BufferedImage.setPixel(x: Int, y: Int, rgba: FloatArray, alpha: Float, scaleBuffer: FloatArray) {
-		for (i in 0..2) scaleBuffer[i] = rgba[i] * 0xFF
+	private fun BufferedImage.setPixel(x: Int, y: Int, color: Color, alpha: Float, scaleBuffer: FloatArray) {
+		scaleBuffer[0] = color.red.toFloat()
+		scaleBuffer[1] = color.green.toFloat()
+		scaleBuffer[2] = color.blue.toFloat()
 		scaleBuffer[3] = when {
-			alpha > 1 -> rgba[3]
-			else -> max(alpha, 0f)
+			alpha > 1 -> color.alpha.toFloat()
+			else -> alpha
 		} * 0xFF
 		raster.setPixel(x, y, scaleBuffer)
 	}
@@ -219,8 +210,5 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 	private companion object{
 		const val TAB = 9
 		const val ENTER = 10
-		const val SPACE = 32
-
-		fun shouldRenderChar(char:Int) = char != TAB && char != SPACE && char != ENTER
 	}
 }

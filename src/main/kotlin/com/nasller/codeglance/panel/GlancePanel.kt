@@ -37,7 +37,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
 
     fun addHideScrollBarListener(){
         if(config.hoveringToShowScrollBar){
-            ApplicationManager.getApplication().invokeLater { this.isVisible = false }
+            ApplicationManager.getApplication().invokeLater { isVisible = false }
             if(!config.hideOriginalScrollBar){
                 editor.scrollPane.verticalScrollBar.addMouseListener(hideScrollBarListener)
                 editor.scrollPane.verticalScrollBar.addMouseMotionListener(hideScrollBarListener)
@@ -49,16 +49,18 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
     }
 
     fun removeHideScrollBarListener(){
-        if(!config.hideOriginalScrollBar){
-            editor.scrollPane.verticalScrollBar.removeMouseListener(hideScrollBarListener)
-            editor.scrollPane.verticalScrollBar.removeMouseMotionListener(hideScrollBarListener)
-        }else{
-            myVcsPanel?.removeMouseListener(hideScrollBarListener)
-            myVcsPanel?.removeMouseMotionListener(hideScrollBarListener)
+        hideScrollBarListener.apply {
+            if(!config.hideOriginalScrollBar){
+                editor.scrollPane.verticalScrollBar.removeMouseListener(this)
+                editor.scrollPane.verticalScrollBar.removeMouseMotionListener(this)
+            }else{
+                myVcsPanel?.removeMouseListener(this)
+                myVcsPanel?.removeMouseMotionListener(this)
+            }
+            cancel()
+            showHideOriginScrollBar(true)
         }
-        hideScrollBarListener.cancelAllRequest()
-        this.isVisible = true
-        hideScrollBarListener.showHideOriginScrollBar(true)
+        isVisible = true
     }
 
     override fun updateImgTask() {
@@ -79,7 +81,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> fold !is CustomFoldRegionImpl && !fold.isExpanded &&
                 fold.startOffset >= 0 && fold.endOffset >= 0 }
         val srcOver = if(config.hideOriginalScrollBar) srcOver else srcOver0_4
-        trackerManager.getLineStatusTracker(editor.document)?.getRanges()?.run {
+        trackerManager.getLineStatusTracker(editor.document)?.getRanges()?.apply {
             g.composite = srcOver
             forEach {
                 if (it !is LocalRange || it.changelistId == changeListManager.defaultChangeList.id) {

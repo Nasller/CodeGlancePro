@@ -10,8 +10,7 @@ import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
-import com.nasller.codeglance.config.Config
-import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
+import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import com.nasller.codeglance.panel.GlancePanel
@@ -26,7 +25,7 @@ import javax.swing.JPanel
  */
 class EditorPanelInjector(private val project: Project) : FileEditorManagerListener,SettingsChangeListener{
     private val logger = Logger.getInstance(javaClass)
-    private val config: Config = ConfigInstance.state
+    private val config = ConfigInstance.state
     init{
         ApplicationManager.getApplication().messageBus.connect(project).subscribe(SettingsChangeListener.TOPIC, this)
     }
@@ -84,7 +83,7 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
     }
 
     private fun Component.removeComponent(parent: JComponent,newComponent: JComponent){
-        val oldGlancePanel = if (this is MyPanel) this.panel else if(this is AbstractGlancePanel) this else null
+        val oldGlancePanel = if (this is MyPanel) panel else if(this is AbstractGlancePanel) this else null
         oldGlancePanel?.let {
             parent.remove(this)
             Disposer.dispose(it)

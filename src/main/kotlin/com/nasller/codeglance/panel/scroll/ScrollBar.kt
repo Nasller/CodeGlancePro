@@ -241,12 +241,12 @@ class ScrollBar(
             val highlighters = mutableListOf<RangeHighlighterEx>()
             collectRangeHighlighters(editor.markupModel, visualLine, highlighters)
             collectRangeHighlighters(editor.filteredDocumentMarkupModel, visualLine, highlighters)
-            myEditorFragmentRenderer.show(visualLine, highlighters, true, createHint(me))
+            myEditorFragmentRenderer.show(visualLine, highlighters, createHint(me))
         }
 
         private fun hideMyEditorPreviewHint() {
+            alarm.cancelAllRequests()
             myEditorFragmentRenderer.hideHint()
-            if(alarm.activeRequestCount > 0){ alarm.cancelAllRequests() }
             myWheelAccumulator = 0
             myLastVisualLine = 0
         }

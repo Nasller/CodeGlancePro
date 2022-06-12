@@ -15,8 +15,7 @@ import com.intellij.openapi.vfs.PersistentFSConstants
 import com.intellij.util.ObjectUtils
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.concurrent.DirtyLock
-import com.nasller.codeglance.config.Config
-import com.nasller.codeglance.config.ConfigService.Companion.ConfigInstance
+import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.panel.scroll.ScrollBar
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
@@ -25,7 +24,7 @@ import javax.swing.JPanel
 
 sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) : JPanel(),Disposable {
     val editor = textEditor.editor as EditorEx
-    val config: Config = ConfigInstance.state
+    val config = ConfigInstance.state
     val scrollState = ScrollState()
     val trackerManager = LineStatusTrackerManager.getInstance(project)
     val changeListManager: ChangeListManager = ChangeListManager.getInstance(project)
@@ -149,7 +148,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
 
     private fun paintLast(gfx: Graphics?) {
         val g = gfx as Graphics2D
-        buf?.run{
+        buf?.apply{
             g.composite = srcOver0_8
             g.drawImage(this,0, 0, width, height, 0, 0, width, height,null)
         }
@@ -162,11 +161,11 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
 
     fun changeOriginScrollBarWidth(){
         if (config.hideOriginalScrollBar && !isDisabled) {
-            myVcsPanel?.run { this.preferredSize = Dimension(MyVcsPanel.vcsWidth, this.preferredSize.height) }
-            editor.scrollPane.verticalScrollBar.run { this.preferredSize = Dimension(0, this.preferredSize.height) }
+            myVcsPanel?.apply { preferredSize = Dimension(MyVcsPanel.vcsWidth, preferredSize.height) }
+            editor.scrollPane.verticalScrollBar.apply { preferredSize = Dimension(0, preferredSize.height) }
         }else{
-            myVcsPanel?.run { this.preferredSize = Dimension(0, this.preferredSize.height) }
-            editor.scrollPane.verticalScrollBar.run { this.preferredSize = Dimension(originalScrollbarWidth, this.preferredSize.height) }
+            myVcsPanel?.apply { preferredSize = Dimension(0, preferredSize.height) }
+            editor.scrollPane.verticalScrollBar.apply { preferredSize = Dimension(originalScrollbarWidth, preferredSize.height) }
         }
     }
 

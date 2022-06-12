@@ -4,9 +4,10 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.util.messages.Topic
 import kotlin.properties.Delegates
 
-class Config {
+class CodeGlanceConfig {
     var pixelsPerLine = 4
     var maxLinesCount = 100000
+    var moreThanLineDelay = 3000
     var disabled by Delegates.observable(false) { _, oldValue, newValue ->
         if (oldValue != newValue) {
             SettingsChangePublisher.onRefreshChanged()

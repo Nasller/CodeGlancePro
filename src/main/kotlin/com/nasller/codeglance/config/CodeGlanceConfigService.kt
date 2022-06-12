@@ -10,16 +10,16 @@ import com.intellij.util.xmlb.XmlSerializerUtil
     name = "CodeGlance Pro",
     storages = [Storage("CodeGlancePro.xml")]
 )
-class ConfigService : PersistentStateComponent<Config> {
-    private val config = Config()
+class CodeGlanceConfigService : PersistentStateComponent<CodeGlanceConfig> {
+    private val config = CodeGlanceConfig()
 
-    override fun getState(): Config = config
+    override fun getState() = config
 
-    override fun loadState(config: Config) {
+    override fun loadState(config: CodeGlanceConfig) {
         XmlSerializerUtil.copyBean(config, this.config)
     }
 
     companion object{
-        val ConfigInstance: ConfigService = ApplicationManager.getApplication().getService(ConfigService::class.java)
+        val ConfigInstance: CodeGlanceConfigService = ApplicationManager.getApplication().getService(CodeGlanceConfigService::class.java)
     }
 }
