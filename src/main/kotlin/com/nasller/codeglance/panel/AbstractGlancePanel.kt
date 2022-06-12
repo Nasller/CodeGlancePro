@@ -90,7 +90,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
 
     abstract fun paintErrorStripes(g: Graphics2D,allCarets:List<VisualPosition>)
 
-    private fun paintSelections(g: Graphics2D) : List<VisualPosition> {
+    private fun paintCaretsOrSelections(g: Graphics2D) : List<VisualPosition> {
         return if(editor.selectionModel.hasSelection()){
             for ((index, start) in editor.selectionModel.blockSelectionStarts.withIndex()) {
                 paintSelection(g, start, editor.selectionModel.blockSelectionEnds[index])
@@ -139,7 +139,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         }
         val graphics2D = gfx as Graphics2D
         paintVcs(graphics2D,config.hideOriginalScrollBar)
-        val allCarets = paintSelections(graphics2D)
+        val allCarets = paintCaretsOrSelections(graphics2D)
         paintOtherHighlight(graphics2D,allCarets)
         paintErrorStripes(graphics2D,allCarets)
         graphics2D.composite = srcOver0_8
@@ -154,7 +154,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
             g.drawImage(this,0, 0, width, height, 0, 0, width, height,null)
         }
         paintVcs(g,config.hideOriginalScrollBar)
-        val allCarets = paintSelections(g)
+        val allCarets = paintCaretsOrSelections(g)
         paintOtherHighlight(g,allCarets)
         paintErrorStripes(g,allCarets)
         scrollbar?.paint(gfx)

@@ -33,9 +33,19 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		val softWrapEnable = editor.softWrapModel.isSoftWrappingEnabled
 
 		var x = 0
-		var y: Int
+		var y = 0
 		var foldedLines = 0
 		var softWrapLines = 0
+		val moveCharIndex = { code: Int ->
+			when (code) {
+				ENTER -> {
+					x = 0
+					y += config.pixelsPerLine
+				}
+				TAB -> x += 4
+				else -> x += 1
+			}
+		}
 		var curImg = img.value
 		if (curImg.height < scrollState.documentHeight || curImg.width < config.width) {
 			// Create an image that is a bit bigger then the one we need, so we don't need to re-create it again soon.
@@ -50,9 +60,6 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 			var i = hlIter.start
 			line.start(i)
 			y = (line.lineNumber + softWrapLines - foldedLines) * config.pixelsPerLine
-			val color = try {
-				hlIter.textAttributes.foregroundColor
-			} catch (_: ConcurrentModificationException){ null }
 			// Jump over folds
 			val region = editor.foldingModel.getCollapsedRegionAtOffset(i)?.let{
 				if(it.startOffset >= 0 && it.endOffset >= 0 && it !is CustomFoldRegionImpl){
@@ -61,37 +68,32 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 					it
 				} else null
 			}
-			if(region != null){
-				if(region.placeholderText.isNotEmpty()) {
-					(editor.foldingModel.placeholderAttributes?.foregroundColor?:defaultColor).getRGBComponents(colorBuffer)
-					StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach {
-						x += when (it) {
-							'\t' -> 4
-							else -> 1
-						}
-						curImg.renderImage(x, y, it.code, colorBuffer, scaleBuffer)
-					}
+			if (region != null && region.placeholderText.isNotEmpty()) {
+				(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor).getRGBComponents(colorBuffer)
+				StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach {
+					val charCode = it.code
+					moveCharIndex(charCode)
+					curImg.renderImage(x, y, charCode, colorBuffer, scaleBuffer)
 				}
-			}else{
+			} else {
+				val color = try {
+					hlIter.textAttributes.foregroundColor
+				} catch (_: ConcurrentModificationException){ null }
 				while (i < hlIter.end) {
 					// Watch out for tokens that extend past the document... bad plugins? see issue #138
 					if (i >= text.length) break@loop
-					if(softWrapEnable){
-						val softWrap = renderSoftWrap(i, y, curImg, colorBuffer, scaleBuffer)
-						softWrapLines += softWrap.second
-						y += softWrap.second * config.pixelsPerLine
-						if(softWrap.first > 0 || softWrap.second > 0) x = softWrap.first
-					}
-					when (text[i]) {
-						'\n' -> {
-							x = 0
-							y += config.pixelsPerLine
+					if (softWrapEnable) editor.softWrapModel.getSoftWrap(i)?.let { softWrap ->
+						softWrap.chars.forEach {
+							val charCode = it.code
+							moveCharIndex(charCode)
+							if(charCode == ENTER) softWrapLines += 1
 						}
-						'\t' -> x += 4
-						else -> x += 1
 					}
-					(getHighlightColor(i) ?: color ?: defaultColor).getRGBComponents(colorBuffer)
-					curImg.renderImage(x, y, text[i].code, colorBuffer, scaleBuffer)
+					val charCode = text[i].code
+					moveCharIndex(charCode)
+					curImg.renderImage(x, y, charCode, colorBuffer, scaleBuffer) {
+						(getHighlightColor(i) ?: color ?: defaultColor).getRGBComponents(colorBuffer)
+					}
 					++i
 				}
 			}
@@ -105,27 +107,6 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 			it.flush()
 			null
 		}.also { preBuffer = it }
-	}
-
-	private fun renderSoftWrap(i:Int,y:Int,curImg:BufferedImage,colorBuffer: FloatArray,scaleBuffer: FloatArray):Pair<Int,Int>{
-		var renderX = 0
-		var renderY = y
-		val currentOrPrevWrap = editor.softWrapModel.getSoftWrap(i)
-		if (currentOrPrevWrap != null) {
-			editor.colorsScheme.defaultForeground.getRGBComponents(colorBuffer)
-			currentOrPrevWrap.chars?.forEach {
-				when (it) {
-					'\n' -> {
-						renderX = 0
-						renderY += config.pixelsPerLine
-					}
-					'\t' -> renderX += 4
-					else -> renderX += 1
-				}
-				curImg.renderImage(renderX, renderY, it.code, colorBuffer, scaleBuffer)
-			}
-		}
-		return renderX to (renderY-y)/config.pixelsPerLine
 	}
 
 	private fun getHighlightColor(offset:Int):Color?{
@@ -148,8 +129,12 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		return color
 	}
 
-	private fun BufferedImage.renderImage(x: Int, y: Int, char: Int, colorBuffer: FloatArray, scaleBuffer: FloatArray) {
-		if (x in 0 until width && 0 <= y && y + config.pixelsPerLine < height) {
+	private fun BufferedImage.renderImage(
+		x: Int, y: Int, char: Int, colorBuffer: FloatArray,
+		scaleBuffer: FloatArray, consumer: (() -> Unit)? = null
+	) {
+		if (shouldRenderChar(char) && x in 0 until width && 0 <= y && y + config.pixelsPerLine < height) {
+			consumer?.invoke()
 			if (config.clean) {
 				renderClean(x, y, char, colorBuffer, scaleBuffer)
 			} else {
@@ -229,5 +214,13 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 			else -> max(alpha, 0f)
 		} * 0xFF
 		raster.setPixel(x, y, scaleBuffer)
+	}
+
+	private companion object{
+		const val TAB = 9
+		const val ENTER = 10
+		const val SPACE = 32
+
+		fun shouldRenderChar(char:Int) = char != TAB && char != SPACE && char != ENTER
 	}
 }

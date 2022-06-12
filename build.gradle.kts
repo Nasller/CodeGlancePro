@@ -51,6 +51,7 @@ tasks{
     }
 
     buildSearchableOptions {
+        enabled = false
         jvmArgs("-Dintellij.searchableOptions.i18n.enabled=true")
     }
 
