@@ -18,6 +18,7 @@ import java.awt.event.*
 class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(), FoldingListener, MarkupModelListener,
     SettingsChangeListener, CaretListener, PrioritizedDocumentListener, VisibleAreaListener, SelectionListener,
     HierarchyBoundsListener, HierarchyListener, SoftWrapChangeListener,Disposable {
+    private var softWrapEnabled = false
     private val alarm = SingleAlarm({ glancePanel.updateImage(true) }, 500, glancePanel)
     init {
         glancePanel.addHierarchyListener(this)
@@ -38,7 +39,16 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     override fun onFoldRegionStateChange(region: FoldRegion) = glancePanel.updateImage()
 
     /** SoftWrapChangeListener */
-    override fun softWrapsChanged() = glancePanel.updateImage()
+    override fun softWrapsChanged() {
+        val enabled = glancePanel.editor.softWrapModel.isSoftWrappingEnabled
+        if(enabled && !softWrapEnabled){
+            softWrapEnabled = true
+            glancePanel.updateImage()
+        }else if(!enabled){
+            softWrapEnabled = false
+            glancePanel.updateImage()
+        }
+    }
 
     override fun recalculationEnds() = Unit
 

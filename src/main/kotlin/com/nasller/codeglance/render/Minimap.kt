@@ -62,14 +62,14 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		g.composite = AbstractGlancePanel.CLEAR
 		g.fillRect(0, 0, curImg.width, curImg.height)
 		loop@ while (!hlIter.atEnd()) {
-			var i = hlIter.start
-			line.start(i)
+			var offset = hlIter.start
+			line.start(offset)
 			y = (line.lineNumber + softWrapLines - foldedLines) * config.pixelsPerLine
 			// Jump over folds
-			val region = editor.foldingModel.getCollapsedRegionAtOffset(i)?.let{
+			val region = editor.foldingModel.getCollapsedRegionAtOffset(offset)?.let{
 				if(it.startOffset >= 0 && it.endOffset >= 0 && it !is CustomFoldRegionImpl){
 					foldedLines += editor.document.getLineNumber(it.endOffset) - editor.document.getLineNumber(it.startOffset)
-					i = it.endOffset
+					offset = it.endOffset
 					it
 				} else null
 			}
@@ -84,27 +84,27 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 				val color = try {
 					hlIter.textAttributes.foregroundColor
 				} catch (_: ConcurrentModificationException){ null }
-				while (i < hlIter.end) {
+				while (offset < hlIter.end) {
 					// Watch out for tokens that extend past the document... bad plugins? see issue #138
-					if (i >= text.length) break@loop
-					if (softWrapEnable) editor.softWrapModel.getSoftWrap(i)?.let { softWrap ->
+					if (offset >= text.length) break@loop
+					if (softWrapEnable) editor.softWrapModel.getSoftWrap(offset)?.let { softWrap ->
 						softWrap.chars.forEach {
 							val charCode = it.code
 							moveCharIndex(charCode)
 							if(charCode == ENTER) softWrapLines += 1
 						}
 					}
-					val charCode = text[i].code
+					val charCode = text[offset].code
 					moveCharIndex(charCode)
 					curImg.renderImage(x, y, charCode, scaleBuffer){
-						(getHighlightColor(i) ?: color ?: defaultColor).apply(setColorRgba)
+						(getHighlightColor(offset) ?: color ?: defaultColor).apply(setColorRgba)
 					}
-					++i
+					++offset
 				}
 			}
 			do // Skip to end of fold
 				hlIter.advance()
-			while (!hlIter.atEnd() && hlIter.start < i)
+			while (!hlIter.atEnd() && hlIter.start < offset)
 		}
 		g.dispose()
 		preBuffer?.let {
