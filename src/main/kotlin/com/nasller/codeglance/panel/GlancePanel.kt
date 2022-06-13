@@ -231,11 +231,10 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
     }
 
     override fun dispose() {
-        super.dispose()
         mapRef.clear()
-        myVcsPanel?.dispose()
         glanceListener.dispose()
         removeHideScrollBarListener()
+        super.dispose()
     }
 }
 

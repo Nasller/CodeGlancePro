@@ -16,6 +16,7 @@ import java.awt.event.MouseEvent
 import javax.swing.JPanel
 
 class MyVcsPanel(private val glancePanel: GlancePanel) : JPanel(), Disposable {
+	val editor = glancePanel.editor
 	private val defaultCursor = Cursor(Cursor.DEFAULT_CURSOR)
 	private val myVcsListener = MyVcsListener(this)
 	init{
@@ -24,12 +25,6 @@ class MyVcsPanel(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 		addMouseWheelListener(mouseHandler)
 		addMouseMotionListener(mouseHandler)
 		addMouseListener(glancePanel.myPopHandler)
-		addHierarchyListener(myVcsListener)
-		addHierarchyBoundsListener(myVcsListener)
-		glancePanel.editor.contentComponent.addComponentListener(myVcsListener)
-		glancePanel.editor.document.addDocumentListener(myVcsListener,this)
-		glancePanel.editor.scrollingModel.addVisibleAreaListener(myVcsListener,this)
-		glancePanel.editor.foldingModel.addListener(myVcsListener,this)
 		preferredSize = Dimension(vcsWidth,0)
 		isOpaque = false
 	}
@@ -44,15 +39,15 @@ class MyVcsPanel(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 
 		override fun mouseClicked(e: MouseEvent) {
 			hoverVcsRange?.let {
-				glancePanel.editor.caretModel.moveToLogicalPosition(LogicalPosition(it.line1,0))
-				glancePanel.editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
+				editor.caretModel.moveToLogicalPosition(LogicalPosition(it.line1,0))
+				editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
 			}
 		}
 
 		override fun mouseMoved(e: MouseEvent) {
-			val logicalPosition = glancePanel.editor.visualToLogicalPosition(
+			val logicalPosition = editor.visualToLogicalPosition(
 				VisualPosition((e.y + glancePanel.scrollState.visibleStart) / glancePanel.config.pixelsPerLine, 0))
-			val range = glancePanel.trackerManager.getLineStatusTracker(glancePanel.editor.document)?.getRangeForLine(logicalPosition.line)
+			val range = glancePanel.trackerManager.getLineStatusTracker(editor.document)?.getRangeForLine(logicalPosition.line)
 			if(range != null && (range !is LocalRange || range.changelistId == glancePanel.changeListManager.defaultChangeList.id)){
 				cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
 				hoverVcsRange = range
@@ -69,10 +64,9 @@ class MyVcsPanel(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 	}
 
 	override fun dispose() {
-		removeHierarchyListener(myVcsListener)
-		removeHierarchyBoundsListener(myVcsListener)
-		glancePanel.editor.contentComponent.removeComponentListener(myVcsListener)
+		myVcsListener.dispose()
 	}
+
 	companion object{
 		const val vcsWidth:Int = 8
 	}

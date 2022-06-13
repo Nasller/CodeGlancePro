@@ -67,7 +67,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
         glancePanel.repaint()
     }
 
-    /** DocumentListener */
+    /** PrioritizedDocumentListener */
     override fun documentChanged(event: DocumentEvent) {
         if(!event.document.isInBulkUpdate) {
             if(event.document.lineCount > glancePanel.config.moreThanLineDelay) {

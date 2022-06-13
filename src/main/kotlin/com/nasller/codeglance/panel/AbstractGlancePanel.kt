@@ -180,6 +180,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
             it.dispose()
             remove(it)
         }
+        myVcsPanel?.dispose()
     }
 
     companion object{
