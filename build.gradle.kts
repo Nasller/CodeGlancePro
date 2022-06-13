@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
 
 fun properties(key: String) = project.findProperty(key).toString()
+val env: MutableMap<String, String> = System.getenv()
 
 plugins {
     // Java support
@@ -30,16 +30,15 @@ intellij {
     version.set(properties("platformVersion"))
     type.set(properties("platformType"))
     sandboxDir.set("${rootProject.rootDir}/idea-sandbox")
+//    sandboxDir.set("${rootProject.rootDir}/py-sandbox")
     downloadSources.set(true)
 //    sandboxDir.set("${rootProject.rootDir}/rider-sandbox")
 //    sandboxDir.set("${rootProject.rootDir}/clion-sandbox")
-//    sandboxDir.set("${rootProject.rootDir}/py-sandbox")
 //    downloadSources.set(false)
     // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
     plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
-    project.hasProperty("languagePlugins").ifTrue {
-        plugins.add(properties("languagePlugins"))
-    }
+    // languagePlugins=com.intellij.zh:221.224
+    env["languagePlugins"]?.let { plugins.add(it) }
 }
 
 tasks{
@@ -51,7 +50,7 @@ tasks{
     }
 
     buildSearchableOptions {
-        enabled = false
+        enabled = env["buildSearchableOptions.enabled"] == "true"
         jvmArgs("-Dintellij.searchableOptions.i18n.enabled=true")
     }
 
