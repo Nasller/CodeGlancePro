@@ -122,45 +122,36 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         return startAdd to endAdd
     }
 
-    override fun paint(gfx: Graphics?) {
-        if (renderLock.locked) {
-            paintLast(gfx)
-            return
-        }
-        val img = getDrawImage() ?: return
-        if (buf == null || buf?.width!! < width || buf?.height!! < height) {
-            buf = BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR)
-        }
-        UIUtil.useSafely(buf!!.graphics){
-            it.composite = CLEAR
-            it.fillRect(0, 0, width, height)
-            it.composite = srcOver
-            if (editor.document.textLength != 0) {
-                it.drawImage(img, 0, 0, img.width, scrollState.drawHeight,
-                    0, scrollState.visibleStart, img.width, scrollState.visibleEnd, null)
-            }
-        }
+    override fun paint(gfx: Graphics) {
+        if(shouldNotUpdate()) return
         val graphics2D = gfx as Graphics2D
+        if (renderLock.locked) {
+            buf?.apply{
+                graphics2D.composite = srcOver0_8
+                graphics2D.drawImage(this,0, 0, width, height, 0, 0, width, height,null)
+            }
+        }else{
+            val img = getDrawImage() ?: return
+            if (buf == null || buf?.width!! < width || buf?.height!! < height) {
+                buf = BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR)
+            }
+            UIUtil.useSafely(buf!!.graphics){
+                it.composite = CLEAR
+                it.fillRect(0, 0, width, height)
+                it.composite = srcOver
+                if (editor.document.textLength != 0) {
+                    it.drawImage(img, 0, 0, img.width, scrollState.drawHeight,
+                        0, scrollState.visibleStart, img.width, scrollState.visibleEnd, null)
+                }
+            }
+            graphics2D.composite = srcOver0_8
+            graphics2D.drawImage(buf, 0, 0, null)
+        }
         paintVcs(graphics2D,config.hideOriginalScrollBar)
         val allCarets = paintCaretsOrSelections(graphics2D)
         paintOtherHighlight(graphics2D,allCarets)
         paintErrorStripes(graphics2D,allCarets)
-        graphics2D.composite = srcOver0_8
-        graphics2D.drawImage(buf, 0, 0, null)
         scrollbar?.paint(graphics2D)
-    }
-
-    private fun paintLast(gfx: Graphics?) {
-        val g = gfx as Graphics2D
-        buf?.apply{
-            g.composite = srcOver0_8
-            g.drawImage(this,0, 0, width, height, 0, 0, width, height,null)
-        }
-        paintVcs(g,config.hideOriginalScrollBar)
-        val allCarets = paintCaretsOrSelections(g)
-        paintOtherHighlight(g,allCarets)
-        paintErrorStripes(g,allCarets)
-        scrollbar?.paint(gfx)
     }
 
     fun changeOriginScrollBarWidth(){
