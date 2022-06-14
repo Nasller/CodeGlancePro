@@ -98,7 +98,7 @@ class ScrollBar(
         return add
     }
 
-    override fun paint(gfx: Graphics?) {
+    override fun paint(gfx: Graphics) {
         val g = gfx as Graphics2D
         g.color = visibleRectColor
         g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, visibleRectAlpha)

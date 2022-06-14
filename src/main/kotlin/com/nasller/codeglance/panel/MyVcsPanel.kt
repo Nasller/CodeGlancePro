@@ -29,7 +29,7 @@ class MyVcsPanel(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 		isOpaque = false
 	}
 
-	override fun paint(gfx: Graphics?) {
+	override fun paint(gfx: Graphics) {
 		val graphics2D = gfx as Graphics2D
 		glancePanel.paintVcs(graphics2D,false)
 	}
