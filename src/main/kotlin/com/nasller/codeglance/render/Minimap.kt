@@ -21,7 +21,14 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 	var img = lazy { BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR) }
 
 	fun update() {
+		var curImg = img.value
 		if(editor.document.lineCount <= 0) return
+		if (curImg.height < scrollState.documentHeight || curImg.width < config.width) {
+			// Create an image that is a bit bigger then the one we need, so we don't need to re-create it again soon.
+			// Documents can get big, so rather than relative sizes lets just add a fixed amount on.
+			preBuffer = img.value
+			curImg = BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
+		}
 		// These are just to reduce allocations. Premature optimization???
 		val colorBuffer = FloatArray(4)
 		val scaleBuffer = FloatArray(4)
@@ -36,13 +43,6 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		var y: Int
 		var foldedLines = 0
 		var softWrapLines = 0
-		var curImg = img.value
-		if (curImg.height < scrollState.documentHeight || curImg.width < config.width) {
-			// Create an image that is a bit bigger then the one we need, so we don't need to re-create it again soon.
-			// Documents can get big, so rather than relative sizes lets just add a fixed amount on.
-			preBuffer = img.value
-			curImg = BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
-		}
 		val g = curImg.createGraphics()
 		g.composite = AbstractGlancePanel.CLEAR
 		g.fillRect(0, 0, curImg.width, curImg.height)

@@ -9,7 +9,6 @@ import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.SoftWrapChangeListener
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
-import com.intellij.util.Alarm
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.event.*
@@ -17,7 +16,6 @@ import java.awt.event.*
 class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(), FoldingListener, MarkupModelListener,
     SettingsChangeListener, CaretListener, PrioritizedDocumentListener, VisibleAreaListener, SelectionListener,
     HierarchyBoundsListener, HierarchyListener, SoftWrapChangeListener {
-    private val alarm = Alarm(glancePanel)
     init {
         ApplicationManager.getApplication().messageBus.connect(glancePanel).subscribe(SettingsChangeListener.TOPIC, this)
     }
@@ -34,11 +32,8 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
     override fun beforeRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter)
 
-    private fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
-        if (highlighter.editorFilter.avaliableIn(glancePanel.editor) && alarm.activeRequestCount == 0) {
-            alarm.addRequest({ glancePanel.updateImage() }, 150)
-        } else Unit
-    }
+    private fun updateRangeHighlight(highlighter: RangeHighlighterEx) =
+        if (highlighter.editorFilter.avaliableIn(glancePanel.editor)) glancePanel.updateImage() else Unit
 
     /** CaretListener */
     override fun caretPositionChanged(event: CaretEvent) = glancePanel.repaint()
