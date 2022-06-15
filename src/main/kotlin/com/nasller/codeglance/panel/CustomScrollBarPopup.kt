@@ -11,6 +11,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.EditorBundle
 import com.intellij.openapi.fileEditor.impl.EditorWindowHolder
 import com.intellij.openapi.keymap.KeymapUtil
+import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.PopupHandler
@@ -29,7 +30,7 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
         if (ApplicationManager.getApplication() == null) return
         val file = PsiDocumentManager.getInstance(glancePanel.project).getPsiFile(glancePanel.editor.document) ?: return
         val actionGroup = DefaultActionGroup()
-        actionGroup.add(ToggleOptionAction(object :ToggleOptionAction.Option{
+        actionGroup.add(ToggleOptionAction(object :ToggleOptionAction.Option, DumbAware{
             override fun getName(): String = message("popup.hover.minimap")
             override fun isEnabled(): Boolean = glancePanel.config.isRightAligned
             override fun isAlwaysVisible():Boolean = true
