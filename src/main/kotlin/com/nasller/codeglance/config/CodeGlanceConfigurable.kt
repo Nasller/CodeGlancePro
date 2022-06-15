@@ -5,8 +5,8 @@ import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.dsl.builder.*
 import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
-import com.nasller.codeglance.message
 import com.nasller.codeglance.panel.AbstractGlancePanel
+import com.nasller.codeglance.util.message
 import java.awt.event.InputEvent
 import java.awt.event.MouseWheelEvent
 import javax.swing.DefaultComboBoxModel

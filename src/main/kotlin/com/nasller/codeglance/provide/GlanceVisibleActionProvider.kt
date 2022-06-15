@@ -1,14 +1,15 @@
 package com.nasller.codeglance.provide
 
-import com.intellij.icons.AllIcons
-import com.intellij.openapi.actionSystem.AnAction
-import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.actionSystem.ex.CustomComponentAction
+import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.markup.InspectionWidgetActionProvider
 import com.intellij.openapi.project.DumbAwareToggleAction
-import com.nasller.codeglance.message
 import com.nasller.codeglance.panel.AbstractGlancePanel.Companion.CURRENT_GLANCE
+import com.nasller.codeglance.util.CodeGlanceIcons
+import com.nasller.codeglance.util.message
+import javax.swing.JComponent
 
 private class GlanceVisibleActionProvider : InspectionWidgetActionProvider {
 	override fun createAction(editor: Editor): AnAction {
@@ -21,8 +22,11 @@ private class GlanceVisibleActionProvider : InspectionWidgetActionProvider {
 		}
 	}
 
-	private class ToggleVisibleAction(private val editor: Editor) : DumbAwareToggleAction(null,
-		null, AllIcons.General.InspectionsEye) {
+	private class ToggleVisibleAction(private val editor: Editor) : DumbAwareToggleAction(), CustomComponentAction {
+		override fun createCustomComponent(presentation: Presentation, place: String): JComponent =
+			object : ActionButton(this, presentation, place, ActionToolbar.DEFAULT_MINIMUM_BUTTON_SIZE) {
+				override fun getPopState(): Int = if (myRollover && isEnabled) POPPED else NORMAL
+			}
 
 		override fun isSelected(e: AnActionEvent): Boolean {
 			return !(editor.getUserData(CURRENT_GLANCE)?.isVisible?:true)
@@ -39,7 +43,14 @@ private class GlanceVisibleActionProvider : InspectionWidgetActionProvider {
 
 		override fun update(e: AnActionEvent) {
 			super.update(e)
-			e.presentation.text = message(if(isSelected(e)) "glance.visible.show" else "glance.visible.hide")
+			val presentation = e.presentation
+			if(isSelected(e)){
+				presentation.text = message("glance.visible.show")
+				presentation.icon = CodeGlanceIcons.GlanceShow
+			}else {
+				presentation.text = message("glance.visible.hide")
+				presentation.icon = CodeGlanceIcons.GlanceHide
+			}
 		}
 	}
 }
