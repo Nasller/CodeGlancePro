@@ -32,7 +32,7 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
 
     override fun fileOpened(fem: FileEditorManager, virtualFile: VirtualFile) {
         val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
-        for (editor in fem.allEditors.filterIsInstance<TextEditor>()) {
+        for (editor in fem.getEditors(virtualFile).filterIsInstance<TextEditor>()) {
             val panel = editor.editor.component as? JPanel ?: continue
             val layout = panel.layout
             if (layout is BorderLayout && editor.editor is EditorImpl && layout.getLayoutComponent(where) == null) {

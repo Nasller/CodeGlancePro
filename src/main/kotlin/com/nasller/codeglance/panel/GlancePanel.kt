@@ -30,6 +30,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
     val myPopHandler = CustomScrollBarPopup(this)
     init {
         Disposer.register(textEditor,this)
+        editor.putUserData(CURRENT_GLANCE,this)
         scrollbar = ScrollBar(this)
         add(scrollbar)
         refresh()

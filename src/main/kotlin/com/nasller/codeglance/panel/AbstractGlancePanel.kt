@@ -9,6 +9,7 @@ import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Key
 import com.intellij.openapi.vcs.changes.ChangeListManager
 import com.intellij.openapi.vcs.impl.LineStatusTrackerManager
 import com.intellij.openapi.vfs.PersistentFSConstants
@@ -74,7 +75,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         else ApplicationManager.getApplication().invokeLater(runnable)
     }
 
-    fun shouldNotUpdate() = isDisabled || project.isDisposed
+    fun shouldNotUpdate() = isDisabled || project.isDisposed || !isVisible
 
     fun updateScrollState(){
         scrollState.computeDimensions(this)
@@ -164,7 +165,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     }
 
     fun changeOriginScrollBarWidth(){
-        if (config.hideOriginalScrollBar && !isDisabled) {
+        if (config.hideOriginalScrollBar && !isDisabled && isVisible) {
             myVcsPanel?.apply { preferredSize = Dimension(MyVcsPanel.vcsWidth, preferredSize.height) }
             editor.scrollPane.verticalScrollBar.apply { preferredSize = Dimension(0, preferredSize.height) }
         }else{
@@ -192,5 +193,6 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         val srcOver0_8: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
         val srcOver: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
         val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
+        val CURRENT_GLANCE = Key<GlancePanel>("CURRENT_GLANCE")
     }
 }

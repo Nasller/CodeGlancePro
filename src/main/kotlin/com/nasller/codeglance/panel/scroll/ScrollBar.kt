@@ -1,5 +1,6 @@
 package com.nasller.codeglance.panel.scroll
 
+import com.intellij.codeInsight.actions.ReaderModeSettings.Companion.matchMode
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
 import com.intellij.ide.ui.UISettings
@@ -37,6 +38,7 @@ class ScrollBar(
     private val scrollState = glancePanel.scrollState
     private val defaultCursor = Cursor(Cursor.DEFAULT_CURSOR)
     private val myEditorFragmentRenderer = CustomEditorFragmentRenderer(editor)
+    private val notReaderMode = !matchMode(glancePanel.project, editor.virtualFile, editor)
 
     private var visibleRectAlpha = DEFAULT_ALPHA
         set(value) {
@@ -182,7 +184,7 @@ class ScrollBar(
                 cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
                 if(UISettings.getInstance().showEditorToolTip && ((if(DocRenderEnabled != null){
                     !(editor.getUserData(DocRenderEnabled)?:false)
-                }else true) || editor.virtualFile?.isWritable == true)) {
+                }else true) || notReaderMode)) {
                     if (myEditorFragmentRenderer.getEditorPreviewHint() == null) {
                         alarm.cancelAllRequests()
                         alarm.addRequest({

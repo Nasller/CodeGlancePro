@@ -13,6 +13,7 @@ class CodeGlanceConfig {
             SettingsChangePublisher.onRefreshChanged()
         }
     }
+    var singleFileVisibleButton = true
     var hideOriginalScrollBar = false
     var isRightAligned = true
     var hoveringToShowScrollBar by Delegates.observable(false) { _, oldValue, newValue ->
