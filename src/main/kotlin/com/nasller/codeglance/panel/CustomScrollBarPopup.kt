@@ -11,7 +11,6 @@ import com.intellij.openapi.fileEditor.impl.EditorWindowHolder
 import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
-import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.PopupMenuListenerAdapter
@@ -30,21 +29,25 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
         if (ApplicationManager.getApplication() == null) return
         val file = PsiDocumentManager.getInstance(glancePanel.project).getPsiFile(glancePanel.editor.document) ?: return
         val actionGroup = DefaultActionGroup(
-            object :ToggleOptionAction(object : Option {
+            DumbAwareToggleOptionAction(object : ToggleOptionAction.Option {
                 override fun getName(): String = message("popup.hover.minimap")
                 override fun isEnabled(): Boolean = config.isRightAligned
                 override fun isAlwaysVisible(): Boolean = true
                 override fun isSelected(): Boolean = config.hoveringToShowScrollBar
                 override fun setSelected(selected: Boolean) {
                     config.hoveringToShowScrollBar = selected
+                    config.singleFileVisibleButton = !config.hoveringToShowScrollBar
                 }
-            }), DumbAware{},
-            object :DumbAwareToggleAction(message("popup.singleFileVisibleButton")) {
-                override fun isSelected(e: AnActionEvent): Boolean = config.singleFileVisibleButton
-                override fun setSelected(e: AnActionEvent, state: Boolean) {
-                    config.singleFileVisibleButton = state
+            }),
+            DumbAwareToggleOptionAction(object : ToggleOptionAction.Option {
+                override fun getName(): String = message("popup.singleFileVisibleButton")
+                override fun isEnabled(): Boolean = !config.hoveringToShowScrollBar
+                override fun isAlwaysVisible(): Boolean = true
+                override fun isSelected(): Boolean = config.singleFileVisibleButton
+                override fun setSelected(selected: Boolean) {
+                    config.singleFileVisibleButton = selected
                 }
-            }
+            })
         )
         if (DaemonCodeAnalyzer.getInstance(glancePanel.project).isHighlightingAvailable(file)) {
             actionGroup.addSeparator()
@@ -114,4 +117,6 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
             return gotoGroup
         }
     }
+
+    private class DumbAwareToggleOptionAction(option:Option):ToggleOptionAction(option),DumbAware
 }
