@@ -4,8 +4,6 @@ import com.intellij.codeInsight.CodeInsightBundle
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzerSettings
 import com.intellij.codeInsight.daemon.impl.getConfigureHighlightingLevelPopup
-import com.intellij.ide.IdeBundle
-import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.EditorBundle
@@ -13,6 +11,7 @@ import com.intellij.openapi.fileEditor.impl.EditorWindowHolder
 import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.PopupMenuListenerAdapter
@@ -25,20 +24,28 @@ import javax.swing.event.PopupMenuEvent
 
 class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler() {
     var isVisible = false
+    private val config = glancePanel.config
 
     override fun invokePopup(comp: Component?, x: Int, y: Int) {
         if (ApplicationManager.getApplication() == null) return
         val file = PsiDocumentManager.getInstance(glancePanel.project).getPsiFile(glancePanel.editor.document) ?: return
-        val actionGroup = DefaultActionGroup()
-        actionGroup.add(object :ToggleOptionAction(object : Option {
-            override fun getName(): String = message("popup.hover.minimap")
-            override fun isEnabled(): Boolean = glancePanel.config.isRightAligned
-            override fun isAlwaysVisible(): Boolean = true
-            override fun isSelected(): Boolean = glancePanel.config.hoveringToShowScrollBar
-            override fun setSelected(selected: Boolean) {
-                glancePanel.config.hoveringToShowScrollBar = selected
+        val actionGroup = DefaultActionGroup(
+            object :ToggleOptionAction(object : Option {
+                override fun getName(): String = message("popup.hover.minimap")
+                override fun isEnabled(): Boolean = config.isRightAligned
+                override fun isAlwaysVisible(): Boolean = true
+                override fun isSelected(): Boolean = config.hoveringToShowScrollBar
+                override fun setSelected(selected: Boolean) {
+                    config.hoveringToShowScrollBar = selected
+                }
+            }), DumbAware{},
+            object :DumbAwareToggleAction(message("popup.singleFileVisibleButton")) {
+                override fun isSelected(e: AnActionEvent): Boolean = config.singleFileVisibleButton
+                override fun setSelected(e: AnActionEvent, state: Boolean) {
+                    config.singleFileVisibleButton = state
+                }
             }
-        }), DumbAware{})
+        )
         if (DaemonCodeAnalyzer.getInstance(glancePanel.project).isHighlightingAvailable(file)) {
             actionGroup.addSeparator()
             actionGroup.add(createGotoGroup())
@@ -51,14 +58,10 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
             })
             if (!UIUtil.uiParents(glancePanel.editor.component, false).filter(EditorWindowHolder::class.java).isEmpty) {
                 actionGroup.addSeparator()
-                actionGroup.add(object : ToggleAction(IdeBundle.message("checkbox.show.editor.preview.popup")) {
-                    override fun isSelected(e: AnActionEvent): Boolean {
-                        return UISettings.getInstance().showEditorToolTip
-                    }
-
+                actionGroup.add(object : ToggleAction(message("glance.show.editor.preview.popup")) {
+                    override fun isSelected(e: AnActionEvent): Boolean = config.showEditorToolTip
                     override fun setSelected(e: AnActionEvent, state: Boolean) {
-                        UISettings.getInstance().showEditorToolTip = state
-                        UISettings.getInstance().fireUISettingsChanged()
+                        config.showEditorToolTip = state
                     }
                 })
             }

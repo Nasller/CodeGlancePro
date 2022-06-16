@@ -25,13 +25,9 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 				twoColumnsRow(
 					{ checkBox(message("settings.disabled"))
 						.bindSelected(config::disabled) { config.disabled = it } },
-					{ checkBox(message("settings.singleFileVisibleButton"))
-						.bindSelected(config::singleFileVisibleButton) { config.singleFileVisibleButton = it } }
+					{ checkBox(message("settings.hide.original.scrollbar"))
+						.bindSelected(config::hideOriginalScrollBar) { config.hideOriginalScrollBar = it } }
 				)
-				row {
-					checkBox(message("settings.hide.original.scrollbar"))
-						.bindSelected(config::hideOriginalScrollBar) { config.hideOriginalScrollBar = it }
-				}
 				val scrollListener: (e: MouseWheelEvent) -> Unit = {
 					val comboBox = it.source as JComboBox<*>
 					comboBox.setSelectedIndex(max(0, min(comboBox.selectedIndex + it.wheelRotation, comboBox.itemCount - 1)))

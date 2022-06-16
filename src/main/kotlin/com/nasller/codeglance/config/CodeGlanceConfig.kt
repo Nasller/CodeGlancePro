@@ -15,6 +15,7 @@ class CodeGlanceConfig {
     }
     var singleFileVisibleButton = true
     var hideOriginalScrollBar = false
+    var showEditorToolTip = true
     var isRightAligned = true
     var hoveringToShowScrollBar by Delegates.observable(false) { _, oldValue, newValue ->
         if (oldValue != newValue) {

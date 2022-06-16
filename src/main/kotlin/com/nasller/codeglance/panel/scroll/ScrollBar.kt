@@ -3,7 +3,6 @@ package com.nasller.codeglance.panel.scroll
 import com.intellij.codeInsight.actions.ReaderModeSettings.Companion.matchMode
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
-import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
@@ -182,9 +181,8 @@ class ScrollBar(
                 cursor = defaultCursor
             } else if(e.x > 10 && !resizing && !dragging && e.y < scrollState.drawHeight){
                 cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-                if(UISettings.getInstance().showEditorToolTip && ((if(DocRenderEnabled != null){
-                    !(editor.getUserData(DocRenderEnabled)?:false)
-                }else true) || notReaderMode)) {
+                if(config.showEditorToolTip &&
+                    ((if(DocRenderEnabled != null) !(editor.getUserData(DocRenderEnabled)?:false) else true) || notReaderMode)) {
                     if (myEditorFragmentRenderer.getEditorPreviewHint() == null) {
                         alarm.cancelAllRequests()
                         alarm.addRequest({
