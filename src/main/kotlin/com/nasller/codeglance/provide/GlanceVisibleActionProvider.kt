@@ -21,7 +21,7 @@ private class GlanceVisibleActionProvider : InspectionWidgetActionProvider {
 		return object : DefaultActionGroup(ToggleVisibleAction(editor)) {
 			override fun update(e: AnActionEvent) {
 				e.presentation.isEnabledAndVisible = editor.getUserData(CURRENT_GLANCE)?.run {
-					config.singleFileVisibleButton && !config.disabled && !config.hoveringToShowScrollBar
+					config.singleFileVisibleButton && !isDisabled && !config.hoveringToShowScrollBar
 				} ?: false
 			}
 		}
