@@ -67,7 +67,7 @@ tasks{
 
     publishPlugin {
 //        dependsOn("patchChangelog")
-        token.set(System.getenv("PUBLISH_TOKEN"))
+        token.set(env["PUBLISH_TOKEN"])
     }
 
     patchPluginXml {
