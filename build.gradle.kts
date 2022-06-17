@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 fun properties(key: String) = project.findProperty(key).toString()
 val env: MutableMap<String, String> = System.getenv()
+val dir: String = projectDir.parentFile.absolutePath
 
 plugins {
     // Java support
@@ -56,6 +57,17 @@ tasks{
 
     jarSearchableOptions {
         include { it.name.contains(rootProject.name+"-"+properties("pluginVersion")) }
+    }
+
+    signPlugin {
+        certificateChainFile.set(File(env.getOrDefault("CERTIFICATE_CHAIN","$dir/pluginCert/chain.crt")))
+        privateKeyFile.set(File(env.getOrDefault("PRIVATE_KEY","$dir/pluginCert/private.pem")))
+        password.set(File(env.getOrDefault("PRIVATE_KEY_PASSWORD","$dir/pluginCert/password.txt")).readText(Charsets.UTF_8))
+    }
+
+    publishPlugin {
+//        dependsOn("patchChangelog")
+        token.set(System.getenv("PUBLISH_TOKEN"))
     }
 
     patchPluginXml {
