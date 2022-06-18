@@ -3,13 +3,11 @@ package com.nasller.codeglance.render
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.editor.impl.view.IterationState
-import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.containers.ContainerUtil
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import java.awt.Color
 import java.awt.image.BufferedImage
-import kotlin.math.max
 
 /**
  * A rendered minimap of a document
@@ -115,23 +113,14 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 	}
 
 	private fun getHighlightColor(offset:Int):Color?{
-		var color:Color? = null
 		val list = mutableListOf<RangeHighlighterEx>()
-		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(max(0, offset - 1),offset) {
-			if (it.errorStripeTooltip != null && it.isValid && it.getTextAttributes (editor.colorsScheme) != TextAttributes.ERASE_MARKER) {
-				list.add(it)
-			}
+		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(offset,offset) {
+			if (it.isValid && it.getTextAttributes(editor.colorsScheme)?.foregroundColor != null) list.add(it)
 			return@processRangeHighlightersOverlappingWith true
 		}
-		list.apply {
+		return list.apply {
 			if(size > 1) ContainerUtil.quickSort(this,IterationState.createByLayerThenByAttributesComparator(editor.colorsScheme))
-		}.forEach{
-			it.getTextAttributes(editor.colorsScheme)?.foregroundColor?.apply {
-				color = this
-				return@forEach
-			}
-		}
-		return color
+		}.firstOrNull()?.getTextAttributes(editor.colorsScheme)?.foregroundColor
 	}
 
 	private fun BufferedImage.renderImage(x: Int, y: Int, char: Int, scaleBuffer: FloatArray,consumer: (()->Unit)? = null) {

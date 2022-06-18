@@ -58,7 +58,9 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     override fun beforeRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter)
 
     private fun updateRangeHighlight(highlighter: RangeHighlighterEx) =
-        if (highlighter.editorFilter.avaliableIn(glancePanel.editor) && !glancePanel.shouldNotUpdate()) alarm.cancelAndRequest()
+        if (highlighter.editorFilter.avaliableIn(glancePanel.editor) &&
+            highlighter.getTextAttributes(glancePanel.editor.colorsScheme)?.foregroundColor != null &&
+            !glancePanel.shouldNotUpdate()) alarm.cancelAndRequest()
         else Unit
 
     /** CaretListener */
