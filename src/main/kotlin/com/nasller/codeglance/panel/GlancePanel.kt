@@ -103,7 +103,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
                         }
                         val start = (visualLine1 + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
                         val end = (visualLine2 + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
-                        if(start > 0 || end - start - config.pixelsPerLine > 0) {
+                        if(start >= 0 || end - start - config.pixelsPerLine >= 0) {
                             g.fillRect(0, start, width, config.pixelsPerLine)
                             g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)
                         }
@@ -125,7 +125,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
 
         g.composite = srcOver
         g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
-        if(sY > 0 || eY > 0) {
+        if(sY >= 0 || eY >= 0) {
             // Single line is real easy
             if (start.line == end.line) {
                 g.fillRect(sX, sY, eX - sX, config.pixelsPerLine)
@@ -149,7 +149,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
             g.color = editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR)
             val documentLine = getDocumentRenderLine(it.logicalPosition.line,it.logicalPosition.line)
             val start = (it.visualPosition.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
-            if(start > 0){
+            if(start >= 0){
                 g.fillRect(0, start, width, config.pixelsPerLine)
                 allCarets.add(VisualPosition(start,it.visualPosition.column))
             }
@@ -194,7 +194,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         var eX = if (start.column < (width - minGap)) end.column + 1 else width
         val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
         val collapsed = editor.foldingModel.isOffsetCollapsed(it.startOffset)
-        if(sY > 0 || eY > 0){
+        if(sY >= 0 || eY >= 0){
             if (allCarets.any { it.line == sY }) {
                 g.composite = srcOver
                 g.color = g.color.brighter()
