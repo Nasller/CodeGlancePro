@@ -9,7 +9,8 @@ import org.jetbrains.annotations.PropertyKey
 import java.util.*
 import java.util.function.Supplier
 
-const val BUNDLE: @NonNls String = "messages.CodeGlanceBundle"
+@NonNls
+const val BUNDLE: String = "messages.CodeGlanceBundle"
 
 object CodeGlanceBundle : AbstractBundle(BUNDLE) {
 	private val adaptedControl = ResourceBundle.Control.getNoFallbackControl(ResourceBundle.Control.FORMAT_PROPERTIES)
@@ -40,10 +41,10 @@ object CodeGlanceBundle : AbstractBundle(BUNDLE) {
 }
 
 @Nls
-fun message(key: @PropertyKey(resourceBundle = BUNDLE) String, vararg params: Any): String {
+fun message(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg params: Any): String {
 	return CodeGlanceBundle.getAdaptedMessage(key, *params)
 }
 
-fun messagePointer(key: @PropertyKey(resourceBundle = BUNDLE) String, vararg params: Any): Supplier<String> {
+fun messagePointer(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg params: Any): Supplier<String> {
 	return CodeGlanceBundle.getAdaptedLazyMessage(key, *params)
 }

@@ -1,6 +1,6 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-fun properties(key: String) = project.findProperty(key).toString()
+fun properties(key: String) = project.findProperty(key)?.toString()?:""
 val env: MutableMap<String, String> = System.getenv()
 val dir: String = projectDir.parentFile.absolutePath
 
@@ -22,7 +22,7 @@ dependencies {
 
 kotlin {
     jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(11))
+        languageVersion.set(JavaLanguageVersion.of(properties("javaVersion")))
     }
 }
 
@@ -30,12 +30,8 @@ intellij {
     pluginName.set(properties("pluginName"))
     version.set(properties("platformVersion"))
     type.set(properties("platformType"))
-    sandboxDir.set("${rootProject.rootDir}/idea-sandbox")
-//    sandboxDir.set("${rootProject.rootDir}/py-sandbox")
+    sandboxDir.set("${rootProject.rootDir}/" + properties("sandboxDir"))
     downloadSources.set(true)
-//    sandboxDir.set("${rootProject.rootDir}/rider-sandbox")
-//    sandboxDir.set("${rootProject.rootDir}/clion-sandbox")
-//    downloadSources.set(false)
     // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
     plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
     // languagePlugins=com.intellij.zh:221.224
