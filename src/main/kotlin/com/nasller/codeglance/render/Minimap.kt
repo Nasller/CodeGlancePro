@@ -71,12 +71,14 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 					it
 				} else null
 			}
-			if (region != null && region.placeholderText.isNotEmpty()) {
-				(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor).apply(setColorRgba)
-				StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach {
-					val charCode = it.code
-					moveCharIndex(charCode)
-					curImg.renderImage(x, y, charCode, scaleBuffer)
+			if (region != null) {
+				if(region.placeholderText.isNotBlank()) {
+					(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor).apply(setColorRgba)
+					StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach {
+						val charCode = it.code
+						moveCharIndex(charCode)
+						curImg.renderImage(x, y, charCode, scaleBuffer)
+					}
 				}
 			} else {
 				val color = try {

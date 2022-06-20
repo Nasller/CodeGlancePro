@@ -3,12 +3,12 @@ package com.nasller.codeglance.listener
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Document
-import com.intellij.openapi.editor.FoldRegion
 import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.SoftWrapChangeListener
+import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.intellij.util.SingleAlarm
 import com.nasller.codeglance.config.SettingsChangeListener
@@ -36,7 +36,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
         ApplicationManager.getApplication().messageBus.connect(glancePanel).subscribe(SettingsChangeListener.TOPIC, this)
     }
     /** FoldingListener */
-    override fun onFoldRegionStateChange(region: FoldRegion) = glancePanel.updateImage()
+    override fun onFoldProcessingEnd() = glancePanel.updateImage()
 
     /** SoftWrapChangeListener */
     override fun softWrapsChanged() {
@@ -44,7 +44,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
         if(enabled && !softWrapEnabled){
             softWrapEnabled = true
             glancePanel.updateImage()
-        }else if(!enabled){
+        }else if(!enabled && softWrapEnabled){
             softWrapEnabled = false
             glancePanel.updateImage()
         }
@@ -58,8 +58,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     override fun beforeRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter)
 
     private fun updateRangeHighlight(highlighter: RangeHighlighterEx) =
-        if (highlighter.editorFilter.avaliableIn(glancePanel.editor) &&
-            highlighter.getTextAttributes(glancePanel.editor.colorsScheme)?.foregroundColor != null &&
+        if (EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(glancePanel.editor.colorsScheme)) &&
             !glancePanel.shouldNotUpdate()) alarm.cancelAndRequest()
         else Unit
 
