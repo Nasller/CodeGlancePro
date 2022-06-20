@@ -81,9 +81,9 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 					}
 				}
 			} else {
-				val color = try {
+				val color by lazy(LazyThreadSafetyMode.NONE){ try {
 					hlIter.textAttributes.foregroundColor
-				} catch (_: ConcurrentModificationException){ null }
+				} catch (_: ConcurrentModificationException){ null } }
 				while (offset < hlIter.end) {
 					// Watch out for tokens that extend past the document... bad plugins? see issue #138
 					if (offset >= text.length) break@loop
