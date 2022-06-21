@@ -71,7 +71,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
             consumer?.invoke()
             updateImgTask()
         }
-        if(directUpdate) runnable.invoke()
+        if(directUpdate) runnable()
         else ApplicationManager.getApplication().invokeLater(runnable)
     }
 

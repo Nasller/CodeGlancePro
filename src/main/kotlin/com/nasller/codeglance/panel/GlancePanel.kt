@@ -73,8 +73,8 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
                 renderLock.clean()
                 updateImage()
             }
+            repaint()
         }
-        repaint()
     }
 
     override fun paintVcs(g: Graphics2D,notPaint:Boolean) {
