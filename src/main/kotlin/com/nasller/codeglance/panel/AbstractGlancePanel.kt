@@ -15,6 +15,7 @@ import com.intellij.openapi.vcs.impl.LineStatusTrackerManager
 import com.intellij.openapi.vfs.PersistentFSConstants
 import com.intellij.util.ObjectUtils
 import com.intellij.util.ui.UIUtil
+import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.panel.scroll.ScrollBar
@@ -27,8 +28,8 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     val editor = textEditor.editor as EditorEx
     val config = ConfigInstance.state
     val scrollState = ScrollState()
-    val trackerManager = LineStatusTrackerManager.getInstance(project)
-    val changeListManager: ChangeListManager = ChangeListManager.getInstance(project)
+    val trackerManager = if(CodeGlancePlugin.MODULE_VCS)LineStatusTrackerManager.getInstance(project) else null
+    val changeListManager = if(CodeGlancePlugin.MODULE_VCS)ChangeListManager.getInstance(project) else null
     val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
     var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
     protected val renderLock = DirtyLock()

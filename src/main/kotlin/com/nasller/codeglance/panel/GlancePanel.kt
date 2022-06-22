@@ -79,13 +79,13 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
 
     override fun paintVcs(g: Graphics2D,notPaint:Boolean) {
         if(notPaint) return
-        val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> fold !is CustomFoldRegionImpl && !fold.isExpanded &&
-                fold.startOffset >= 0 && fold.endOffset >= 0 }
-        val srcOver = if(config.hideOriginalScrollBar) srcOver else srcOver0_4
-        trackerManager.getLineStatusTracker(editor.document)?.getRanges()?.apply {
+        trackerManager?.getLineStatusTracker(editor.document)?.getRanges()?.run {
+            val srcOver = if(config.hideOriginalScrollBar) srcOver else srcOver0_4
             g.composite = srcOver
+            val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> fold !is CustomFoldRegionImpl && !fold.isExpanded &&
+                    fold.startOffset >= 0 && fold.endOffset >= 0 }
             forEach {
-                if (it !is LocalRange || it.changelistId == changeListManager.defaultChangeList.id) {
+                if (it !is LocalRange || it.changelistId == changeListManager?.defaultChangeList?.id) {
                     try {
                         g.color = LineStatusMarkerDrawUtil.getGutterColor(it.type, editor)
                         val documentLine = getDocumentRenderLine(it.line1, it.line2)

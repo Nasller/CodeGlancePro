@@ -45,15 +45,17 @@ class MyVcsPanel(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 		}
 
 		override fun mouseMoved(e: MouseEvent) {
-			val logicalPosition = editor.visualToLogicalPosition(
-				VisualPosition((e.y + glancePanel.scrollState.visibleStart) / glancePanel.config.pixelsPerLine, 0))
-			val range = glancePanel.trackerManager.getLineStatusTracker(editor.document)?.getRangeForLine(logicalPosition.line)
-			if(range != null && (range !is LocalRange || range.changelistId == glancePanel.changeListManager.defaultChangeList.id)){
-				cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-				hoverVcsRange = range
-			}else{
-				cursor = defaultCursor
-				hoverVcsRange = null
+			glancePanel.trackerManager?.getLineStatusTracker(editor.document)?.run {
+				val logicalPosition = editor.visualToLogicalPosition(
+					VisualPosition((e.y + glancePanel.scrollState.visibleStart) / glancePanel.config.pixelsPerLine, 0))
+				val range = getRangeForLine(logicalPosition.line)
+				if(range != null && (range !is LocalRange || range.changelistId == glancePanel.changeListManager?.defaultChangeList?.id)){
+					cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+					hoverVcsRange = range
+				}else{
+					cursor = defaultCursor
+					hoverVcsRange = null
+				}
 			}
 		}
 

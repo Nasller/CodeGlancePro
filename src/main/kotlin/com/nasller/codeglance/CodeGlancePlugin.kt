@@ -1,6 +1,8 @@
 package com.nasller.codeglance
 
 import com.intellij.codeInsight.documentation.render.DocRenderManager
+import com.intellij.ide.plugins.PluginManager
+import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManagerListener
@@ -23,5 +25,7 @@ class CodeGlancePlugin : ProjectManagerListener {
         } catch (e: Exception) {
             null
         }
+
+        val MODULE_VCS = PluginManager.isPluginInstalled(PluginId.getId("com.intellij.modules.vcs"))
     }
 }
