@@ -14,7 +14,7 @@ import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigIns
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import com.nasller.codeglance.panel.GlancePanel
-import com.nasller.codeglance.panel.MyVcsPanel
+import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import java.awt.BorderLayout
 import java.awt.Component
 import javax.swing.JComponent

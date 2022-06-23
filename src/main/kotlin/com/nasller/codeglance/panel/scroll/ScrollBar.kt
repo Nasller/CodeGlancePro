@@ -35,7 +35,6 @@ class ScrollBar(
     var hovering = false
     private val config = glancePanel.config
     private val scrollState = glancePanel.scrollState
-    private val defaultCursor = Cursor(Cursor.DEFAULT_CURSOR)
     private val myEditorFragmentRenderer = CustomEditorFragmentRenderer(editor)
     private val notReaderMode = !matchMode(glancePanel.project, editor.virtualFile, editor)
 
@@ -168,7 +167,7 @@ class ScrollBar(
             dragging = false
             resizing = false
             updateAlpha(e.y)
-            if(isInRect(e.y)) cursor = defaultCursor
+            if(isInRect(e.y)) cursor = Cursor(Cursor.DEFAULT_CURSOR)
             hideScrollBar(e)
         }
 
@@ -178,7 +177,7 @@ class ScrollBar(
             if (isInResizeGutter(e.x)) {
                 cursor = Cursor(Cursor.W_RESIZE_CURSOR)
             } else if(isInRect(e.y)){
-                cursor = defaultCursor
+                cursor = Cursor(Cursor.DEFAULT_CURSOR)
             } else if(e.x > 10 && !resizing && !dragging && e.y < scrollState.drawHeight){
                 cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
                 if(config.showEditorToolTip &&
@@ -192,7 +191,7 @@ class ScrollBar(
                     return
                 }
             }else{
-                cursor = defaultCursor
+                cursor = Cursor(Cursor.DEFAULT_CURSOR)
             }
             hideMyEditorPreviewHint()
         }

@@ -10,15 +10,14 @@ import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
-import com.intellij.openapi.vcs.changes.ChangeListManager
-import com.intellij.openapi.vcs.impl.LineStatusTrackerManager
 import com.intellij.openapi.vfs.PersistentFSConstants
 import com.intellij.util.ObjectUtils
 import com.intellij.util.ui.UIUtil
-import com.nasller.codeglance.CodeGlancePlugin
 import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.panel.scroll.ScrollBar
+import com.nasller.codeglance.panel.vcs.MyVcsPanel
+import com.nasller.codeglance.panel.vcs.VcsRenderService
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
 import java.awt.image.BufferedImage
@@ -28,8 +27,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     val editor = textEditor.editor as EditorEx
     val config = ConfigInstance.state
     val scrollState = ScrollState()
-    val trackerManager = if(CodeGlancePlugin.MODULE_VCS)LineStatusTrackerManager.getInstance(project) else null
-    val changeListManager = if(CodeGlancePlugin.MODULE_VCS)ChangeListManager.getInstance(project) else null
+    val vcsRenderService: VcsRenderService? = project.getService(VcsRenderService::class.java)
     val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
     var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
     protected val renderLock = DirtyLock()
@@ -39,7 +37,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
                 editor.document.lineCount > config.maxLinesCount
     private var buf: BufferedImage? = null
     var scrollbar: ScrollBar? = null
-    var myVcsPanel:MyVcsPanel? = null
+    var myVcsPanel: MyVcsPanel? = null
 
     init {
         isOpaque = false
@@ -76,7 +74,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         else ApplicationManager.getApplication().invokeLater(runnable)
     }
 
-    fun shouldNotUpdate() = isDisabled || project.isDisposed || !isVisible
+    fun shouldNotUpdate() = isDisabled || project.isDisposed || (!config.hoveringToShowScrollBar && !isVisible)
 
     fun updateScrollState(){
         scrollState.computeDimensions(this)
@@ -84,8 +82,6 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     }
 
     protected abstract fun updateImgTask()
-
-    abstract fun paintVcs(g: Graphics2D,notPaint:Boolean)
 
     abstract fun paintSelection(g: Graphics2D, startByte: Int, endByte: Int)
 
@@ -144,7 +140,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
             }
         }
         val graphics2D = gfx as Graphics2D
-        paintVcs(graphics2D,config.hideOriginalScrollBar)
+        vcsRenderService?.paintVcs(this,graphics2D,config.hideOriginalScrollBar)
         val allCarets = paintCaretsOrSelections(graphics2D)
         paintOtherHighlight(graphics2D,allCarets)
         paintErrorStripes(graphics2D,allCarets)
@@ -158,7 +154,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
             gfx.composite = srcOver0_8
             gfx.drawImage(this,0, 0, width, height, 0, 0, width, height,null)
         }
-        paintVcs(gfx,config.hideOriginalScrollBar)
+        vcsRenderService?.paintVcs(this,gfx,config.hideOriginalScrollBar)
         val allCarets = paintCaretsOrSelections(gfx)
         paintOtherHighlight(gfx,allCarets)
         paintErrorStripes(gfx,allCarets)

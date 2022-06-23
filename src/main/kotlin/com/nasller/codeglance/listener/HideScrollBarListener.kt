@@ -41,8 +41,7 @@ class HideScrollBarListener(private val glancePanel: GlancePanel):MouseAdapter()
 		if(!glancePanel.config.hideOriginalScrollBar){
 			if(show) glancePanel.editor.scrollPane.verticalScrollBar.apply {
 				preferredSize = Dimension(glancePanel.originalScrollbarWidth, preferredSize.height)
-			}
-			else glancePanel.editor.scrollPane.verticalScrollBar.apply {
+			} else glancePanel.editor.scrollPane.verticalScrollBar.apply {
 				preferredSize = Dimension(0, preferredSize.height)
 			}
 		}

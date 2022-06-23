@@ -6,7 +6,7 @@ import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.VisibleAreaEvent
 import com.intellij.openapi.editor.event.VisibleAreaListener
 import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
-import com.nasller.codeglance.panel.MyVcsPanel
+import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import java.awt.event.*
 
 class MyVcsListener(private val myVcsPanel: MyVcsPanel) : ComponentAdapter(), PrioritizedDocumentListener,

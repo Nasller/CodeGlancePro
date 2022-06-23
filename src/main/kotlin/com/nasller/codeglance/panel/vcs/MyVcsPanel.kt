@@ -1,4 +1,4 @@
-package com.nasller.codeglance.panel
+package com.nasller.codeglance.panel.vcs
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.LogicalPosition
@@ -7,6 +7,7 @@ import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.vcs.ex.LocalRange
 import com.intellij.openapi.vcs.ex.Range
 import com.nasller.codeglance.listener.MyVcsListener
+import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.Graphics
@@ -17,21 +18,21 @@ import javax.swing.JPanel
 
 class MyVcsPanel(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 	val editor = glancePanel.editor
-	private val defaultCursor = Cursor(Cursor.DEFAULT_CURSOR)
 	private val myVcsListener = MyVcsListener(this)
 	init{
-		val mouseHandler = MouseHandler()
-		addMouseListener(mouseHandler)
-		addMouseWheelListener(mouseHandler)
-		addMouseMotionListener(mouseHandler)
 		addMouseListener(glancePanel.myPopHandler)
+		glancePanel.vcsRenderService?.let {
+			val mouseHandler = MouseHandler()
+			addMouseListener(mouseHandler)
+			addMouseWheelListener(mouseHandler)
+			addMouseMotionListener(mouseHandler)
+		}
 		preferredSize = Dimension(vcsWidth,0)
 		isOpaque = false
 	}
 
 	override fun paint(gfx: Graphics) {
-		val graphics2D = gfx as Graphics2D
-		glancePanel.paintVcs(graphics2D,false)
+		glancePanel.vcsRenderService?.paintVcs(glancePanel,gfx as Graphics2D,false)
 	}
 
 	inner class MouseHandler : MouseAdapter() {
@@ -45,22 +46,24 @@ class MyVcsPanel(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 		}
 
 		override fun mouseMoved(e: MouseEvent) {
-			glancePanel.trackerManager?.getLineStatusTracker(editor.document)?.run {
-				val logicalPosition = editor.visualToLogicalPosition(
-					VisualPosition((e.y + glancePanel.scrollState.visibleStart) / glancePanel.config.pixelsPerLine, 0))
-				val range = getRangeForLine(logicalPosition.line)
-				if(range != null && (range !is LocalRange || range.changelistId == glancePanel.changeListManager?.defaultChangeList?.id)){
-					cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-					hoverVcsRange = range
-				}else{
-					cursor = defaultCursor
-					hoverVcsRange = null
+			glancePanel.vcsRenderService?.let{
+				it.trackerManager.getLineStatusTracker(editor.document)?.run {
+					val logicalPosition = editor.visualToLogicalPosition(
+						VisualPosition((e.y + glancePanel.scrollState.visibleStart) / glancePanel.config.pixelsPerLine, 0))
+					val range = getRangeForLine(logicalPosition.line)
+					if(range != null && (range !is LocalRange || range.changelistId == it.changeListManager.defaultChangeList.id)){
+						cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+						hoverVcsRange = range
+					}else{
+						cursor = Cursor(Cursor.DEFAULT_CURSOR)
+						hoverVcsRange = null
+					}
 				}
 			}
 		}
 
 		override fun mouseExited(e: MouseEvent) {
-			cursor = defaultCursor
+			cursor = Cursor(Cursor.DEFAULT_CURSOR)
 			hoverVcsRange = null
 		}
 	}
