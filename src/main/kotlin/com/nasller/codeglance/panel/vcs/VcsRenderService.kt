@@ -1,19 +1,59 @@
 package com.nasller.codeglance.panel.vcs
 
 import com.intellij.openapi.diff.LineStatusMarkerDrawUtil
+import com.intellij.openapi.editor.LogicalPosition
+import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.ChangeListManager
 import com.intellij.openapi.vcs.ex.LocalRange
+import com.intellij.openapi.vcs.ex.Range
 import com.intellij.openapi.vcs.impl.LineStatusTrackerManager
 import com.nasller.codeglance.panel.AbstractGlancePanel
+import com.nasller.codeglance.panel.GlancePanel
+import java.awt.Cursor
 import java.awt.Graphics2D
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 
 class VcsRenderService(project: Project) {
 	val trackerManager = LineStatusTrackerManager.getInstance(project)
 	val changeListManager = ChangeListManager.getInstance(project)
+
+	fun getMouseHandle(glancePanel: GlancePanel, myVcsPanel: MyVcsPanel): MouseAdapter = object: MouseAdapter() {
+		private var hoverVcsRange: Range? = null
+
+		override fun mouseClicked(e: MouseEvent) {
+			hoverVcsRange?.let {
+				glancePanel.editor.caretModel.moveToLogicalPosition(LogicalPosition(it.line1,0))
+				glancePanel.editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
+			}
+		}
+
+		override fun mouseMoved(e: MouseEvent) {
+			glancePanel.vcsRenderService?.let{
+				it.trackerManager.getLineStatusTracker(glancePanel.editor.document)?.run {
+					val logicalPosition = glancePanel.editor.visualToLogicalPosition(
+						VisualPosition((e.y + glancePanel.scrollState.visibleStart) / glancePanel.config.pixelsPerLine, 0))
+					val range = getRangeForLine(logicalPosition.line)
+					if(range != null && (range !is LocalRange || range.changelistId == it.changeListManager.defaultChangeList.id)){
+						myVcsPanel.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+						hoverVcsRange = range
+					}else{
+						myVcsPanel.cursor = Cursor(Cursor.DEFAULT_CURSOR)
+						hoverVcsRange = null
+					}
+				}
+			}
+		}
+
+		override fun mouseExited(e: MouseEvent) {
+			myVcsPanel.cursor = Cursor(Cursor.DEFAULT_CURSOR)
+			hoverVcsRange = null
+		}
+	}
 
 	fun paintVcs(glancePanel: AbstractGlancePanel,g: Graphics2D, notPaint:Boolean) {
 		if(notPaint) return
