@@ -196,6 +196,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         mapRef.clear()
         glanceListener.dispose()
         removeHideScrollBarListener()
+        editor.putUserData(CURRENT_GLANCE,null)
         super.dispose()
     }
 }
