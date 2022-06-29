@@ -38,10 +38,8 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
             if (layout is BorderLayout && editor.editor is EditorImpl && layout.getLayoutComponent(where) == null) {
                 val myPanel = getMyPanel(editor)
                 panel.add(myPanel, where)
-                when (myPanel) {
-                    is MyPanel -> myPanel.panel.changeOriginScrollBarWidth()
-                    is AbstractGlancePanel -> myPanel.changeOriginScrollBarWidth()
-                }
+                val glancePanel = if(myPanel is MyPanel) myPanel.panel else myPanel as AbstractGlancePanel
+                glancePanel.changeOriginScrollBarWidth()
             }
         }
     }
@@ -57,14 +55,13 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
                 val panel = editor.editor.component as? JPanel ?: continue
                 val layout = panel.layout
                 if (layout is BorderLayout && editor.editor is EditorImpl) {
+                    val start = layout.getLayoutComponent(BorderLayout.LINE_START)?.removeComponent(panel)
+                    val end = layout.getLayoutComponent(BorderLayout.LINE_END)?.removeComponent(panel)
                     val myPanel = getMyPanel(editor)
-                    layout.getLayoutComponent(BorderLayout.LINE_START)?.removeComponent(panel,myPanel)
-                    layout.getLayoutComponent(BorderLayout.LINE_END)?.removeComponent(panel,myPanel)
                     panel.add(myPanel, where)
-                    when (myPanel) {
-                        is MyPanel -> myPanel.panel.updateImage()
-                        is AbstractGlancePanel -> myPanel.updateImage()
-                    }
+                    val glancePanel = if(myPanel is MyPanel) myPanel.panel else myPanel as AbstractGlancePanel
+                    glancePanel.originalScrollbarWidth = start?:end?:0
+                    glancePanel.updateImage()
                 }
             }
         }catch (e:Exception){
@@ -82,16 +79,13 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         return jPanel
     }
 
-    private fun Component.removeComponent(parent: JComponent,newComponent: JComponent){
+    private fun Component.removeComponent(parent: JComponent): Int?{
         val oldGlancePanel = if (this is MyPanel) panel else if(this is AbstractGlancePanel) this else null
-        oldGlancePanel?.let {
+        return oldGlancePanel?.let {
             parent.remove(this)
             Disposer.dispose(it)
             it.changeOriginScrollBarWidth()
-            when (newComponent) {
-                is MyPanel -> newComponent.panel.originalScrollbarWidth = it.originalScrollbarWidth
-                is AbstractGlancePanel -> newComponent.originalScrollbarWidth = it.originalScrollbarWidth
-            }
+            it.originalScrollbarWidth
         }
     }
 
