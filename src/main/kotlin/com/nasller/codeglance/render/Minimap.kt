@@ -60,18 +60,11 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		g.composite = AbstractGlancePanel.CLEAR
 		g.fillRect(0, 0, curImg.width, curImg.height)
 		loop@ while (!hlIter.atEnd()) {
-			var start = hlIter.start
+			val start = hlIter.start
 			line.start(start)
 			y = (line.lineNumber + softWrapLines - foldedLines) * config.pixelsPerLine
-			// Jump over folds
-			val region = editor.foldingModel.getCollapsedRegionAtOffset(start)?.let{
-				if(it.startOffset >= 0 && it.endOffset >= 0 && it !is CustomFoldRegionImpl){
-					foldedLines += editor.document.getLineNumber(it.endOffset) - editor.document.getLineNumber(it.startOffset)
-					start = it.endOffset
-					it
-				} else null
-			}
-			if (region != null) {
+			val region = editor.foldingModel.getCollapsedRegionAtOffset(start)
+			if (region != null && region !is CustomFoldRegionImpl) {
 				if(region.placeholderText.isNotBlank()) {
 					(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor).apply(setColorRgba)
 					StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach {
@@ -80,8 +73,10 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 						curImg.renderImage(x, y, charCode, scaleBuffer)
 					}
 				}
+				val endOffset = region.endOffset
+				foldedLines += editor.document.getLineNumber(endOffset) - editor.document.getLineNumber(region.startOffset)
 				// Skip to end of fold
-				do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < start)
+				do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 			} else {
 				val color by lazy(LazyThreadSafetyMode.NONE){ try {
 					hlIter.textAttributes.foregroundColor
@@ -99,7 +94,8 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 					val charCode = text[offset].code
 					moveCharIndex(charCode)
 					curImg.renderImage(x, y, charCode, scaleBuffer){
-						(getHighlightColor(offset) ?: color ?: defaultColor).apply(setColorRgba)
+						//for rainbow brackets
+						if(offset <= start + 1) (getHighlightColor(offset) ?: color ?: defaultColor).apply(setColorRgba)
 					}
 				}
 				hlIter.advance()

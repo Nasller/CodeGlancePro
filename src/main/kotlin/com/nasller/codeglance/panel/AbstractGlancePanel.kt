@@ -82,23 +82,13 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
 
     protected abstract fun updateImgTask()
 
-    abstract fun paintSelection(g: Graphics2D, startByte: Int, endByte: Int)
+    abstract fun Graphics2D.paintSelection()
 
-    abstract fun paintCaretPosition(g: Graphics2D)
+    abstract fun Graphics2D.paintCaretPosition()
 
-    abstract fun paintOtherHighlight(g: Graphics2D)
+    abstract fun Graphics2D.paintOtherHighlight()
 
-    abstract fun paintErrorStripes(g: Graphics2D)
-
-    private fun paintCaretsOrSelections(g: Graphics2D){
-        return if(editor.selectionModel.hasSelection()){
-            for ((index, start) in editor.selectionModel.blockSelectionStarts.withIndex()) {
-                paintSelection(g, start, editor.selectionModel.blockSelectionEnds[index])
-            }
-        }else{
-            paintCaretPosition(g)
-        }
-    }
+    abstract fun Graphics2D.paintErrorStripes()
 
     fun getDocumentRenderLine(lineStart:Int,lineEnd:Int):Pair<Int,Int>{
         var startAdd = 0
@@ -120,10 +110,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
 
     override fun paint(gfx: Graphics) {
         if(shouldNotUpdate()) return
-        if (renderLock.locked) {
-            paintLast(gfx as Graphics2D)
-            return
-        }
+        if (renderLock.locked) return paintLast(gfx as Graphics2D)
         val img = getDrawImage() ?: return
         if (buf == null || buf?.width!! < width || buf?.height!! < height) {
             buf = BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR)
@@ -137,14 +124,12 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
                     0, scrollState.visibleStart, img.width, scrollState.visibleEnd, null)
             }
         }
-        val graphics2D = gfx as Graphics2D
-        vcsRenderService?.paintVcs(this,graphics2D,config.hideOriginalScrollBar)
-        paintCaretsOrSelections(graphics2D)
-        paintOtherHighlight(graphics2D)
-        paintErrorStripes(graphics2D)
-        graphics2D.composite = srcOver0_8
-        graphics2D.drawImage(buf, 0, 0, null)
-        scrollbar?.paint(graphics2D)
+        with(gfx as Graphics2D){
+            paintSomething()
+            composite = srcOver0_8
+            drawImage(buf, 0, 0, null)
+            scrollbar?.paint(this)
+        }
     }
 
     private fun paintLast(gfx: Graphics2D) {
@@ -152,11 +137,21 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
             gfx.composite = srcOver0_8
             gfx.drawImage(this,0, 0, width, height, 0, 0, width, height,null)
         }
-        vcsRenderService?.paintVcs(this,gfx,config.hideOriginalScrollBar)
-        paintCaretsOrSelections(gfx)
-        paintOtherHighlight(gfx)
-        paintErrorStripes(gfx)
+        gfx.paintSomething()
         scrollbar?.paint(gfx)
+    }
+
+    private fun Graphics2D.paintSomething(){
+        vcsRenderService?.paintVcs(this@AbstractGlancePanel,this,config.hideOriginalScrollBar)
+        if(editor.selectionModel.hasSelection()) paintSelection()
+        else paintCaretPosition()
+        paintOtherHighlight()
+        paintErrorStripes()
+    }
+
+    protected fun Graphics2D.setGraphics2DInfo(al: AlphaComposite,col: Color?){
+        composite = al
+        color = col
     }
 
     fun changeOriginScrollBarWidth(){
