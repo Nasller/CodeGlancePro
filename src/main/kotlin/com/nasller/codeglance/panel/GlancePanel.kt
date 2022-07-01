@@ -116,7 +116,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
             val layer = map.value[key]
             it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
                 if(layer == null || layer < it.layer){
-                    drawMarkupLine(it,g,this)
+                    drawMarkupLine(it,g,this,false)
                     map.value[key] = it.layer
                 }
             }
@@ -128,15 +128,15 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0, editor.document.textLength) {
             HighlightInfo.fromRangeHighlighter(it) ?.let {info ->
                 it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-                    drawMarkupLine(it, g,this,info.severity.myVal > minSeverity.myVal,true)
+                    drawMarkupLine(it, g,this,info.severity.myVal > minSeverity.myVal)
                 }
             }
             return@processRangeHighlightersOverlappingWith true
         }
     }
 
-    private fun drawMarkupLine(it: RangeHighlighter, g: Graphics2D, color: Color,compensateLine:Boolean = false, fromError:Boolean = false){
-        g.setGraphics2DInfo(if(fromError && config.showFullLineError) srcOver0_6 else srcOver,color)
+    private fun drawMarkupLine(it: RangeHighlighter, g: Graphics2D, color: Color,highSeverity: Boolean){
+        g.setGraphics2DInfo(if(highSeverity && config.showFullLineError) srcOver0_6 else srcOver,color)
         val documentLine = getDocumentRenderLine(editor.offsetToLogicalPosition(it.startOffset).line, editor.offsetToLogicalPosition(it.endOffset).line)
         val start = editor.offsetToVisualPosition(it.startOffset)
         val end = editor.offsetToVisualPosition(it.endOffset)
@@ -147,11 +147,11 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         if(sY >= 0 || eY >= 0){
             val collapsed = editor.foldingModel.getCollapsedRegionAtOffset(it.startOffset)
             if (sY == eY && collapsed == null) {
-                if(compensateLine && eX - sX < minGap){
+                if(highSeverity && eX - sX < minGap){
                     eX += minGap-(eX - sX)
                     if(eX > width) sX -= eX - width
                 }
-                if(fromError && config.showFullLineError) {
+                if(highSeverity && config.showFullLineError) {
                     g.fillRect(0, sY, width, config.pixelsPerLine)
                     g.setGraphics2DInfo(srcOver,g.color.brighter())
                 }
@@ -159,7 +159,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
             } else if (collapsed != null) {
                 val startVis = editor.offsetToVisualPosition(collapsed.startOffset)
                 val endVis = editor.offsetToVisualPosition(collapsed.endOffset)
-                if(fromError && config.showFullLineError) {
+                if(highSeverity && config.showFullLineError) {
                     g.fillRect(0, sY, width, config.pixelsPerLine)
                     g.setGraphics2DInfo(srcOver,g.color.brighter())
                 }
