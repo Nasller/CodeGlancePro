@@ -60,14 +60,14 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		g.composite = AbstractGlancePanel.CLEAR
 		g.fillRect(0, 0, curImg.width, curImg.height)
 		loop@ while (!hlIter.atEnd()) {
-			var offset = hlIter.start
-			line.start(offset)
+			var start = hlIter.start
+			line.start(start)
 			y = (line.lineNumber + softWrapLines - foldedLines) * config.pixelsPerLine
 			// Jump over folds
-			val region = editor.foldingModel.getCollapsedRegionAtOffset(offset)?.let{
+			val region = editor.foldingModel.getCollapsedRegionAtOffset(start)?.let{
 				if(it.startOffset >= 0 && it.endOffset >= 0 && it !is CustomFoldRegionImpl){
 					foldedLines += editor.document.getLineNumber(it.endOffset) - editor.document.getLineNumber(it.startOffset)
-					offset = it.endOffset
+					start = it.endOffset
 					it
 				} else null
 			}
@@ -80,11 +80,13 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 						curImg.renderImage(x, y, charCode, scaleBuffer)
 					}
 				}
+				// Skip to end of fold
+				do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < start)
 			} else {
 				val color by lazy(LazyThreadSafetyMode.NONE){ try {
 					hlIter.textAttributes.foregroundColor
 				} catch (_: ConcurrentModificationException){ null } }
-				while (offset < hlIter.end) {
+				for(offset in start until hlIter.end){
 					// Watch out for tokens that extend past the document... bad plugins? see issue #138
 					if (offset >= text.length) break@loop
 					if (softWrapEnable) editor.softWrapModel.getSoftWrap(offset)?.let { softWrap ->
@@ -99,12 +101,9 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 					curImg.renderImage(x, y, charCode, scaleBuffer){
 						(getHighlightColor(offset) ?: color ?: defaultColor).apply(setColorRgba)
 					}
-					++offset
 				}
-			}
-			do // Skip to end of fold
 				hlIter.advance()
-			while (!hlIter.atEnd() && hlIter.start < offset)
+			}
 		}
 		g.dispose()
 		preBuffer?.let {
