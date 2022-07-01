@@ -36,7 +36,15 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
                 override fun isSelected(): Boolean = config.hoveringToShowScrollBar
                 override fun setSelected(selected: Boolean) {
                     config.hoveringToShowScrollBar = selected
-                    config.singleFileVisibleButton = !config.hoveringToShowScrollBar
+                }
+            }),
+            DumbAwareToggleOptionAction(object : ToggleOptionAction.Option {
+                override fun getName(): String = message("popup.showFullLineError")
+                override fun isEnabled(): Boolean = config.hideOriginalScrollBar
+                override fun isAlwaysVisible(): Boolean = true
+                override fun isSelected(): Boolean = config.showFullLineError
+                override fun setSelected(selected: Boolean) {
+                    config.showFullLineError = selected
                 }
             }),
             DumbAwareToggleOptionAction(object : ToggleOptionAction.Option {

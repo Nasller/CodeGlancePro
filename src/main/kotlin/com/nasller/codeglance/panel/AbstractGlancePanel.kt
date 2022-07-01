@@ -3,7 +3,6 @@ package com.nasller.codeglance.panel
 import com.intellij.codeHighlighting.HighlightDisplayLevel
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.fileEditor.TextEditor
@@ -85,18 +84,17 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
 
     abstract fun paintSelection(g: Graphics2D, startByte: Int, endByte: Int)
 
-    abstract fun paintCaretPosition(g: Graphics2D): MutableList<VisualPosition>
+    abstract fun paintCaretPosition(g: Graphics2D)
 
-    abstract fun paintOtherHighlight(g: Graphics2D,allCarets:List<VisualPosition>)
+    abstract fun paintOtherHighlight(g: Graphics2D)
 
-    abstract fun paintErrorStripes(g: Graphics2D,allCarets:List<VisualPosition>)
+    abstract fun paintErrorStripes(g: Graphics2D)
 
-    private fun paintCaretsOrSelections(g: Graphics2D) : List<VisualPosition> {
+    private fun paintCaretsOrSelections(g: Graphics2D){
         return if(editor.selectionModel.hasSelection()){
             for ((index, start) in editor.selectionModel.blockSelectionStarts.withIndex()) {
                 paintSelection(g, start, editor.selectionModel.blockSelectionEnds[index])
             }
-            emptyList()
         }else{
             paintCaretPosition(g)
         }
@@ -141,9 +139,9 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         }
         val graphics2D = gfx as Graphics2D
         vcsRenderService?.paintVcs(this,graphics2D,config.hideOriginalScrollBar)
-        val allCarets = paintCaretsOrSelections(graphics2D)
-        paintOtherHighlight(graphics2D,allCarets)
-        paintErrorStripes(graphics2D,allCarets)
+        paintCaretsOrSelections(graphics2D)
+        paintOtherHighlight(graphics2D)
+        paintErrorStripes(graphics2D)
         graphics2D.composite = srcOver0_8
         graphics2D.drawImage(buf, 0, 0, null)
         scrollbar?.paint(graphics2D)
@@ -155,9 +153,9 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
             gfx.drawImage(this,0, 0, width, height, 0, 0, width, height,null)
         }
         vcsRenderService?.paintVcs(this,gfx,config.hideOriginalScrollBar)
-        val allCarets = paintCaretsOrSelections(gfx)
-        paintOtherHighlight(gfx,allCarets)
-        paintErrorStripes(gfx,allCarets)
+        paintCaretsOrSelections(gfx)
+        paintOtherHighlight(gfx)
+        paintErrorStripes(gfx)
         scrollbar?.paint(gfx)
     }
 
@@ -187,6 +185,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         const val maxWidth = 250
         val CLEAR: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.CLEAR)
         val srcOver0_4: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.40f)
+        val srcOver0_6: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.60f)
         val srcOver0_8: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
         val srcOver: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
         val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
