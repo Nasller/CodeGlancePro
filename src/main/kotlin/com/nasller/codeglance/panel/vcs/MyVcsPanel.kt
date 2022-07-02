@@ -10,7 +10,7 @@ import javax.swing.JPanel
 
 class MyVcsPanel(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 	val editor = glancePanel.editor
-	private val myVcsListener = MyVcsListener(this)
+	private val myVcsListener = MyVcsListener(this,glancePanel)
 	init{
 		glancePanel.vcsRenderService?.let {
 			val mouseHandler = it.getMouseHandle(glancePanel,this)

@@ -38,7 +38,6 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 
 		val text = editor.document.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground
-		val line = editor.document.createLineIterator()
 		val hlIter = editor.highlighter.createIterator(0)
 		val softWrapEnable = editor.softWrapModel.isSoftWrappingEnabled
 
@@ -61,8 +60,7 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		g.fillRect(0, 0, curImg.width, curImg.height)
 		loop@ while (!hlIter.atEnd()) {
 			val start = hlIter.start
-			line.start(start)
-			y = (line.lineNumber + softWrapLines - foldedLines) * config.pixelsPerLine
+			y = (editor.document.getLineNumber(start) + softWrapLines - foldedLines) * config.pixelsPerLine
 			val region = editor.foldingModel.getCollapsedRegionAtOffset(start)
 			if (region != null && region !is CustomFoldRegionImpl) {
 				if(region.placeholderText.isNotBlank()) {
@@ -84,7 +82,7 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 				for(offset in start until hlIter.end){
 					// Watch out for tokens that extend past the document... bad plugins? see issue #138
 					if (offset >= text.length) break@loop
-					if (softWrapEnable) editor.softWrapModel.getSoftWrap(offset)?.let { softWrap ->
+					if (softWrapEnable && offset == start) editor.softWrapModel.getSoftWrap(offset)?.let { softWrap ->
 						softWrap.chars.forEach {
 							val charCode = it.code
 							moveCharIndex(charCode)

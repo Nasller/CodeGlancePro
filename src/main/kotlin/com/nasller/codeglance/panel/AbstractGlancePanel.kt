@@ -63,17 +63,17 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         }
     }
 
-    fun updateImage(directUpdate: Boolean = false, consumer: (() -> Unit)? = null) {
-        if (shouldNotUpdate() || !renderLock.acquire()) return
-        val runnable = {
-            consumer?.invoke()
-            updateImgTask()
-        }
-        if(directUpdate) runnable()
-        else ApplicationManager.getApplication().invokeLater(runnable)
-    }
+    fun updateImage(directUpdate: Boolean = false, consumer: (() -> Unit)? = null) =
+        if (shouldUpdate() && renderLock.acquire()) {
+            val runnable = {
+                consumer?.invoke()
+                updateImgTask()
+            }
+            if (directUpdate) runnable()
+            else ApplicationManager.getApplication().invokeLater(runnable)
+        } else Unit
 
-    fun shouldNotUpdate() = isDisabled || project.isDisposed || (!config.hoveringToShowScrollBar && !isVisible)
+    fun shouldUpdate() = !(isDisabled || (!config.hoveringToShowScrollBar && !isVisible) || project.isDisposed)
 
     fun updateScrollState(){
         scrollState.computeDimensions(this)
@@ -109,7 +109,6 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     }
 
     override fun paint(gfx: Graphics) {
-        if(shouldNotUpdate()) return
         if (renderLock.locked) return paintLast(gfx as Graphics2D)
         val img = getDrawImage() ?: return
         if (buf == null || buf?.width!! < width || buf?.height!! < height) {

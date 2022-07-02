@@ -57,32 +57,34 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
     override fun beforeRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter)
 
-    private fun updateRangeHighlight(highlighter: RangeHighlighterEx) =
-        if (EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(glancePanel.editor.colorsScheme)) &&
-            !glancePanel.shouldNotUpdate()) alarm.cancelAndRequest()
-        else Unit
+    private fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
+        if (EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(glancePanel.editor.colorsScheme))
+            && glancePanel.shouldUpdate()) alarm.cancelAndRequest()
+    }
 
     /** CaretListener */
-    override fun caretPositionChanged(event: CaretEvent) = glancePanel.repaint()
+    override fun caretPositionChanged(event: CaretEvent) = repaint()
 
-    override fun caretAdded(event: CaretEvent) = glancePanel.repaint()
+    override fun caretAdded(event: CaretEvent) = repaint()
 
-    override fun caretRemoved(event: CaretEvent) = glancePanel.repaint()
+    override fun caretRemoved(event: CaretEvent) = repaint()
 
     /** SelectionListener */
-    override fun selectionChanged(e: SelectionEvent) = glancePanel.repaint()
+    override fun selectionChanged(e: SelectionEvent) = repaint()
 
     /** ComponentAdapter */
     override fun componentResized(componentEvent: ComponentEvent) {
-        glancePanel.updateScrollState()
-        glancePanel.repaint()
+        if (glancePanel.shouldUpdate()) {
+            glancePanel.updateScrollState()
+            glancePanel.repaint()
+        }
     }
 
     /** PrioritizedDocumentListener */
     override fun documentChanged(event: DocumentEvent) {
         if(!event.document.isInBulkUpdate) {
             if(event.document.lineCount > glancePanel.config.moreThanLineDelay) {
-                if(!glancePanel.shouldNotUpdate()) alarm.cancelAndRequest()
+                if(glancePanel.shouldUpdate()) alarm.cancelAndRequest()
             } else glancePanel.updateImage()
         }
     }
@@ -107,18 +109,27 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
     /** VisibleAreaListener */
     override fun visibleAreaChanged(e: VisibleAreaEvent) {
-        glancePanel.scrollState.recomputeVisible(e.newRectangle)
-        glancePanel.repaint()
+        if(glancePanel.shouldUpdate()){
+            glancePanel.scrollState.recomputeVisible(e.newRectangle)
+            glancePanel. repaint()
+        }
     }
 
     /** HierarchyBoundsListener */
     override fun ancestorMoved(e: HierarchyEvent) {}
 
-    override fun ancestorResized(e: HierarchyEvent) = glancePanel.refresh(false)
+    override fun ancestorResized(e: HierarchyEvent) {
+        if(glancePanel.shouldUpdate()) glancePanel.refresh(false)
+    }
 
     /** HierarchyListener */
-    override fun hierarchyChanged(e: HierarchyEvent) = if(e.changeFlags == HierarchyEvent.PARENT_CHANGED.toLong())
-        glancePanel.refresh(false) else Unit
+    override fun hierarchyChanged(e: HierarchyEvent) {
+        if(e.changeFlags == HierarchyEvent.PARENT_CHANGED.toLong() && glancePanel.shouldUpdate()) glancePanel.refresh(false)
+    }
+
+    private fun repaint() {
+        if(glancePanel.shouldUpdate()) glancePanel.repaint()
+    }
 
     override fun dispose() {
         glancePanel.removeHierarchyListener(this)
@@ -128,12 +139,16 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 }
 
 class GlanceOtherListener(private val glancePanel: GlancePanel) : MarkupModelListener {
-    override fun afterAdded(highlighter: RangeHighlighterEx) = if(isAvailable(highlighter)) glancePanel.repaint() else Unit
+    override fun afterAdded(highlighter: RangeHighlighterEx) = repaint(highlighter)
 
-    override fun beforeRemoved(highlighter: RangeHighlighterEx) = if(isAvailable(highlighter)) glancePanel.repaint() else Unit
+    override fun beforeRemoved(highlighter: RangeHighlighterEx) = repaint(highlighter)
 
     override fun attributesChanged(highlighter: RangeHighlighterEx, renderersChanged: Boolean,
-        fontStyleChanged: Boolean, foregroundColorChanged: Boolean) = if(isAvailable(highlighter)) glancePanel.repaint() else Unit
+        fontStyleChanged: Boolean, foregroundColorChanged: Boolean) = repaint(highlighter)
 
-    private fun isAvailable(highlighter: RangeHighlighterEx):Boolean = highlighter.getErrorStripeMarkColor(glancePanel.editor.colorsScheme) != null
+    private fun repaint(highlighter: RangeHighlighterEx) {
+        if(highlighter.getErrorStripeMarkColor(glancePanel.editor.colorsScheme) != null && glancePanel.shouldUpdate()){
+            glancePanel.repaint()
+        }
+    }
 }
