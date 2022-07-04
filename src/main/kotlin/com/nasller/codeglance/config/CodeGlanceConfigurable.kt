@@ -27,7 +27,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 						.bindSelected(config::disabled) { config.disabled = it } },
 					{ checkBox(message("settings.hide.original.scrollbar"))
 						.bindSelected(config::hideOriginalScrollBar) { config.hideOriginalScrollBar = it } }
-				)
+				).bottomGap(BottomGap.SMALL)
 				val scrollListener: (e: MouseWheelEvent) -> Unit = {
 					val comboBox = it.source as JComboBox<*>
 					comboBox.setSelectedIndex(max(0, min(comboBox.selectedIndex + it.wheelRotation, comboBox.itemCount - 1)))
