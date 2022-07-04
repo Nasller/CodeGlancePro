@@ -46,7 +46,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
 
     fun refresh(refreshImage:Boolean = true) {
         updateSize()
-        if(refreshImage) updateImage(false,::updateScrollState)
+        if(refreshImage) updateImage(directUpdate = false, updateScroll = true)
         else repaint()
         revalidate()
     }
@@ -63,14 +63,10 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         }
     }
 
-    fun updateImage(directUpdate: Boolean = false, consumer: (() -> Unit)? = null) =
+    fun updateImage(directUpdate: Boolean = false, updateScroll:Boolean = false) =
         if (shouldUpdate() && renderLock.acquire()) {
-            val runnable = {
-                consumer?.invoke()
-                updateImgTask()
-            }
-            if (directUpdate) runnable()
-            else ApplicationManager.getApplication().invokeLater(runnable)
+            if (directUpdate) updateImgTask(updateScroll)
+            else ApplicationManager.getApplication().invokeLater{ updateImgTask(updateScroll) }
         } else Unit
 
     fun shouldUpdate() = !(isDisabled || (!config.hoveringToShowScrollBar && !isVisible) || project.isDisposed)
@@ -80,7 +76,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
     }
 
-    protected abstract fun updateImgTask()
+    protected abstract fun updateImgTask(updateScroll:Boolean = false)
 
     abstract fun Graphics2D.paintSelection()
 

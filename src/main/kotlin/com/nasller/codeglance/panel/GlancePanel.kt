@@ -59,8 +59,9 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
         isVisible = true
     }
 
-    override fun updateImgTask() {
+    override fun updateImgTask(updateScroll:Boolean) {
         try {
+            if(updateScroll) updateScrollState()
             mapRef.get(ScaleContext.create(this)).update()
         } finally {
             renderLock.release()
