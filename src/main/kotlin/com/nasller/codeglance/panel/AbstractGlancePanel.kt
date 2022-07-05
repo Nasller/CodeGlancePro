@@ -89,8 +89,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     fun getDocumentRenderLine(lineStart:Int,lineEnd:Int):Pair<Int,Int>{
         var startAdd = 0
         var endAdd = 0
-        editor.foldingModel.allFoldRegions.filter{ !it.isExpanded && it is CustomFoldRegionImpl &&
-                it.startOffset >= 0 && it.endOffset >= 0}.forEach {
+        editor.foldingModel.allFoldRegions.filter{ !it.isExpanded && it is CustomFoldRegionImpl }.forEach {
             val start = it.document.getLineNumber(it.startOffset)
             val end = it.document.getLineNumber(it.endOffset)
             val i = end - start

@@ -86,9 +86,7 @@ class ScrollBar(
     private fun getDocumentRenderLine(visualLine:Int):Int{
         var add = 0
         val line = editor.visualToLogicalPosition(VisualPosition(visualLine,0)).line
-        editor.foldingModel.allFoldRegions.filter{ it.startOffset >= 0 && it.endOffset >= 0
-            !it.isExpanded && it is CustomFoldRegionImpl
-        }.forEach {
+        editor.foldingModel.allFoldRegions.filter{ !it.isExpanded && it is CustomFoldRegionImpl }.forEach {
             val end = it.document.getLineNumber(it.endOffset)
             val i = end - it.document.getLineNumber(it.startOffset)
             if (end < line) {

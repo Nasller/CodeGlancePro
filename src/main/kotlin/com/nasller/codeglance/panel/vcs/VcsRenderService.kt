@@ -35,9 +35,13 @@ class VcsRenderService(project: Project) {
 		override fun mouseMoved(e: MouseEvent) {
 			glancePanel.vcsRenderService?.let{
 				it.trackerManager.getLineStatusTracker(glancePanel.editor.document)?.run {
-					val logicalPosition = glancePanel.editor.visualToLogicalPosition(
-						VisualPosition((e.y + glancePanel.scrollState.visibleStart) / glancePanel.config.pixelsPerLine, 0))
-					val range = getRangeForLine(logicalPosition.line)
+					val visualPosition = VisualPosition((e.y + glancePanel.scrollState.visibleStart) / glancePanel.config.pixelsPerLine, 0)
+					val logicalPosition = glancePanel.editor.visualToLogicalPosition(visualPosition)
+					val range = getRangeForLine(logicalPosition.line) ?: getNextRange(logicalPosition.line)?.let { range ->
+						if(glancePanel.editor.logicalToVisualPosition(LogicalPosition(range.line1,0)).line == visualPosition.line &&
+							glancePanel.editor.foldingModel.isOffsetCollapsed(glancePanel.editor.document.getLineStartOffset(range.line1)))range
+						else null
+					}
 					if(range != null && (range !is LocalRange || range.changelistId == it.changeListManager.defaultChangeList.id)){
 						myVcsPanel.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
 						hoverVcsRange = range
@@ -59,10 +63,8 @@ class VcsRenderService(project: Project) {
 		if(notPaint) return
 		glancePanel.run {
 			trackerManager.getLineStatusTracker(editor.document)?.getRanges()?.run {
-				val srcOver = if(config.hideOriginalScrollBar) AbstractGlancePanel.srcOver else AbstractGlancePanel.srcOver0_4
-				g.composite = srcOver
-				val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> fold !is CustomFoldRegionImpl && !fold.isExpanded &&
-						fold.startOffset >= 0 && fold.endOffset >= 0 }
+				g.composite = if(config.hideOriginalScrollBar) AbstractGlancePanel.srcOver else AbstractGlancePanel.srcOver0_4
+				val foldRegions = editor.foldingModel.allFoldRegions.filter { fold -> fold !is CustomFoldRegionImpl && !fold.isExpanded }
 				forEach {
 					if (it !is LocalRange || it.changelistId == changeListManager.defaultChangeList.id) {
 						try {
