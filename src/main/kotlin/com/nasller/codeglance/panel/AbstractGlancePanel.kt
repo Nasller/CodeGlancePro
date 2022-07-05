@@ -9,7 +9,6 @@ import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
-import com.intellij.openapi.vfs.PersistentFSConstants
 import com.intellij.util.ObjectUtils
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.concurrent.DirtyLock
@@ -32,8 +31,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     protected val renderLock = DirtyLock()
     private val panelParent = textEditor.editor.component as JPanel
     val isDisabled: Boolean
-        get() = config.disabled || editor.virtualFile.length > PersistentFSConstants.getMaxIntellisenseFileSize() ||
-                editor.document.lineCount > config.maxLinesCount
+        get() = config.disabled || editor.document.lineCount > config.maxLinesCount
     private var buf: BufferedImage? = null
     var scrollbar: ScrollBar? = null
     var myVcsPanel: MyVcsPanel? = null
@@ -42,6 +40,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         isOpaque = false
         panelParent.isOpaque = false
         layout = BorderLayout()
+        changeVisible()
     }
 
     fun refresh(refreshImage:Boolean = true) {
@@ -52,9 +51,7 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     }
 
     private fun updateSize() {
-        preferredSize = if (isDisabled) {
-            Dimension(0, 0)
-        } else {
+        preferredSize = run{
             var calWidth = panelParent.width / 12
             calWidth = if(fileEditorManagerEx.isInSplitter && calWidth < config.width){
                 if (calWidth < 20) 20 else calWidth
@@ -69,7 +66,11 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
             else ApplicationManager.getApplication().invokeLater{ updateImgTask(updateScroll) }
         } else Unit
 
-    fun shouldUpdate() = !(isDisabled || (!config.hoveringToShowScrollBar && !isVisible) || project.isDisposed)
+    fun shouldUpdate() = !((!config.hoveringToShowScrollBar && !isVisible) || project.isDisposed)
+
+    fun changeVisible(){
+        isVisible = !isDisabled
+    }
 
     fun updateScrollState(){
         scrollState.computeDimensions(this)
@@ -149,11 +150,11 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
     }
 
     fun changeOriginScrollBarWidth(){
-        if (config.hideOriginalScrollBar && !isDisabled && isVisible) {
-            myVcsPanel?.apply { preferredSize = Dimension(MyVcsPanel.vcsWidth, preferredSize.height) }
+        if (config.hideOriginalScrollBar && isVisible) {
+            myVcsPanel?.apply { isVisible = true }
             editor.scrollPane.verticalScrollBar.apply { preferredSize = Dimension(0, preferredSize.height) }
         }else{
-            myVcsPanel?.apply { preferredSize = Dimension(0, preferredSize.height) }
+            myVcsPanel?.apply { isVisible = false }
             editor.scrollPane.verticalScrollBar.apply { preferredSize = Dimension(originalScrollbarWidth, preferredSize.height) }
         }
     }

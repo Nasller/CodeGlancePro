@@ -95,8 +95,10 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
     /** SettingsChangeListener */
     override fun onRefreshChanged() {
+        glancePanel.changeVisible()
         glancePanel.refresh()
         glancePanel.changeOriginScrollBarWidth()
+        if(glancePanel.isDisabled) glancePanel.config.hoveringToShowScrollBar = false
     }
 
     override fun onHoveringOriginalScrollBarChanged(value:Boolean) {

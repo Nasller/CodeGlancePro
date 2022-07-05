@@ -31,7 +31,7 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
         val actionGroup = DefaultActionGroup(
             DumbAwareToggleOptionAction(object : ToggleOptionAction.Option {
                 override fun getName(): String = message("popup.hover.minimap")
-                override fun isEnabled(): Boolean = config.isRightAligned
+                override fun isEnabled(): Boolean = config.isRightAligned && !config.disabled
                 override fun isAlwaysVisible(): Boolean = true
                 override fun isSelected(): Boolean = config.hoveringToShowScrollBar
                 override fun setSelected(selected: Boolean) {

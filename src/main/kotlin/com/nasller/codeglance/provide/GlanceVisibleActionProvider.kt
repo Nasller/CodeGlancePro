@@ -21,7 +21,7 @@ private class GlanceVisibleActionProvider : InspectionWidgetActionProvider {
 		return object : DefaultActionGroup(ToggleVisibleAction(editor)) {
 			override fun update(e: AnActionEvent) {
 				e.presentation.isEnabledAndVisible = editor.getUserData(CURRENT_GLANCE)?.run {
-					config.singleFileVisibleButton && !isDisabled
+					config.singleFileVisibleButton
 				} ?: false
 			}
 		}
@@ -37,13 +37,12 @@ private class GlanceVisibleActionProvider : InspectionWidgetActionProvider {
 			}
 
 		override fun isSelected(e: AnActionEvent): Boolean {
-			return !(editor.getUserData(CURRENT_GLANCE)?.isVisible?:true)
+			return editor.getUserData(CURRENT_GLANCE)?.isVisible?:true
 		}
 
 		override fun setSelected(e: AnActionEvent, state: Boolean) {
 			editor.getUserData(CURRENT_GLANCE)?.apply{
-				isVisible = !state
-				myVcsPanel?.let { it.isVisible = isVisible }
+				isVisible = state
 				changeOriginScrollBarWidth()
 				updateImage()
 			}
@@ -52,7 +51,7 @@ private class GlanceVisibleActionProvider : InspectionWidgetActionProvider {
 		override fun update(e: AnActionEvent) {
 			super.update(e)
 			val presentation = e.presentation
-			if(isSelected(e)){
+			if(!isSelected(e)){
 				presentation.text = message("glance.visible.show")
 				presentation.icon = CodeGlanceIcons.GlanceShow
 			}else {

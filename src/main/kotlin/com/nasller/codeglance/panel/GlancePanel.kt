@@ -33,7 +33,6 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
 
     fun addHideScrollBarListener(){
         if(config.hoveringToShowScrollBar){
-            ApplicationManager.getApplication().invokeLater { isVisible = false }
             if(!config.hideOriginalScrollBar){
                 editor.scrollPane.verticalScrollBar.addMouseListener(hideScrollBarListener)
                 editor.scrollPane.verticalScrollBar.addMouseMotionListener(hideScrollBarListener)
@@ -41,6 +40,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
                 myVcsPanel?.addMouseListener(hideScrollBarListener)
                 myVcsPanel?.addMouseMotionListener(hideScrollBarListener)
             }
+            ApplicationManager.getApplication().invokeLater { changeVisible() }
         }
     }
 
@@ -56,7 +56,7 @@ class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePane
             cancel()
             showHideOriginScrollBar(true)
         }
-        isVisible = true
+        changeVisible()
     }
 
     override fun updateImgTask(updateScroll:Boolean) {

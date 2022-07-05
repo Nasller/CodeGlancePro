@@ -61,6 +61,7 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
                     panel.add(myPanel, where)
                     val glancePanel = if(myPanel is MyPanel) myPanel.panel else myPanel as AbstractGlancePanel
                     glancePanel.originalScrollbarWidth = start?:end?:0
+                    glancePanel.changeOriginScrollBarWidth()
                     glancePanel.updateImage()
                 }
             }
@@ -84,7 +85,6 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         return oldGlancePanel?.let {
             parent.remove(this)
             Disposer.dispose(it)
-            it.changeOriginScrollBarWidth()
             it.originalScrollbarWidth
         }
     }
