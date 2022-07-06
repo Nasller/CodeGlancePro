@@ -30,10 +30,10 @@ import kotlin.math.roundToInt
 
 class ScrollBar(
     private val glancePanel: GlancePanel,
-    private val editor: EditorImpl = glancePanel.editor as EditorImpl
 ) : JPanel(), Disposable {
     var hovering = false
     private val config = glancePanel.config
+    private val editor = glancePanel.editor
     private val scrollState = glancePanel.scrollState
     private val myEditorFragmentRenderer = CustomEditorFragmentRenderer(editor)
     private val notReaderMode = !matchMode(glancePanel.project, editor.virtualFile, editor)

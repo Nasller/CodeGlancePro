@@ -5,7 +5,7 @@ import java.awt.Rectangle
 import kotlin.math.min
 
 class ScrollState {
-    var scale: Double = 0.0
+    var scale: Float = 0F
         private set
 
     var documentHeight: Int = 0
@@ -27,9 +27,9 @@ class ScrollState {
     var viewportHeight: Int = 0
         private set
 
-    fun computeDimensions(glancePanel: AbstractGlancePanel) {
-        scale = glancePanel.config.pixelsPerLine.toDouble() / glancePanel.editor.lineHeight
-        documentHeight = (glancePanel.editor.contentComponent.height * scale).toInt()
+    fun AbstractGlancePanel.computeDimensions() {
+        scale = config.pixelsPerLine.toFloat() / editor.lineHeight
+        documentHeight = (editor.contentComponent.height * scale).toInt()
     }
 
     fun recomputeVisible(visibleArea: Rectangle) {
@@ -39,7 +39,7 @@ class ScrollState {
         viewportStart = (visibleArea.y * scale).toInt()
         viewportHeight = (visibleArea.height * scale).toInt()
 
-        visibleStart = ((viewportStart.toDouble() / (documentHeight - viewportHeight + 1)) * (documentHeight - visibleHeight + 1)).toInt().coerceAtLeast(0)
+        visibleStart = ((viewportStart.toFloat() / (documentHeight - viewportHeight + 1)) * (documentHeight - visibleHeight + 1)).toInt().coerceAtLeast(0)
         visibleEnd = visibleStart + drawHeight
     }
 }

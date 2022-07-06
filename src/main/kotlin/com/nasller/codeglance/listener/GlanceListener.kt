@@ -110,10 +110,10 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     }
 
     /** VisibleAreaListener */
-    override fun visibleAreaChanged(e: VisibleAreaEvent) {
-        if(glancePanel.shouldUpdate()){
-            glancePanel.scrollState.recomputeVisible(e.newRectangle)
-            glancePanel.repaint()
+    override fun visibleAreaChanged(e: VisibleAreaEvent)  = glancePanel.run {
+        if(shouldUpdate()){
+            scrollState.recomputeVisible(e.newRectangle)
+            repaint()
         }
     }
 

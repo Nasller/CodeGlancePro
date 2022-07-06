@@ -3,8 +3,8 @@ package com.nasller.codeglance.panel
 import com.intellij.codeHighlighting.HighlightDisplayLevel
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
+import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
@@ -22,7 +22,7 @@ import java.awt.image.BufferedImage
 import javax.swing.JPanel
 
 sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) : JPanel(),Disposable {
-    val editor = textEditor.editor as EditorEx
+    val editor = textEditor.editor as EditorImpl
     val config = ConfigInstance.state
     val scrollState = ScrollState()
     val vcsRenderService: VcsRenderService? = project.getService(VcsRenderService::class.java)
@@ -72,9 +72,9 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         isVisible = !isDisabled
     }
 
-    fun updateScrollState(){
-        scrollState.computeDimensions(this)
-        scrollState.recomputeVisible(editor.scrollingModel.visibleArea)
+    fun updateScrollState() = scrollState.run{
+        computeDimensions()
+        recomputeVisible(editor.scrollingModel.visibleArea)
     }
 
     protected abstract fun updateImgTask(updateScroll:Boolean = false)
