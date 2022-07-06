@@ -43,9 +43,9 @@ sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) :
         changeVisible()
     }
 
-    fun refresh(refreshImage:Boolean = true) {
+    fun refresh(refreshImage:Boolean = true,directUpdate:Boolean = false) {
         updateSize()
-        if(refreshImage) updateImage(directUpdate = false, updateScroll = true)
+        if(refreshImage) updateImage(directUpdate, updateScroll = true)
         else repaint()
         revalidate()
     }
