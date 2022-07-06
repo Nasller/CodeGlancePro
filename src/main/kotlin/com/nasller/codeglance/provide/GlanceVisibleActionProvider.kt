@@ -43,7 +43,7 @@ private class GlanceVisibleActionProvider : InspectionWidgetActionProvider {
 		override fun setSelected(e: AnActionEvent, state: Boolean) {
 			editor.getUserData(CURRENT_GLANCE)?.apply{
 				isVisible = state
-				refresh(true, directUpdate = true)
+				if(isVisible) refresh(true, directUpdate = true)
 				changeOriginScrollBarWidth()
 			}
 		}
