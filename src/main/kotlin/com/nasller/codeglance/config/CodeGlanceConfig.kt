@@ -11,6 +11,7 @@ class CodeGlanceConfig {
     var disabled by Delegates.observable(false) { _, oldValue, newValue ->
         if (oldValue != newValue) {
             SettingsChangePublisher.onRefreshChanged()
+            if(newValue) hoveringToShowScrollBar = false
         }
     }
     var singleFileVisibleButton = true

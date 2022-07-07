@@ -148,7 +148,7 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
     }
 
     fun changeOriginScrollBarWidth(){
-        if (config.hideOriginalScrollBar && isVisible) {
+        if (config.hideOriginalScrollBar && (!isDisabled || isVisible)) {
             myVcsPanel?.apply { isVisible = true }
             editor.scrollPane.verticalScrollBar.apply { preferredSize = Dimension(0, preferredSize.height) }
         }else{

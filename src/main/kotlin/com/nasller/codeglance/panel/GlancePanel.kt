@@ -1,7 +1,6 @@
 package com.nasller.codeglance.panel
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.RangeHighlighter
@@ -40,7 +39,7 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
                 myVcsPanel?.addMouseListener(hideScrollBarListener)
                 myVcsPanel?.addMouseMotionListener(hideScrollBarListener)
             }
-            ApplicationManager.getApplication().invokeLater { changeVisible() }
+            isVisible = false
         }
     }
 
