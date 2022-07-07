@@ -27,6 +27,7 @@
 		<h3>1.4.4</h3>
 		<ul>
 			<li>Change disabled to disabled by default</li>
+			<li>fix sync theme with IDE:<a href="https://github.com/Nasller/CodeGlancePro/issues/36">#36</a></li>
 		</ul>
 		<h3>1.4.3</h3>
 		<ul>
