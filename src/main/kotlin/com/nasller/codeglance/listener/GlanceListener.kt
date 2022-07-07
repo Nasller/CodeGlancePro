@@ -17,7 +17,7 @@ import java.awt.event.*
 
 class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(), FoldingListener, MarkupModelListener,
     SettingsChangeListener, CaretListener, PrioritizedDocumentListener, VisibleAreaListener, SelectionListener,
-    HierarchyBoundsListener, HierarchyListener, SoftWrapChangeListener,Disposable {
+    HierarchyBoundsListener, HierarchyListener, SoftWrapChangeListener, Disposable {
     private var softWrapEnabled = false
     private val alarm = SingleAlarm({ glancePanel.updateImage(true) }, 500, glancePanel)
     init {
@@ -101,13 +101,8 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
         if(glancePanel.isDisabled) glancePanel.config.hoveringToShowScrollBar = false
     }
 
-    override fun onHoveringOriginalScrollBarChanged(value:Boolean) {
-        if(value){
-            glancePanel.addHideScrollBarListener()
-        }else{
-            glancePanel.removeHideScrollBarListener()
-        }
-    }
+    override fun onHoveringOriginalScrollBarChanged(value:Boolean) = if(value) glancePanel.addHideScrollBarListener()
+    else glancePanel.removeHideScrollBarListener()
 
     /** VisibleAreaListener */
     override fun visibleAreaChanged(e: VisibleAreaEvent)  = glancePanel.run {

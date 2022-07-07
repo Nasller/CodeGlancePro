@@ -5,7 +5,6 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.editor.impl.EditorImpl
-import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
@@ -21,15 +20,14 @@ import java.awt.*
 import java.awt.image.BufferedImage
 import javax.swing.JPanel
 
-sealed class AbstractGlancePanel(val project: Project, textEditor: TextEditor) : JPanel(),Disposable {
-    val editor = textEditor.editor as EditorImpl
+sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JPanel(),Disposable {
     val config = ConfigInstance.state
     val scrollState = ScrollState()
     val vcsRenderService: VcsRenderService? = project.getService(VcsRenderService::class.java)
     val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
     var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
     protected val renderLock = DirtyLock()
-    private val panelParent = textEditor.editor.component as JPanel
+    private val panelParent = editor.component
     val isDisabled: Boolean
         get() = config.disabled || editor.document.lineCount > config.maxLinesCount
     private var buf: BufferedImage? = null

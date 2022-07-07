@@ -1,5 +1,7 @@
 package com.nasller.codeglance
 
+import com.intellij.ide.ui.LafManager
+import com.intellij.ide.ui.LafManagerListener
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.impl.EditorImpl
@@ -17,29 +19,29 @@ import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import java.awt.BorderLayout
 import java.awt.Component
-import javax.swing.JComponent
 import javax.swing.JPanel
 
-/**
- * Injects a panel into any newly created editors.
- */
-class EditorPanelInjector(private val project: Project) : FileEditorManagerListener,SettingsChangeListener{
+class EditorPanelInjector(private val project: Project) : FileEditorManagerListener,SettingsChangeListener, LafManagerListener {
     private val logger = Logger.getInstance(javaClass)
+    private var isFirstSetup = true
     private val config = ConfigInstance.state
     init{
-        ApplicationManager.getApplication().messageBus.connect(project).subscribe(SettingsChangeListener.TOPIC, this)
+        ApplicationManager.getApplication().messageBus.connect(project).let{
+            it.subscribe(SettingsChangeListener.TOPIC, this)
+            it.subscribe(LafManagerListener.TOPIC, this)
+        }
     }
 
+    /** FileEditorManagerListener */
     override fun fileOpened(fem: FileEditorManager, virtualFile: VirtualFile) {
         val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
-        for (editor in fem.getEditors(virtualFile).filterIsInstance<TextEditor>()) {
-            val panel = editor.editor.component as? JPanel ?: continue
-            val layout = panel.layout
-            if (layout is BorderLayout && editor.editor is EditorImpl && layout.getLayoutComponent(where) == null) {
+        for (textEditor in fem.getEditors(virtualFile).filterIsInstance<TextEditor>()) {
+            val editor = textEditor.editor as? EditorImpl
+            val layout = (editor?.component as? JPanel)?.layout
+            if (layout is BorderLayout && layout.getLayoutComponent(where) == null) {
                 val myPanel = getMyPanel(editor)
-                panel.add(myPanel, where)
-                val glancePanel = if(myPanel is MyPanel) myPanel.panel else myPanel as AbstractGlancePanel
-                glancePanel.changeOriginScrollBarWidth()
+                editor.component.add(myPanel, where)
+                myPanel.applyGlancePanel { changeOriginScrollBarWidth() }
             }
         }
     }
@@ -48,21 +50,34 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
 
     override fun fileClosed(source: FileEditorManager, file: VirtualFile) {}
 
+    /** SettingsChangeListener */
     override fun onGlobalChanged() {
         val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
+        processAllGlanceEditor{
+            it.component.remove(this)
+            val oldGlancePanel = applyGlancePanel { Disposer.dispose(this) }
+            val myPanel = getMyPanel(it)
+            it.component.add(myPanel, where)
+            myPanel.applyGlancePanel {
+                oldGlancePanel?.let{ glancePanel -> originalScrollbarWidth = glancePanel.originalScrollbarWidth }
+                changeOriginScrollBarWidth()
+                updateImage()
+            }
+        }
+    }
+
+    /** LafManagerListener */
+    override fun lookAndFeelChanged(source: LafManager) = if(isFirstSetup) isFirstSetup = false else {
+        processAllGlanceEditor{ applyGlancePanel{ refresh() } }
+    }
+
+    private fun processAllGlanceEditor(block: Component.(editor: EditorImpl)->Unit){
         try {
-            for (editor in FileEditorManager.getInstance(project).allEditors.filterIsInstance<TextEditor>()) {
-                val panel = editor.editor.component as? JPanel ?: continue
-                val layout = panel.layout
-                if (layout is BorderLayout && editor.editor is EditorImpl) {
-                    val start = layout.getLayoutComponent(BorderLayout.LINE_START)?.removeComponent(panel)
-                    val end = layout.getLayoutComponent(BorderLayout.LINE_END)?.removeComponent(panel)
-                    val myPanel = getMyPanel(editor)
-                    panel.add(myPanel, where)
-                    val glancePanel = if(myPanel is MyPanel) myPanel.panel else myPanel as AbstractGlancePanel
-                    glancePanel.originalScrollbarWidth = start?:end?:0
-                    glancePanel.changeOriginScrollBarWidth()
-                    glancePanel.updateImage()
+            for (textEditor in FileEditorManager.getInstance(project).allEditors.filterIsInstance<TextEditor>()) {
+                val editor = textEditor.editor as? EditorImpl
+                val layout = (editor?.component as? JPanel)?.layout
+                if (layout is BorderLayout) {
+                    (layout.getLayoutComponent(BorderLayout.LINE_END) ?: layout.getLayoutComponent(BorderLayout.LINE_START))?.block(editor)
                 }
             }
         }catch (e:Exception){
@@ -70,7 +85,7 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         }
     }
 
-    private fun getMyPanel(editor: TextEditor): JPanel {
+    private fun getMyPanel(editor: EditorImpl): JPanel {
         val glancePanel = GlancePanel(project, editor)
         val jPanel = if (config.hideOriginalScrollBar) MyPanel(glancePanel).apply {
             glancePanel.myVcsPanel = MyVcsPanel(glancePanel)
@@ -80,13 +95,10 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         return jPanel
     }
 
-    private fun Component.removeComponent(parent: JComponent): Int?{
-        val oldGlancePanel = if (this is MyPanel) panel else if(this is AbstractGlancePanel) this else null
-        return oldGlancePanel?.let {
-            parent.remove(this)
-            Disposer.dispose(it)
-            it.originalScrollbarWidth
-        }
+    private fun Component.applyGlancePanel(block: AbstractGlancePanel.()->Unit): AbstractGlancePanel?{
+        val glancePanel = if (this is MyPanel) panel else if (this is AbstractGlancePanel) this else null
+        glancePanel?.block()
+        return glancePanel
     }
 
     private class MyPanel(val panel: AbstractGlancePanel):JPanel(){

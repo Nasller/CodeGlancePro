@@ -3,8 +3,8 @@ package com.nasller.codeglance.panel
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.colors.EditorColors
+import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.RangeHighlighter
-import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.reference.SoftReference
@@ -18,13 +18,13 @@ import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.util.function.Function
 
-class GlancePanel(project: Project, textEditor: TextEditor) : AbstractGlancePanel(project,textEditor){
+class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(project,editor){
     private var mapRef = MinimapCache { MinimapRef(Minimap(this,scrollState)) }
     private val glanceListener = GlanceListener(this)
     val hideScrollBarListener = HideScrollBarListener(this)
     val myPopHandler = CustomScrollBarPopup(this)
     init {
-        Disposer.register(textEditor,this)
+        Disposer.register(editor.disposable,this)
         editor.putUserData(CURRENT_GLANCE,this)
         scrollbar = ScrollBar(this)
         add(scrollbar)
