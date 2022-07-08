@@ -77,7 +77,7 @@ class ScrollBar(
             }
             else -> {
                 visibleRectAlpha = DEFAULT_ALPHA
-                cursor = if(y < scrollState.drawHeight && notReaderMode) Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                cursor = if(y < scrollState.drawHeight) Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
                 else Cursor(Cursor.DEFAULT_CURSOR)
                 false
             }
@@ -115,7 +115,7 @@ class ScrollBar(
                     widthStart = glancePanel.width
                 }
                 isInRect(e.y) -> dragMove(e.y)
-                config.jumpOnMouseDown && notReaderMode -> {
+                config.jumpOnMouseDown -> {
                     jumpToLineAt(e.y)
                     editor.scrollingModel.runActionOnScrollingFinished {
                         updateAlpha(e.y)
@@ -153,7 +153,7 @@ class ScrollBar(
         }
 
         override fun mouseReleased(e: MouseEvent) {
-            if (!config.jumpOnMouseDown && notReaderMode && !dragging && !resizing && !e.isPopupTrigger) {
+            if (!config.jumpOnMouseDown && !dragging && !resizing && !e.isPopupTrigger) {
                 jumpToLineAt(e.y)
                 editor.scrollingModel.runActionOnScrollingFinished { updateAlpha(e.y) }
             }else updateAlpha(e.y)
