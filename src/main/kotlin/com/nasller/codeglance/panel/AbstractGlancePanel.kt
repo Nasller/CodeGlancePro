@@ -27,7 +27,6 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
     val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
     var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
     protected val renderLock = DirtyLock()
-    private val panelParent = editor.component
     val isDisabled: Boolean
         get() = config.disabled || editor.document.lineCount > config.maxLinesCount
     private var buf: BufferedImage? = null
@@ -36,7 +35,7 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
 
     init {
         isOpaque = false
-        panelParent.isOpaque = false
+        editor.component.isOpaque = false
         layout = BorderLayout()
         changeVisible()
     }
@@ -50,7 +49,7 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
 
     private fun updateSize() {
         preferredSize = run{
-            var calWidth = panelParent.width / 12
+            var calWidth = editor.component.width / 12
             calWidth = if(fileEditorManagerEx.isInSplitter && calWidth < config.width){
                 if (calWidth < 20) 20 else calWidth
             }else config.width
