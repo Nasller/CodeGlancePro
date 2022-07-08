@@ -211,15 +211,18 @@ class ScrollBar(
         }
 
         private fun jumpToLineAt(y: Int,action:()->Unit) {
+            hideMyEditorPreviewHint()
             val visualLine = (y + scrollState.visibleStart) / config.pixelsPerLine
             val renderLine = editor.visualToLogicalPosition(VisualPosition(visualLine, 0)).line.run{
                 glancePanel.getDocumentRenderLine(this, this)
             }
-            val line = fitLineToEditor(editor, visualLine - renderLine.first)
-            editor.caretModel.moveToVisualPosition(VisualPosition(line,0))
-            editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
-            hideMyEditorPreviewHint()
-            editor.scrollingModel.runActionOnScrollingFinished(action)
+            val checkLine = visualLine - renderLine.first
+            if(checkLine >= 0){
+                val line = fitLineToEditor(editor, checkLine)
+                editor.caretModel.moveToVisualPosition(VisualPosition(line,0))
+                editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
+                editor.scrollingModel.runActionOnScrollingFinished(action)
+            }else action()
         }
 
         private fun showToolTipByMouseMove(e: MouseEvent) {
