@@ -46,7 +46,7 @@ class VcsRenderService(project: Project) {
 						myVcsPanel.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
 						hoverVcsRange = range
 					}else{
-						myVcsPanel.cursor = Cursor(Cursor.DEFAULT_CURSOR)
+						myVcsPanel.cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
 						hoverVcsRange = null
 					}
 				}
@@ -54,7 +54,7 @@ class VcsRenderService(project: Project) {
 		}
 
 		override fun mouseExited(e: MouseEvent) {
-			myVcsPanel.cursor = Cursor(Cursor.DEFAULT_CURSOR)
+			myVcsPanel.cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
 			hoverVcsRange = null
 		}
 	}

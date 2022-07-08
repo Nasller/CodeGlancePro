@@ -26,9 +26,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-class ScrollBar(
-    private val glancePanel: GlancePanel,
-) : JPanel(), Disposable {
+class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
     var hovering = false
     private val config = glancePanel.config
     private val editor = glancePanel.editor
@@ -71,13 +69,13 @@ class ScrollBar(
         return when {
             isInRect(y) -> {
                 visibleRectAlpha = HOVER_ALPHA
-                cursor = Cursor(Cursor.DEFAULT_CURSOR)
+                cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
                 true
             }
             else -> {
                 visibleRectAlpha = DEFAULT_ALPHA
                 cursor = if(y < scrollState.drawHeight) Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-                else Cursor(Cursor.DEFAULT_CURSOR)
+                else Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
                 false
             }
         }
@@ -195,7 +193,7 @@ class ScrollBar(
                 MouseEventAdapter.redispatch(e, e.component.parent)
                 return
             }
-            val units: Int = e.unitsToScroll
+            val units = e.unitsToScroll
             if (units == 0) return
             if (myLastVisualLine < editor.visibleLineCount - 1 && units > 0 || myLastVisualLine > 0 && units < 0) {
                 myWheelAccumulator += units

@@ -66,9 +66,8 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 				if(region.placeholderText.isNotBlank()) {
 					(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor).apply(setColorRgba)
 					StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach {
-						val charCode = it.code
-						moveCharIndex(charCode)
-						curImg.renderImage(x, y, charCode, scaleBuffer)
+						moveCharIndex(it.code)
+						curImg.renderImage(x, y, it.code, scaleBuffer)
 					}
 				}
 				val endOffset = region.endOffset
@@ -80,13 +79,12 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 					hlIter.textAttributes.foregroundColor
 				} catch (_: ConcurrentModificationException){ null } }
 				for(offset in start until hlIter.end){
-					// Watch out for tokens that extend past the document... bad plugins? see issue #138
+					// Watch out for tokens that extend past the document
 					if (offset >= text.length) break@loop
-					if (softWrapEnable && offset == start) editor.softWrapModel.getSoftWrap(offset)?.let { softWrap ->
+					if (softWrapEnable) editor.softWrapModel.getSoftWrap(offset)?.let { softWrap ->
 						softWrap.chars.forEach {
-							val charCode = it.code
-							moveCharIndex(charCode)
-							if(charCode == ENTER) softWrapLines += 1
+							moveCharIndex(it.code)
+							if(it.code == ENTER) softWrapLines += 1
 						}
 					}
 					val charCode = text[offset].code
@@ -162,7 +160,7 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		val bottomWeight = getBottomWeight(char)
 		when (config.pixelsPerLine) {
 			1 -> // Can't show whitespace between lines anymore. This looks rather ugly...
-				setPixel(x, y + 1, ((topWeight + bottomWeight) / 2.0).toFloat(), buffer)
+				setPixel(x, y + 1, (topWeight + bottomWeight) / 2, buffer)
 			2 -> {
 				// Two lines we make the top line a little lighter to give the illusion of whitespace between lines.
 				setPixel(x, y, topWeight * 0.5f, buffer)
@@ -171,13 +169,13 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 			3 -> {
 				// Three lines we make the top nearly empty, and fade the bottom a little too
 				setPixel(x, y, topWeight * 0.3f, buffer)
-				setPixel(x, y + 1, ((topWeight + bottomWeight) / 2.0).toFloat(), buffer)
+				setPixel(x, y + 1, (topWeight + bottomWeight) / 2, buffer)
 				setPixel(x, y + 2, bottomWeight * 0.7f, buffer)
 			}
 			4 -> {
 				// Empty top line, Nice blend for everything else
 				setPixel(x, y + 1, topWeight, buffer)
-				setPixel(x, y + 2, ((topWeight + bottomWeight) / 2.0).toFloat(), buffer)
+				setPixel(x, y + 2, (topWeight + bottomWeight) / 2, buffer)
 				setPixel(x, y + 3, bottomWeight, buffer)
 			}
 		}
@@ -189,7 +187,7 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 	 * @param alpha     alpha percent from 0-1.
 	 */
 	private fun BufferedImage.setPixel(x: Int, y: Int, alpha: Float, scaleBuffer: FloatArray) {
-		if(alpha < 1) scaleBuffer[3] = alpha * 0xFF
+		scaleBuffer[3] = alpha * 0xFF
 		raster.setPixel(x, y, scaleBuffer)
 	}
 
