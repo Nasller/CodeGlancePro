@@ -239,7 +239,7 @@ class ScrollBar(
 
         private fun showToolTipByMouseMove(e: MouseEvent) {
             val y = e.y + myWheelAccumulator
-            val visualLine = fitLineToEditor(editor, ((y + scrollState.visibleStart) / config.pixelsPerLine))
+            val visualLine = fitLineToEditor(editor, (y + scrollState.visibleStart) / config.pixelsPerLine)
             myLastVisualLine = visualLine
             val point = SwingUtilities.convertPoint(
                 this@ScrollBar, 0,
