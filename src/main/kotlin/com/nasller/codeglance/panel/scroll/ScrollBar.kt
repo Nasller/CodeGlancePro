@@ -114,12 +114,9 @@ class ScrollBar(
                     widthStart = glancePanel.width
                 }
                 isInRect(e.y) -> dragMove(e.y)
-                config.jumpOnMouseDown -> {
-                    jumpToLineAt(e.y)
-                    editor.scrollingModel.runActionOnScrollingFinished {
-                        updateAlpha(e.y)
-                        dragMove(e.y)
-                    }
+                config.jumpOnMouseDown -> jumpToLineAt(e.y){
+                    updateAlpha(e.y)
+                    dragMove(e.y)
                 }
             }
         }
@@ -152,10 +149,9 @@ class ScrollBar(
         }
 
         override fun mouseReleased(e: MouseEvent) {
-            if (!config.jumpOnMouseDown && !dragging && !resizing && !e.isPopupTrigger) {
-                jumpToLineAt(e.y)
-                editor.scrollingModel.runActionOnScrollingFinished { updateAlpha(e.y) }
-            }else updateAlpha(e.y)
+            if (!config.jumpOnMouseDown && !dragging && !resizing && !e.isPopupTrigger)
+                jumpToLineAt(e.y){ updateAlpha(e.y) }
+            else updateAlpha(e.y)
             dragging = false
             resizing = false
             hideScrollBar(e)
@@ -214,7 +210,7 @@ class ScrollBar(
             }
         }
 
-        private fun jumpToLineAt(y: Int) {
+        private fun jumpToLineAt(y: Int,action:()->Unit) {
             val visualLine = (y + scrollState.visibleStart) / config.pixelsPerLine
             val renderLine = editor.visualToLogicalPosition(VisualPosition(visualLine, 0)).line.run{
                 glancePanel.getDocumentRenderLine(this, this)
@@ -223,6 +219,7 @@ class ScrollBar(
             editor.caretModel.moveToVisualPosition(VisualPosition(line,0))
             editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
             hideMyEditorPreviewHint()
+            editor.scrollingModel.runActionOnScrollingFinished(action)
         }
 
         private fun showToolTipByMouseMove(e: MouseEvent) {
