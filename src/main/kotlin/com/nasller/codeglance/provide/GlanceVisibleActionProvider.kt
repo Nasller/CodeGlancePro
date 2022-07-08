@@ -44,7 +44,7 @@ private class GlanceVisibleActionProvider : InspectionWidgetActionProvider {
 			editor.getUserData(CURRENT_GLANCE)?.apply{
 				isVisible = state
 				if(isVisible) refresh(true, directUpdate = true)
-				changeOriginScrollBarWidth()
+				changeOriginScrollBarWidth(isVisible)
 			}
 		}
 

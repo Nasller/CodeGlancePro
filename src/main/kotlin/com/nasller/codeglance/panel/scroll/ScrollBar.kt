@@ -1,8 +1,8 @@
 package com.nasller.codeglance.panel.scroll
 
-import com.intellij.codeInsight.actions.ReaderModeSettings.Companion.matchMode
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
+import com.intellij.codeInsight.documentation.render.DocRenderManager
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
@@ -15,7 +15,6 @@ import com.intellij.ui.HintHint
 import com.intellij.util.Alarm
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.MouseEventAdapter
-import com.nasller.codeglance.CodeGlancePlugin.Companion.DocRenderEnabled
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.*
@@ -36,7 +35,8 @@ class ScrollBar(
     private val editor = glancePanel.editor
     private val scrollState = glancePanel.scrollState
     private val myEditorFragmentRenderer = CustomEditorFragmentRenderer(editor)
-    private val notReaderMode = !matchMode(glancePanel.project, editor.virtualFile, editor)
+    private val notReaderMode
+        get() = !DocRenderManager.isDocRenderingEnabled(editor)
 
     private var visibleRectAlpha = DEFAULT_ALPHA
         set(value) {
@@ -77,7 +77,8 @@ class ScrollBar(
             }
             else -> {
                 visibleRectAlpha = DEFAULT_ALPHA
-                cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                cursor = if(y < scrollState.drawHeight && notReaderMode) Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                else Cursor(Cursor.DEFAULT_CURSOR)
                 false
             }
         }
@@ -114,7 +115,7 @@ class ScrollBar(
                     widthStart = glancePanel.width
                 }
                 isInRect(e.y) -> dragMove(e.y)
-                config.jumpOnMouseDown -> {
+                config.jumpOnMouseDown && notReaderMode -> {
                     jumpToLineAt(e.y)
                     editor.scrollingModel.runActionOnScrollingFinished {
                         updateAlpha(e.y)
@@ -148,11 +149,11 @@ class ScrollBar(
                     delta * (documentHeight - viewportHeight + 1) / (visibleHeight - viewportHeight)
                 }
                 editor.scrollPane.verticalScrollBar.value = (newPos / scrollState.scale).roundToInt()
-            }else if(e.y < scrollState.drawHeight) showMyEditorPreviewHint(e)
+            }else if(!config.jumpOnMouseDown) showMyEditorPreviewHint(e)
         }
 
         override fun mouseReleased(e: MouseEvent) {
-            if (!config.jumpOnMouseDown && !dragging && !resizing && !e.isPopupTrigger) {
+            if (!config.jumpOnMouseDown && notReaderMode && !dragging && !resizing && !e.isPopupTrigger) {
                 jumpToLineAt(e.y)
                 editor.scrollingModel.runActionOnScrollingFinished { updateAlpha(e.y) }
             }else updateAlpha(e.y)
@@ -166,15 +167,14 @@ class ScrollBar(
             val isInRect = updateAlpha(e.y)
             if (isInResizeGutter(e.x)) {
                 cursor = Cursor(Cursor.W_RESIZE_CURSOR)
-            } else if(!isInRect && !resizing && !dragging && e.y < scrollState.drawHeight){
-                if (showMyEditorPreviewHint(e)) return
+            } else if(!isInRect && !resizing && !dragging && showMyEditorPreviewHint(e)){
+                return
             }
             hideMyEditorPreviewHint()
         }
 
         private fun showMyEditorPreviewHint(e: MouseEvent): Boolean {
-            if (e.x > 10 && config.showEditorToolTip &&
-                ((if (DocRenderEnabled != null) !(editor.getUserData(DocRenderEnabled) ?: false) else true) || notReaderMode)) {
+            if (config.showEditorToolTip && notReaderMode && e.x > 10 && e.y < scrollState.drawHeight) {
                 if (myEditorFragmentRenderer.getEditorPreviewHint() == null) {
                     alarm.cancelAllRequests()
                     alarm.addRequest({
