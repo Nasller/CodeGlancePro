@@ -68,32 +68,19 @@ class ScrollBar(
 
     private fun isInRect(y: Int): Boolean = y in vOffset..(vOffset + scrollState.viewportHeight)
 
-    private fun jumpToLineAt(y: Int) {
-        val visualLine = (y + scrollState.visibleStart) / config.pixelsPerLine
-        val renderLine = getDocumentRenderLine(visualLine)
-        val line = fitLineToEditor(editor, visualLine - renderLine)
-        editor.caretModel.moveToVisualPosition(VisualPosition(line,0))
-        editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
-    }
-
-    private fun updateAlpha(y: Int) {
-        visibleRectAlpha = when {
-            isInRect(y) -> HOVER_ALPHA
-            else -> DEFAULT_ALPHA
-        }
-    }
-
-    private fun getDocumentRenderLine(visualLine:Int):Int{
-        var add = 0
-        val line = editor.visualToLogicalPosition(VisualPosition(visualLine,0)).line
-        editor.foldingModel.allFoldRegions.filter{ !it.isExpanded && it is CustomFoldRegionImpl }.forEach {
-            val end = it.document.getLineNumber(it.endOffset)
-            val i = end - it.document.getLineNumber(it.startOffset)
-            if (end < line) {
-                add += i
+    private fun updateAlpha(y: Int):Boolean {
+        return when {
+            isInRect(y) -> {
+                visibleRectAlpha = HOVER_ALPHA
+                cursor = Cursor(Cursor.DEFAULT_CURSOR)
+                true
+            }
+            else -> {
+                visibleRectAlpha = DEFAULT_ALPHA
+                cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                false
             }
         }
-        return add
     }
 
     override fun paint(gfx: Graphics) {
@@ -119,23 +106,29 @@ class ScrollBar(
         private val alarm = Alarm(glancePanel)
 
         override fun mousePressed(e: MouseEvent) {
-            if (e.button != MouseEvent.BUTTON1)
-                return
-
+            if (e.button != MouseEvent.BUTTON1) return
             when {
                 isInResizeGutter(e.x) -> {
                     resizing = true
                     resizeStart = e.xOnScreen
                     widthStart = glancePanel.width
                 }
-                isInRect(e.y) -> {
-                    dragging = true
-                    visibleRectAlpha = DRAG_ALPHA
-                    dragStart = e.y
-                    dragStartDelta = scrollState.viewportStart - scrollState.visibleStart
+                isInRect(e.y) -> dragMove(e.y)
+                config.jumpOnMouseDown -> {
+                    jumpToLineAt(e.y)
+                    editor.scrollingModel.runActionOnScrollingFinished {
+                        updateAlpha(e.y)
+                        dragMove(e.y)
+                    }
                 }
-                config.jumpOnMouseDown -> jumpToLineAt(e.y)
             }
+        }
+
+        private fun dragMove(y: Int) {
+            dragging = true
+            visibleRectAlpha = DRAG_ALPHA
+            dragStart = y
+            dragStartDelta = scrollState.viewportStart - scrollState.visibleStart
         }
 
         override fun mouseDragged(e: MouseEvent) {
@@ -155,43 +148,42 @@ class ScrollBar(
                     delta * (documentHeight - viewportHeight + 1) / (visibleHeight - viewportHeight)
                 }
                 editor.scrollPane.verticalScrollBar.value = (newPos / scrollState.scale).roundToInt()
-            }
+            }else if(e.y < scrollState.drawHeight) showMyEditorPreviewHint(e)
         }
 
         override fun mouseReleased(e: MouseEvent) {
-            if (!dragging && !resizing && !config.jumpOnMouseDown) {
+            if (!config.jumpOnMouseDown && !dragging && !resizing && !e.isPopupTrigger) {
                 jumpToLineAt(e.y)
-            }
+                editor.scrollingModel.runActionOnScrollingFinished { updateAlpha(e.y) }
+            }else updateAlpha(e.y)
             dragging = false
             resizing = false
-            updateAlpha(e.y)
-            if(isInRect(e.y)) cursor = Cursor(Cursor.DEFAULT_CURSOR)
             hideScrollBar(e)
         }
 
         override fun mouseMoved(e: MouseEvent) {
             hovering = true
-            updateAlpha(e.y)
+            val isInRect = updateAlpha(e.y)
             if (isInResizeGutter(e.x)) {
                 cursor = Cursor(Cursor.W_RESIZE_CURSOR)
-            } else if(isInRect(e.y)){
-                cursor = Cursor(Cursor.DEFAULT_CURSOR)
-            } else if(e.x > 10 && !resizing && !dragging && e.y < scrollState.drawHeight){
-                cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-                if(config.showEditorToolTip &&
-                    ((if(DocRenderEnabled != null) !(editor.getUserData(DocRenderEnabled)?:false) else true) || notReaderMode)) {
-                    if (myEditorFragmentRenderer.getEditorPreviewHint() == null) {
-                        alarm.cancelAllRequests()
-                        alarm.addRequest({
-                            if (myEditorFragmentRenderer.getEditorPreviewHint() == null) showToolTipByMouseMove(e)
-                        }, 400)
-                    } else showToolTipByMouseMove(e)
-                    return
-                }
-            }else{
-                cursor = Cursor(Cursor.DEFAULT_CURSOR)
+            } else if(!isInRect && !resizing && !dragging && e.y < scrollState.drawHeight){
+                if (showMyEditorPreviewHint(e)) return
             }
             hideMyEditorPreviewHint()
+        }
+
+        private fun showMyEditorPreviewHint(e: MouseEvent): Boolean {
+            if (e.x > 10 && config.showEditorToolTip &&
+                ((if (DocRenderEnabled != null) !(editor.getUserData(DocRenderEnabled) ?: false) else true) || notReaderMode)) {
+                if (myEditorFragmentRenderer.getEditorPreviewHint() == null) {
+                    alarm.cancelAllRequests()
+                    alarm.addRequest({
+                        if (myEditorFragmentRenderer.getEditorPreviewHint() == null) showToolTipByMouseMove(e)
+                    }, 400)
+                } else showToolTipByMouseMove(e)
+                return true
+            }
+            return false
         }
 
         override fun mouseExited(e: MouseEvent) {
@@ -221,6 +213,28 @@ class ScrollBar(
                 hovering = false
                 glancePanel.hideScrollBarListener.hideGlanceRequest()
             }
+        }
+
+        private fun jumpToLineAt(y: Int) {
+            val visualLine = (y + scrollState.visibleStart) / config.pixelsPerLine
+            val renderLine = getDocumentRenderLine(visualLine)
+            val line = fitLineToEditor(editor, visualLine - renderLine)
+            editor.caretModel.moveToVisualPosition(VisualPosition(line,0))
+            editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
+            hideMyEditorPreviewHint()
+        }
+
+        private fun getDocumentRenderLine(visualLine:Int):Int{
+            var add = 0
+            val line = editor.visualToLogicalPosition(VisualPosition(visualLine,0)).line
+            editor.foldingModel.allFoldRegions.filter{ !it.isExpanded && it is CustomFoldRegionImpl }.forEach {
+                val end = it.document.getLineNumber(it.endOffset)
+                val i = end - it.document.getLineNumber(it.startOffset)
+                if (end < line) {
+                    add += i
+                }
+            }
+            return add
         }
 
         private fun showToolTipByMouseMove(e: MouseEvent) {
