@@ -8,7 +8,6 @@ import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.ex.MarkupModelEx
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
-import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.ui.HintHint
@@ -217,24 +216,13 @@ class ScrollBar(
 
         private fun jumpToLineAt(y: Int) {
             val visualLine = (y + scrollState.visibleStart) / config.pixelsPerLine
-            val renderLine = getDocumentRenderLine(visualLine)
-            val line = fitLineToEditor(editor, visualLine - renderLine)
+            val renderLine = editor.visualToLogicalPosition(VisualPosition(visualLine, 0)).line.run{
+                glancePanel.getDocumentRenderLine(this, this)
+            }
+            val line = fitLineToEditor(editor, visualLine - renderLine.first)
             editor.caretModel.moveToVisualPosition(VisualPosition(line,0))
             editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
             hideMyEditorPreviewHint()
-        }
-
-        private fun getDocumentRenderLine(visualLine:Int):Int{
-            var add = 0
-            val line = editor.visualToLogicalPosition(VisualPosition(visualLine,0)).line
-            editor.foldingModel.allFoldRegions.filter{ !it.isExpanded && it is CustomFoldRegionImpl }.forEach {
-                val end = it.document.getLineNumber(it.endOffset)
-                val i = end - it.document.getLineNumber(it.startOffset)
-                if (end < line) {
-                    add += i
-                }
-            }
-            return add
         }
 
         private fun showToolTipByMouseMove(e: MouseEvent) {
