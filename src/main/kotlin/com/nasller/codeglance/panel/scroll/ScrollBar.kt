@@ -113,7 +113,8 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
                 }
                 isInRect(e.y) -> dragMove(e.y)
                 config.jumpOnMouseDown -> jumpToLineAt(e.y){
-                    updateAlpha(e.y)
+                    visibleRectAlpha = DEFAULT_ALPHA
+                    cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
                     dragMove(e.y)
                 }
             }
@@ -147,12 +148,14 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
         }
 
         override fun mouseReleased(e: MouseEvent) {
-            if (!config.jumpOnMouseDown && !dragging && !resizing && !e.isPopupTrigger)
-                jumpToLineAt(e.y){ updateAlpha(e.y) }
-            else updateAlpha(e.y)
-            dragging = false
-            resizing = false
-            hideScrollBar(e)
+            val action = {
+                updateAlpha(e.y)
+                dragging = false
+                resizing = false
+                hideScrollBar(e)
+            }
+            if (!config.jumpOnMouseDown && !dragging && !resizing && !e.isPopupTrigger) jumpToLineAt(e.y,action)
+            else editor.scrollingModel.runActionOnScrollingFinished(action)
         }
 
         override fun mouseMoved(e: MouseEvent) {
@@ -180,9 +183,8 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
         }
 
         override fun mouseExited(e: MouseEvent) {
-            if (!dragging){
-                visibleRectAlpha = DEFAULT_ALPHA
-            }
+            hovering = false
+            if (!dragging) visibleRectAlpha = DEFAULT_ALPHA
             hideMyEditorPreviewHint()
             hideScrollBar(e)
         }
@@ -201,12 +203,8 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
             showToolTipByMouseMove(e)
         }
 
-        private fun hideScrollBar(e: MouseEvent){
-            if(!dragging && !resizing && !e.isPopupTrigger){
-                hovering = false
-                glancePanel.hideScrollBarListener.hideGlanceRequest()
-            }
-        }
+        private fun hideScrollBar(e: MouseEvent) = if(!hovering && !dragging && !resizing && !e.isPopupTrigger)
+            glancePanel.hideScrollBarListener.hideGlanceRequest() else Unit
 
         private fun jumpToLineAt(y: Int,action:()->Unit) {
             hideMyEditorPreviewHint()
@@ -262,14 +260,11 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
             }
         }
 
-        private fun getOffset(visualLine: Int, startLine: Boolean): Int {
-            return editor.visualPositionToOffset(VisualPosition(visualLine, if (startLine) 0 else Int.MAX_VALUE))
-        }
+        private fun getOffset(visualLine: Int, startLine: Boolean): Int =
+            editor.visualPositionToOffset(VisualPosition(visualLine, if (startLine) 0 else Int.MAX_VALUE))
     }
 
-    override fun dispose() {
-        myEditorFragmentRenderer.clearHint()
-    }
+    override fun dispose() = myEditorFragmentRenderer.clearHint()
 
     companion object {
         private const val DEFAULT_ALPHA = 0.15f
@@ -287,13 +282,11 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
             return 0.coerceAtLeast((lineCount - shift).coerceAtMost(visualLine))
         }
 
-        private fun createHint(me: MouseEvent): HintHint {
-            return HintHint(me)
-                .setAwtTooltip(true)
-                .setPreferredPosition(Balloon.Position.atLeft)
-                .setBorderInsets(JBUI.insets(CustomEditorFragmentRenderer.EDITOR_FRAGMENT_POPUP_BORDER))
-                .setShowImmediately(true)
-                .setAnimationEnabled(false)
-        }
+        private fun createHint(me: MouseEvent): HintHint = HintHint(me)
+            .setAwtTooltip(true)
+            .setPreferredPosition(Balloon.Position.atLeft)
+            .setBorderInsets(JBUI.insets(CustomEditorFragmentRenderer.EDITOR_FRAGMENT_POPUP_BORDER))
+            .setShowImmediately(true)
+            .setAnimationEnabled(false)
     }
 }

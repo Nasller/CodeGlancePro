@@ -79,15 +79,13 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
         }
         val menu = ActionManager.getInstance().createActionPopupMenu(ActionPlaces.RIGHT_EDITOR_GUTTER_POPUP, actionGroup).component
         menu.addPopupMenuListener(object :PopupMenuListenerAdapter(){
-            override fun popupMenuWillBecomeVisible(e: PopupMenuEvent?) {
-                isVisible = true
-            }
-            override fun popupMenuWillBecomeInvisible(e: PopupMenuEvent?) {
-                isVisible = false
-                glancePanel.hideScrollBarListener.hideGlanceRequest()
-            }
+            override fun popupMenuWillBecomeVisible(e: PopupMenuEvent) { isVisible = true }
 
-            override fun popupMenuCanceled(e: PopupMenuEvent?) {
+            override fun popupMenuWillBecomeInvisible(e: PopupMenuEvent) = hideRequest()
+
+            override fun popupMenuCanceled(e: PopupMenuEvent) = hideRequest()
+
+            private fun hideRequest() {
                 isVisible = false
                 glancePanel.hideScrollBarListener.hideGlanceRequest()
             }

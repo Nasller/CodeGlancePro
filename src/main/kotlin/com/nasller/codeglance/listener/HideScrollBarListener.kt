@@ -7,30 +7,23 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 
 class HideScrollBarListener(private val glancePanel: GlancePanel):MouseAdapter() {
-	private var hovering = false
 	private val alarm = SingleAlarm({
-		if (!glancePanel.myPopHandler.isVisible && !hovering && glancePanel.scrollbar?.hovering == false) {
+		if (!glancePanel.myPopHandler.isVisible && glancePanel.scrollbar?.hovering == false) {
 			glancePanel.isVisible = false
 			showHideOriginScrollBar(true)
 		}
 	},500,glancePanel)
-	override fun mouseMoved(e: MouseEvent?) {
-		hovering = true
-		if(!glancePanel.isDisabled){
+	override fun mouseMoved(e: MouseEvent) {
+		if(!glancePanel.isDisabled && !glancePanel.isVisible){
 			cancel()
 			glancePanel.isVisible = true
 			showHideOriginScrollBar(false)
 		}
 	}
 
-	override fun mouseExited(e: MouseEvent?) {
-		hovering = false
-		hideGlanceRequest()
-	}
-
 	fun hideGlanceRequest(){
-		if (!glancePanel.isDisabled && glancePanel.config.hoveringToShowScrollBar && !alarm.isDisposed &&
-			glancePanel.isVisible && !glancePanel.myPopHandler.isVisible) {
+		if (!glancePanel.isDisabled && !alarm.isDisposed && glancePanel.config.hoveringToShowScrollBar &&
+			glancePanel.isVisible && !glancePanel.myPopHandler.isVisible && glancePanel.scrollbar?.hovering == false) {
 			alarm.cancelAndRequest()
 		}
 	}
