@@ -108,7 +108,8 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 	private fun getHighlightColor(offset:Int):Color?{
 		val list = mutableListOf<RangeHighlighterEx>()
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(offset,offset) {
-			if (it.isValid && it.getTextAttributes(editor.colorsScheme)?.foregroundColor != null) list.add(it)
+			if (offset >= it.startOffset && offset < it.endOffset &&
+				it.getTextAttributes(editor.colorsScheme)?.foregroundColor != null) list.add(it)
 			return@processRangeHighlightersOverlappingWith true
 		}
 		return list.apply {
