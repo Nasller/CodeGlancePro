@@ -75,10 +75,12 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 				// Skip to end of fold
 				do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 			} else {
+				val end = hlIter.end
+				val highlightList = getHighlightColor(start, end)
 				val color by lazy(LazyThreadSafetyMode.NONE){ try {
 					hlIter.textAttributes.foregroundColor
 				} catch (_: ConcurrentModificationException){ null } }
-				for(offset in start until hlIter.end){
+				for(offset in start until end){
 					// Watch out for tokens that extend past the document
 					if (offset >= text.length) break@loop
 					if (softWrapEnable) editor.softWrapModel.getSoftWrap(offset)?.let { softWrap ->
@@ -90,8 +92,7 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 					val charCode = text[offset].code
 					moveCharIndex(charCode)
 					curImg.renderImage(x, y, charCode, scaleBuffer){
-						//for rainbow brackets
-						if(offset <= start + 1) (getHighlightColor(offset) ?: color ?: defaultColor).apply(setColorRgba)
+						(highlightList.applyColor(offset) ?: color ?: defaultColor).apply(setColorRgba)
 					}
 				}
 				hlIter.advance()
@@ -105,17 +106,20 @@ class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollSt
 		}.also { preBuffer = it }
 	}
 
-	private fun getHighlightColor(offset:Int):Color?{
+	private fun getHighlightColor(startOffset:Int,endOffset:Int):MutableList<RangeHighlighterEx>{
 		val list = mutableListOf<RangeHighlighterEx>()
-		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(offset,offset) {
-			if (offset >= it.startOffset && offset < it.endOffset &&
-				it.getTextAttributes(editor.colorsScheme)?.foregroundColor != null) list.add(it)
+		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(startOffset,endOffset) {
+			if (it.getTextAttributes(editor.colorsScheme)?.foregroundColor != null) list.add(it)
 			return@processRangeHighlightersOverlappingWith true
 		}
-		return list.apply {
-			if(size > 1) ContainerUtil.quickSort(this,IterationState.createByLayerThenByAttributesComparator(editor.colorsScheme))
-		}.firstOrNull()?.getTextAttributes(editor.colorsScheme)?.foregroundColor
+		return list
 	}
+
+	private fun MutableList<RangeHighlighterEx>.applyColor(offset: Int): Color? = this.filter {
+		offset >= it.startOffset && offset < it.endOffset
+	}.apply {
+		if (size > 1) ContainerUtil.quickSort(this, IterationState.createByLayerThenByAttributesComparator(editor.colorsScheme))
+	}.firstOrNull()?.getTextAttributes(editor.colorsScheme)?.foregroundColor
 
 	private fun BufferedImage.renderImage(x: Int, y: Int, char: Int, scaleBuffer: FloatArray,consumer: (()->Unit)? = null) {
 		if (char !in 0..32 && x in 0 until width && 0 <= y && y + config.pixelsPerLine < height) {
