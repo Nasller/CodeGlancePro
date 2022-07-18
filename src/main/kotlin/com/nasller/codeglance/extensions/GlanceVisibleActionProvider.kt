@@ -1,4 +1,4 @@
-package com.nasller.codeglance.provide
+package com.nasller.codeglance.extensions
 
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
