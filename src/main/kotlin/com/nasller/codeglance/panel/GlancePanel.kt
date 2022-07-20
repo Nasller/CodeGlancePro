@@ -18,7 +18,7 @@ import java.awt.image.BufferedImage
 import java.util.function.Function
 
 class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(project,editor){
-    private var mapRef = MinimapCache { MinimapRef(Minimap(this,scrollState)) }
+    private var mapRef = MinimapCache { MinimapRef(Minimap(this)) }
     private val glanceListener = GlanceListener(this)
     val hideScrollBarListener = HideScrollBarListener(this)
     val myPopHandler = CustomScrollBarPopup(this)

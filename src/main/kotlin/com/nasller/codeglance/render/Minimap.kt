@@ -12,9 +12,10 @@ import java.awt.image.BufferedImage
 /**
  * A rendered minimap of a document
  */
-class Minimap(glancePanel: AbstractGlancePanel,private val scrollState: ScrollState){
+class Minimap(glancePanel: AbstractGlancePanel){
 	private val editor = glancePanel.editor
 	private val config = glancePanel.config
+	private val scrollState = glancePanel.scrollState
 	private var preBuffer:BufferedImage? = null
 	var img = lazy { BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR) }
 
