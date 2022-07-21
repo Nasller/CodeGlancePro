@@ -1,10 +1,13 @@
 package com.nasller.codeglance.extensions.widget
 
+import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.ex.ActionManagerEx
+import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.fileEditor.FileEditorManagerEvent
-import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.StatusBar
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.openapi.wm.StatusBarWidget.WidgetPresentation
@@ -18,14 +21,14 @@ import com.nasller.codeglance.util.message
 import java.awt.event.MouseEvent
 import javax.swing.Icon
 
-class GlanceToggleVisibleWidgetPanel : StatusBarWidget, StatusBarWidget.IconPresentation {
+class GlanceToggleVisibleWidgetPanel(private val project: Project) : StatusBarWidget, StatusBarWidget.IconPresentation {
 	private val config = ConfigInstance.state
+	private val toggleAction: AnAction = ActionManagerEx.getInstance().getAction("CodeGlance.toggle")
 	private var myStatusBar: StatusBar? = null
 
 	override fun getIcon(): Icon? {
 		if(config.hoveringToShowScrollBar) return null
-		val editor = getEditor()?: return null
-		return if (isVisible(editor)) CodeGlanceIcons.GlanceShow else CodeGlanceIcons.GlanceHide
+		return CodeGlanceIcons.Widget
 	}
 
 	override fun ID(): String = ID
@@ -39,17 +42,9 @@ class GlanceToggleVisibleWidgetPanel : StatusBarWidget, StatusBarWidget.IconPres
 	override fun install(statusBar: StatusBar) {
 		myStatusBar = statusBar
 		updateStatusBar()
-		val project = statusBar.project ?: return
 		val connect = project.messageBus.connect(this)
 		connect.subscribe(SettingsChangeListener.TOPIC, object : SettingsChangeListener {
-			override fun onRefreshChanged() = updateStatusBar()
-
 			override fun onHoveringOriginalScrollBarChanged(value: Boolean) = updateStatusBar()
-
-			override fun onGlobalChanged() = updateStatusBar()
-		})
-		connect.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, object : FileEditorManagerListener {
-			override fun selectionChanged(event: FileEditorManagerEvent) = updateStatusBar()
 		})
 	}
 
@@ -59,10 +54,8 @@ class GlanceToggleVisibleWidgetPanel : StatusBarWidget, StatusBarWidget.IconPres
 	}
 
 	override fun getClickConsumer(): Consumer<MouseEvent> = Consumer{
-		getEditor()?.getUserData(AbstractGlancePanel.CURRENT_GLANCE)?.apply{
-			isVisible = !isVisible
-			if(isVisible) refresh(true, directUpdate = true)
-			changeOriginScrollBarWidth(isVisible)
+		getEditor()?.let {
+			ActionUtil.invokeAction(toggleAction,it.contentComponent,ActionPlaces.UNKNOWN,null,null)
 		}
 		updateStatusBar()
 	}
@@ -70,7 +63,6 @@ class GlanceToggleVisibleWidgetPanel : StatusBarWidget, StatusBarWidget.IconPres
 	private fun isVisible(editor: Editor) = editor.getUserData(AbstractGlancePanel.CURRENT_GLANCE)?.isVisible == false
 
 	private fun getEditor(): Editor? {
-		val project = myStatusBar?.project ?: return null
 		val fileEditor = StatusBarUtil.getCurrentFileEditor(myStatusBar) ?: FileEditorManagerEx.getInstanceEx(project).selectedEditor
 		return if (fileEditor is TextEditor) fileEditor.editor else null
 	}

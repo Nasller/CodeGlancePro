@@ -94,12 +94,6 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     override fun getPriority(): Int = 170 //EditorDocumentPriorities
 
     /** SettingsChangeListener */
-    override fun onRefreshChanged() {
-        glancePanel.changeVisible()
-        glancePanel.refresh()
-        glancePanel.changeOriginScrollBarWidth()
-    }
-
     override fun onHoveringOriginalScrollBarChanged(value:Boolean) = if(value) glancePanel.addHideScrollBarListener()
     else glancePanel.removeHideScrollBarListener()
 

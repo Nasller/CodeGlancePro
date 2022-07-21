@@ -8,12 +8,7 @@ class CodeGlanceConfig {
     var pixelsPerLine = 4
     var maxLinesCount = 100000
     var moreThanLineDelay = 3000
-    var disabled by Delegates.observable(false) { _, oldValue, newValue ->
-        if (oldValue != newValue) {
-            SettingsChangePublisher.onRefreshChanged()
-            if(newValue) hoveringToShowScrollBar = false
-        }
-    }
+    var disabled = false
     var singleFileVisibleButton = true
         get()= !hoveringToShowScrollBar && field
     var hideOriginalScrollBar = false
@@ -36,8 +31,6 @@ class CodeGlanceConfig {
 val SettingsChangePublisher = ApplicationManager.getApplication().messageBus.syncPublisher(SettingsChangeListener.TOPIC)
 
 interface SettingsChangeListener {
-
-    fun onRefreshChanged() {}
 
     fun onHoveringOriginalScrollBarChanged(value:Boolean) {}
 

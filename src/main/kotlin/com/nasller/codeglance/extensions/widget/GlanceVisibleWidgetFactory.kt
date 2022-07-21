@@ -14,7 +14,7 @@ class GlanceVisibleWidgetFactory : StatusBarEditorBasedWidgetFactory() {
 	@Nls
 	override fun getDisplayName(): String = message("glance.widget")
 
-	override fun createWidget(project: Project): StatusBarWidget = GlanceToggleVisibleWidgetPanel()
+	override fun createWidget(project: Project): StatusBarWidget = GlanceToggleVisibleWidgetPanel(project)
 
 	override fun disposeWidget(widget: StatusBarWidget) = Disposer.dispose(widget)
 }
