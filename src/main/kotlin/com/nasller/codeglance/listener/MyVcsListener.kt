@@ -8,13 +8,12 @@ import com.intellij.openapi.editor.event.VisibleAreaListener
 import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
-import java.awt.event.*
+import java.awt.event.ComponentAdapter
+import java.awt.event.ComponentEvent
 
 class MyVcsListener(private val myVcsPanel: MyVcsPanel,private val glancePanel: GlancePanel) : ComponentAdapter(),
-    PrioritizedDocumentListener, VisibleAreaListener, HierarchyBoundsListener, HierarchyListener, Disposable {
+    PrioritizedDocumentListener, VisibleAreaListener, Disposable {
     init {
-        myVcsPanel.addHierarchyListener(this)
-        myVcsPanel.addHierarchyBoundsListener(this)
         myVcsPanel.editor.contentComponent.addComponentListener(this)
         myVcsPanel.editor.document.addDocumentListener(this,myVcsPanel)
         myVcsPanel.editor.scrollingModel.addVisibleAreaListener(this,myVcsPanel)
@@ -32,21 +31,13 @@ class MyVcsListener(private val myVcsPanel: MyVcsPanel,private val glancePanel: 
     /** VisibleAreaListener */
     override fun visibleAreaChanged(e: VisibleAreaEvent) = repaint()
 
-    /** HierarchyBoundsListener */
-    override fun ancestorMoved(e: HierarchyEvent) {}
-
-    override fun ancestorResized(e: HierarchyEvent) = repaint()
-
-    /** HierarchyListener */
-    override fun hierarchyChanged(e: HierarchyEvent) = if(e.changeFlags == HierarchyEvent.PARENT_CHANGED.toLong()) repaint() else Unit
-
     private fun repaint() {
-        if(myVcsPanel.isVisible && glancePanel.shouldUpdate()) myVcsPanel.repaint()
+        if(myVcsPanel.isVisible && glancePanel.shouldUpdate()) glancePanel.vcsRenderService?.trackerManager?.invokeAfterUpdate {
+            myVcsPanel.repaint()
+        }
     }
 
     override fun dispose() {
-        myVcsPanel.removeHierarchyListener(this)
-        myVcsPanel.removeHierarchyBoundsListener(this)
         myVcsPanel.editor.contentComponent.removeComponentListener(this)
     }
 }
