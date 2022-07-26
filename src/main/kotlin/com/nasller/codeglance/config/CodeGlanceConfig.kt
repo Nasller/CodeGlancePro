@@ -10,10 +10,8 @@ class CodeGlanceConfig {
     var moreThanLineDelay = 3000
     var disabled = false
     var singleFileVisibleButton = true
-        get()= !hoveringToShowScrollBar && field
     var hideOriginalScrollBar = false
     var showFullLineError = true
-        get() = hideOriginalScrollBar && field
     var showEditorToolTip = true
     var isRightAligned = true
     var hoveringToShowScrollBar by Delegates.observable(false) { _, oldValue, newValue ->
@@ -26,6 +24,10 @@ class CodeGlanceConfig {
     var viewportColor = "A0A0A0"
     var clean = true
     var locked = false
+
+    fun singleFileVisibleButton() = !hoveringToShowScrollBar && singleFileVisibleButton
+
+    fun showFullLineError() = hideOriginalScrollBar && showFullLineError
 }
 
 val SettingsChangePublisher = ApplicationManager.getApplication().messageBus.syncPublisher(SettingsChangeListener.TOPIC)

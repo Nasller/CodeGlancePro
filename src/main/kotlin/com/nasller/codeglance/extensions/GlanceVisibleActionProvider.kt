@@ -13,7 +13,7 @@ private class GlanceVisibleActionProvider : InspectionWidgetActionProvider {
 		return object : DefaultActionGroup(ActionManagerEx.getInstance().getAction("CodeGlance.toggle")) {
 			override fun update(e: AnActionEvent) {
 				e.presentation.isEnabledAndVisible = editor.getUserData(CURRENT_GLANCE)?.run {
-					config.singleFileVisibleButton
+					config.singleFileVisibleButton()
 				} ?: false
 			}
 		}

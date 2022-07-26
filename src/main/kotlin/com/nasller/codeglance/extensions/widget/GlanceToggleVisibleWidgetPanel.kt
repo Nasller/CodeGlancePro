@@ -22,12 +22,11 @@ import java.awt.event.MouseEvent
 import javax.swing.Icon
 
 class GlanceToggleVisibleWidgetPanel(private val project: Project) : StatusBarWidget, StatusBarWidget.IconPresentation {
-	private val config = ConfigInstance.state
 	private val toggleAction: AnAction = ActionManagerEx.getInstance().getAction("CodeGlance.toggle")
 	private var myStatusBar: StatusBar? = null
 
 	override fun getIcon(): Icon? {
-		if(config.hoveringToShowScrollBar) return null
+		if(ConfigInstance.state.hoveringToShowScrollBar) return null
 		return CodeGlanceIcons.Widget
 	}
 

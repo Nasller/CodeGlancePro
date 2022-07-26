@@ -31,7 +31,7 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
     }
 
     fun addHideScrollBarListener(){
-        if(config.hoveringToShowScrollBar){
+        if(config.hoveringToShowScrollBar && !isDisabled){
             if(!config.hideOriginalScrollBar){
                 editor.scrollPane.verticalScrollBar.addMouseListener(hideScrollBarListener)
                 editor.scrollPane.verticalScrollBar.addMouseMotionListener(hideScrollBarListener)
@@ -138,7 +138,8 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
     }
 
     private fun Graphics2D.drawMarkupLine(it: RangeHighlighter, color: Color,highSeverity: Boolean){
-        setGraphics2DInfo(if(highSeverity && config.showFullLineError) srcOver0_6 else srcOver,color)
+        val fullLineError = config.showFullLineError()
+        setGraphics2DInfo(if(highSeverity && fullLineError) srcOver0_6 else srcOver,color)
         val documentLine = getDocumentRenderLine(editor.offsetToLogicalPosition(it.startOffset).line, editor.offsetToLogicalPosition(it.endOffset).line)
         val start = editor.offsetToVisualPosition(it.startOffset)
         val end = editor.offsetToVisualPosition(it.endOffset)
@@ -153,7 +154,7 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
                     eX += minGap-(eX - sX)
                     if(eX > width) sX -= eX - width
                 }
-                if(highSeverity && config.showFullLineError) {
+                if(highSeverity && fullLineError) {
                     fillRect(0, sY, width, config.pixelsPerLine)
                     setGraphics2DInfo(srcOver,color.brighter())
                 }
@@ -161,7 +162,7 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
             } else if (collapsed != null) {
                 val startVis = editor.offsetToVisualPosition(collapsed.startOffset)
                 val endVis = editor.offsetToVisualPosition(collapsed.endOffset)
-                if(highSeverity && config.showFullLineError) {
+                if(highSeverity && fullLineError) {
                     fillRect(0, sY, width, config.pixelsPerLine)
                     setGraphics2DInfo(srcOver,color.brighter())
                 }

@@ -125,7 +125,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 
 	override fun apply() {
 		super.apply()
-		if(!config.isRightAligned && config.hoveringToShowScrollBar) config.hoveringToShowScrollBar = false
+		if((!config.isRightAligned || config.disabled) && config.hoveringToShowScrollBar) config.hoveringToShowScrollBar = false
 		ApplicationManager.getApplication().invokeLater{
 			SettingsChangePublisher.onGlobalChanged()
 		}

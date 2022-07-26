@@ -14,7 +14,7 @@ class HideScrollBarListener(private val glancePanel: GlancePanel):MouseAdapter()
 		}
 	},500,glancePanel)
 	override fun mouseMoved(e: MouseEvent) {
-		if(!glancePanel.isDisabled && !glancePanel.isVisible){
+		if(!glancePanel.isVisible){
 			cancel()
 			glancePanel.isVisible = true
 			showHideOriginScrollBar(false)
@@ -22,7 +22,7 @@ class HideScrollBarListener(private val glancePanel: GlancePanel):MouseAdapter()
 	}
 
 	fun hideGlanceRequest(){
-		if (!glancePanel.isDisabled && !alarm.isDisposed && glancePanel.config.hoveringToShowScrollBar &&
+		if (!alarm.isDisposed && glancePanel.config.hoveringToShowScrollBar &&
 			glancePanel.isVisible && !glancePanel.myPopHandler.isVisible && glancePanel.scrollbar?.hovering == false) {
 			alarm.cancelAndRequest()
 		}
