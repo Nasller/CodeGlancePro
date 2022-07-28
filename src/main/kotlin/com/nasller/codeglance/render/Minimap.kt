@@ -44,8 +44,7 @@ class Minimap(glancePanel: AbstractGlancePanel){
 
 		var x = 0
 		var y = 0
-		var foldedLines = 0
-		var softWrapLines = 0
+		var skipLines = 0
 		val moveCharIndex = { code: Int ->
 			when (code) {
 				ENTER -> {
@@ -61,7 +60,7 @@ class Minimap(glancePanel: AbstractGlancePanel){
 		g.fillRect(0, 0, curImg.width, curImg.height)
 		loop@ while (!hlIter.atEnd()) {
 			val start = hlIter.start
-			y = (editor.document.getLineNumber(start) + softWrapLines - foldedLines) * config.pixelsPerLine
+			y = (editor.document.getLineNumber(start) + skipLines) * config.pixelsPerLine
 			val region = editor.foldingModel.getCollapsedRegionAtOffset(start)
 			if (region != null && region !is CustomFoldRegionImpl) {
 				if(region.placeholderText.isNotBlank()) {
@@ -72,7 +71,7 @@ class Minimap(glancePanel: AbstractGlancePanel){
 					}
 				}
 				val endOffset = region.endOffset
-				foldedLines += editor.document.getLineNumber(endOffset) - editor.document.getLineNumber(region.startOffset)
+				skipLines -= editor.document.getLineNumber(endOffset) - editor.document.getLineNumber(region.startOffset)
 				// Skip to end of fold
 				do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 			} else {
@@ -87,7 +86,7 @@ class Minimap(glancePanel: AbstractGlancePanel){
 					if (softWrapEnable) editor.softWrapModel.getSoftWrap(offset)?.let { softWrap ->
 						softWrap.chars.forEach {
 							moveCharIndex(it.code)
-							if(it.code == ENTER) softWrapLines += 1
+							if(it.code == ENTER) skipLines += 1
 						}
 					}
 					val charCode = text[offset].code
