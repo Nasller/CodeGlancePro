@@ -99,11 +99,11 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 				} else {
 					(color ?: defaultColor).apply(setColorRgba)
 					val heightLine = (region.heightInPixels * scrollState.scale).roundToInt()
-					skipY += heightLine - (foldLine + 1) * config.pixelsPerLine
+					skipY -= (foldLine + 1) * config.pixelsPerLine - heightLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 					myRangeList.value.add(Pair(editor.offsetToVisualLine(endOffset),
 						Range(y,editor.document.getLineNumber(hlIter.start) * config.pixelsPerLine + skipY)))
-					text.subSequence(start, editor.document.getLineEndOffset(startLineNumber + (heightLine / config.pixelsPerLine) - 1)).forEach(renderChar)
+					text.subSequence(start, editor.document.getLineEndOffset(startLineNumber - 1 + (heightLine / config.pixelsPerLine))).forEach(renderChar)
 				}
 			} else {
 				if(hasBlockInlay) moveInlayHeight(start)
