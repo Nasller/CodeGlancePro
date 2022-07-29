@@ -22,7 +22,6 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     private val editor = glancePanel.editor
     private var softWrapEnabled = false
     private val alarm = SingleAlarm({ glancePanel.updateImage(true) }, 500, glancePanel)
-
     init {
         glancePanel.addHierarchyListener(this)
         glancePanel.addHierarchyBoundsListener(this)
