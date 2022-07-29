@@ -2,8 +2,8 @@ package com.nasller.codeglance.listener
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.editor.CustomFoldRegion
-import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.*
+import com.intellij.openapi.editor.Inlay.Placement
 import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
@@ -18,7 +18,7 @@ import java.awt.event.*
 
 class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(), FoldingListener, MarkupModelListener,
     SettingsChangeListener, CaretListener, PrioritizedDocumentListener, VisibleAreaListener, SelectionListener,
-    HierarchyBoundsListener, HierarchyListener, SoftWrapChangeListener, Disposable {
+    HierarchyBoundsListener, HierarchyListener, SoftWrapChangeListener, InlayModel.Listener, Disposable {
     private var softWrapEnabled = false
     private val alarm = SingleAlarm({ glancePanel.updateImage(true) }, 500, glancePanel)
     init {
@@ -30,6 +30,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
         editor.selectionModel.addSelectionListener(this,glancePanel)
         editor.scrollingModel.addVisibleAreaListener(this,glancePanel)
         editor.foldingModel.addListener(this,glancePanel)
+        editor.inlayModel.addListener(this,glancePanel)
         editor.softWrapModel.addSoftWrapChangeListener(this)
         editor.caretModel.addCaretListener(this,glancePanel)
         editor.markupModel.addMarkupModelListener(glancePanel, GlanceOtherListener(glancePanel))
@@ -41,6 +42,30 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
     override fun onCustomFoldRegionPropertiesChange(region: CustomFoldRegion, flags: Int) {
         if(flags == FoldingListener.ChangeFlags.HEIGHT_CHANGED) alarm.cancelAndRequest()
+    }
+
+    /** InlayModel.Listener */
+    override fun onAdded(inlay: Inlay<*>) {
+        if (glancePanel.editor.document.isInBulkUpdate || glancePanel.editor.inlayModel.isInBatchMode
+            || inlay.placement != Placement.ABOVE_LINE) return
+        alarm.cancelAndRequest()
+    }
+
+    override fun onRemoved(inlay: Inlay<*>) {
+        if (glancePanel.editor.document.isInBulkUpdate || glancePanel.editor.inlayModel.isInBatchMode
+            || inlay.placement != Placement.ABOVE_LINE) return
+        alarm.cancelAndRequest()
+    }
+
+    override fun onUpdated(inlay: Inlay<*>, changeFlags: Int) {
+        if (glancePanel.editor.document.isInBulkUpdate || glancePanel.editor.inlayModel.isInBatchMode ||
+            inlay.placement != Placement.ABOVE_LINE || changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0) return
+        alarm.cancelAndRequest()
+    }
+
+    override fun onBatchModeFinish(editor: Editor) {
+        if (editor.document.isInBulkUpdate) return
+        glancePanel.updateImage()
     }
 
     /** SoftWrapChangeListener */

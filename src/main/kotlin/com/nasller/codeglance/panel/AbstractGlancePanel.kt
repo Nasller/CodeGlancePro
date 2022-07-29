@@ -27,7 +27,7 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
     val vcsRenderService: VcsRenderService? = project.getService(VcsRenderService::class.java)
     val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
     var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
-    var selfY: List<Pair<Int, Range<Int>>> = ContainerUtil.emptyList()
+    var myRangeList: List<Pair<Int, Range<Int>>> = ContainerUtil.emptyList()
     protected val renderLock = DirtyLock()
     val isDisabled: Boolean
         get() = config.disabled || editor.document.lineCount > config.maxLinesCount
@@ -86,10 +86,10 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
 
     abstract fun Graphics2D.paintErrorStripes()
 
-    fun getDocumentRenderLine(lineStart:Int,lineEnd:Int):Pair<Int,Int>{
+    fun getMyRenderLine(lineStart:Int, lineEnd:Int):Pair<Int,Int>{
         var startAdd = 0
         var endAdd = 0
-        selfY.forEach {
+        myRangeList.forEach {
             if (it.first in (lineStart + 1) until lineEnd) {
                 endAdd += it.second.to - it.second.from
             } else if (it.first < lineStart) {
@@ -101,9 +101,9 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
         return startAdd to endAdd
     }
 
-    fun getDocumentRenderVisualLine(y:Int):Int{
+    fun getMyRenderVisualLine(y:Int):Int{
         var minus = 0
-        for (pair in selfY) {
+        for (pair in myRangeList) {
             if (y in pair.second.from .. pair.second.to) {
                 return pair.first
             } else if (pair.second.to < y) {

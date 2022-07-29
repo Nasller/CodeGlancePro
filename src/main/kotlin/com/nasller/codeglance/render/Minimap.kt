@@ -43,12 +43,13 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val hlIter = editor.highlighter.createIterator(0)
 		val softWrapEnable = editor.softWrapModel.isSoftWrappingEnabled
+		val hasBlockInlay = editor.inlayModel.hasBlockElements()
 
 		var x = 0
 		var y = 0
-		var addY = 0
-		var skipLines = 0
-		val selfY = lazy(LazyThreadSafetyMode.NONE){ mutableListOf<Pair<Int,Range<Int>>>() }
+		var skipY = 0
+		var curVisualLine = 0
+		val myRangeList = lazy(LazyThreadSafetyMode.NONE){ mutableListOf<Pair<Int,Range<Int>>>() }
 		val moveCharIndex = { code: Int ->
 			when (code) {
 				ENTER -> {
@@ -59,12 +60,26 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 				else -> x += 1
 			}
 		}
+		val moveInlayHeight = { start: Int ->
+			val visualLine = curVisualLine
+			curVisualLine = editor.offsetToVisualLine(start)
+			if (visualLine != curVisualLine) {
+				val sumBlock = editor.inlayModel.getBlockElementsForVisualLine(curVisualLine, true).sumOf {
+					(it.heightInPixels * scrollState.scale).roundToInt()
+				}
+				if (sumBlock > 0) {
+					myRangeList.value.add(Pair(curVisualLine - 1, Range(y, y + sumBlock)))
+					y += sumBlock
+					skipY += sumBlock
+				}
+			}
+		}
 		val g = curImg.createGraphics()
 		g.composite = AbstractGlancePanel.CLEAR
 		g.fillRect(0, 0, curImg.width, curImg.height)
 		loop@ while (!hlIter.atEnd()) {
 			val start = hlIter.start
-			y = (editor.document.getLineNumber(start) + skipLines) * config.pixelsPerLine + addY
+			y = editor.document.getLineNumber(start) * config.pixelsPerLine + skipY
 			val region = editor.foldingModel.getCollapsedRegionAtOffset(start)
 			if (region != null) {
 				val endOffset = region.endOffset
@@ -77,23 +92,17 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 							curImg.renderImage(x, y, it.code, scaleBuffer)
 						}
 					}
-					skipLines -= foldLine
+					skipY -= foldLine * config.pixelsPerLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 				} else {
 					val heightLine = (region.heightInPixels * scrollState.scale).roundToInt()
-					val remaining = heightLine % config.pixelsPerLine
-					if(foldLine > 0 && foldLine * config.pixelsPerLine > heightLine - remaining){
-						skipLines += (heightLine - remaining) / config.pixelsPerLine
-						addY += remaining
-					}else{
-						addY += heightLine - foldLine * config.pixelsPerLine
-					}
-					skipLines -= foldLine + 1
+					skipY += heightLine - (foldLine + 1) * config.pixelsPerLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
-					val line = (editor.document.getLineNumber(hlIter.start) + skipLines) * config.pixelsPerLine + addY
-					selfY.value.add(Pair(editor.offsetToVisualLine(endOffset),Range(y,line)))
+					val line = editor.document.getLineNumber(hlIter.start) * config.pixelsPerLine + skipY
+					myRangeList.value.add(Pair(editor.offsetToVisualLine(endOffset),Range(y,line)))
 				}
 			} else {
+				if(hasBlockInlay) moveInlayHeight(start)
 				val end = hlIter.end
 				val highlightList = getHighlightColor(start, end)
 				val color by lazy(LazyThreadSafetyMode.NONE){ try {
@@ -105,7 +114,7 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 					if (softWrapEnable) editor.softWrapModel.getSoftWrap(offset)?.let { softWrap ->
 						softWrap.chars.forEach {
 							moveCharIndex(it.code)
-							if(it.code == ENTER) skipLines += 1
+							if(it.code == ENTER) skipY += config.pixelsPerLine
 						}
 					}
 					val charCode = text[offset].code
@@ -118,7 +127,7 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 			}
 		}
 		g.dispose()
-		if(selfY.isInitialized()) glancePanel.selfY = selfY.value
+		if(myRangeList.isInitialized()) glancePanel.myRangeList = myRangeList.value
 		preBuffer?.let {
 			img = lazyOf(curImg)
 			it.flush()

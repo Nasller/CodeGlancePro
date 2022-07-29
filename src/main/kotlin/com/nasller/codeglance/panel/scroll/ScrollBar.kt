@@ -205,7 +205,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 
         private fun jumpToLineAt(y: Int,action:()->Unit) {
             hideMyEditorPreviewHint()
-            val line = fitLineToEditor(editor, glancePanel.getDocumentRenderVisualLine(y + scrollState.visibleStart))
+            val line = fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(y + scrollState.visibleStart))
             editor.caretModel.moveToVisualPosition(VisualPosition(line,0))
             editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
             editor.scrollingModel.runActionOnScrollingFinished(action)
@@ -213,7 +213,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 
         private fun showToolTipByMouseMove(e: MouseEvent) {
             val y = e.y + myWheelAccumulator
-            val visualLine = fitLineToEditor(editor, glancePanel.getDocumentRenderVisualLine(y + scrollState.visibleStart))
+            val visualLine = fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(y + scrollState.visibleStart))
             myLastVisualLine = visualLine
             val point = SwingUtilities.convertPoint(
                 this@ScrollBar, 0,

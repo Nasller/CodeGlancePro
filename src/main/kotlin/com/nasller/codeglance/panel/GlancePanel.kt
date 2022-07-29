@@ -77,7 +77,7 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
             val endByte = editor.selectionModel.blockSelectionEnds[index]
             val start = editor.offsetToVisualPosition(startByte)
             val end = editor.offsetToVisualPosition(endByte)
-            val documentLine = getDocumentRenderLine(start.line,end.line)
+            val documentLine = getMyRenderLine(start.line,end.line)
 
             val sX = start.column
             val sY = start.line * config.pixelsPerLine + documentLine.first - scrollState.visibleStart
@@ -105,7 +105,7 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
     override fun Graphics2D.paintCaretPosition() {
         setGraphics2DInfo(srcOver,editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR))
         editor.caretModel.allCarets.forEach{
-            val documentLine = getDocumentRenderLine(it.visualPosition.line,it.visualPosition.line)
+            val documentLine = getMyRenderLine(it.visualPosition.line,it.visualPosition.line)
             val start = it.visualPosition.line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
             if(start >= 0) fillRect(0, start, width, config.pixelsPerLine)
         }
@@ -142,7 +142,7 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
         setGraphics2DInfo(if(highSeverity && fullLineError) srcOver0_6 else srcOver,color)
         val start = editor.offsetToVisualPosition(it.startOffset)
         val end = editor.offsetToVisualPosition(it.endOffset)
-        val documentLine = getDocumentRenderLine(start.line, end.line)
+        val documentLine = getMyRenderLine(start.line, end.line)
         var sX = if (start.column > (width - minGap)) width - minGap else start.column
         val sY = start.line  * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
         var eX = if (start.column < (width - minGap)) end.column + 1 else width

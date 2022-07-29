@@ -35,7 +35,7 @@ class VcsRenderService(project: Project) {
 		override fun mouseMoved(e: MouseEvent) {
 			glancePanel.vcsRenderService?.let{
 				it.trackerManager.getLineStatusTracker(glancePanel.editor.document)?.run {
-					val visualPosition = VisualPosition((e.y + glancePanel.scrollState.visibleStart) / glancePanel.config.pixelsPerLine, 0)
+					val visualPosition = VisualPosition(glancePanel.getMyRenderVisualLine(e.y + glancePanel.scrollState.visibleStart) , 0)
 					val logicalPosition = glancePanel.editor.visualToLogicalPosition(visualPosition)
 					val range = getRangeForLine(logicalPosition.line) ?: getNextRange(logicalPosition.line)?.let { range ->
 						if(glancePanel.editor.logicalToVisualPosition(LogicalPosition(range.line1,0)).line == visualPosition.line &&
@@ -71,7 +71,7 @@ class VcsRenderService(project: Project) {
 							g.color = LineStatusMarkerDrawUtil.getGutterColor(it.type, editor)
 							var visualLine1 = EditorUtil.logicalToVisualLine(editor, it.line1)
 							var visualLine2 = EditorUtil.logicalToVisualLine(editor, it.line2)
-							val documentLine = getDocumentRenderLine(visualLine1, visualLine2)
+							val documentLine = getMyRenderLine(visualLine1, visualLine2)
 							foldRegions.forEach { fold ->
 								if (editor.document.getLineNumber(fold.startOffset) <= it.line1 &&
 									it.line2 <= editor.document.getLineNumber(fold.endOffset)
