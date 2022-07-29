@@ -69,9 +69,9 @@ class VcsRenderService(project: Project) {
 					if (it !is LocalRange || it.changelistId == changeListManager.defaultChangeList.id) {
 						try {
 							g.color = LineStatusMarkerDrawUtil.getGutterColor(it.type, editor)
-							val documentLine = getDocumentRenderLine(it.line1, it.line2)
 							var visualLine1 = EditorUtil.logicalToVisualLine(editor, it.line1)
 							var visualLine2 = EditorUtil.logicalToVisualLine(editor, it.line2)
+							val documentLine = getDocumentRenderLine(visualLine1, visualLine2)
 							foldRegions.forEach { fold ->
 								if (editor.document.getLineNumber(fold.startOffset) <= it.line1 &&
 									it.line2 <= editor.document.getLineNumber(fold.endOffset)
@@ -82,8 +82,8 @@ class VcsRenderService(project: Project) {
 								visualLine1 += it.line1 - realLine
 								visualLine2 += it.line2 - realLine
 							}
-							val start = (visualLine1 + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
-							val end = (visualLine2 + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
+							val start = visualLine1 * config.pixelsPerLine + documentLine.first - scrollState.visibleStart
+							val end = visualLine2 * config.pixelsPerLine + documentLine.first - scrollState.visibleStart
 							if(start >= 0 || end >= 0) {
 								g.fillRect(0, start, width, config.pixelsPerLine)
 								g.fillRect(0, start + config.pixelsPerLine, width, end - start - config.pixelsPerLine)

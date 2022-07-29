@@ -4,15 +4,17 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.editor.impl.view.IterationState
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.util.Range
 import com.intellij.util.containers.ContainerUtil
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import java.awt.Color
 import java.awt.image.BufferedImage
+import kotlin.math.roundToInt
 
 /**
  * A rendered minimap of a document
  */
-class Minimap(glancePanel: AbstractGlancePanel){
+class Minimap(private val glancePanel: AbstractGlancePanel){
 	private val editor = glancePanel.editor
 	private val config = glancePanel.config
 	private val scrollState = glancePanel.scrollState
@@ -44,7 +46,9 @@ class Minimap(glancePanel: AbstractGlancePanel){
 
 		var x = 0
 		var y = 0
+		var addY = 0
 		var skipLines = 0
+		val selfY = lazy(LazyThreadSafetyMode.NONE){ mutableListOf<Pair<Int,Range<Int>>>() }
 		val moveCharIndex = { code: Int ->
 			when (code) {
 				ENTER -> {
@@ -60,20 +64,35 @@ class Minimap(glancePanel: AbstractGlancePanel){
 		g.fillRect(0, 0, curImg.width, curImg.height)
 		loop@ while (!hlIter.atEnd()) {
 			val start = hlIter.start
-			y = (editor.document.getLineNumber(start) + skipLines) * config.pixelsPerLine
+			y = (editor.document.getLineNumber(start) + skipLines) * config.pixelsPerLine + addY
 			val region = editor.foldingModel.getCollapsedRegionAtOffset(start)
-			if (region != null && region !is CustomFoldRegionImpl) {
-				if(region.placeholderText.isNotBlank()) {
-					(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor).apply(setColorRgba)
-					StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach {
-						moveCharIndex(it.code)
-						curImg.renderImage(x, y, it.code, scaleBuffer)
-					}
-				}
+			if (region != null) {
 				val endOffset = region.endOffset
-				skipLines -= editor.document.getLineNumber(endOffset) - editor.document.getLineNumber(region.startOffset)
-				// Skip to end of fold
-				do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
+				val foldLine = editor.document.getLineNumber(endOffset) - editor.document.getLineNumber(region.startOffset)
+				if(region !is CustomFoldRegionImpl){
+					if(region.placeholderText.isNotBlank()) {
+						(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor).apply(setColorRgba)
+						StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach {
+							moveCharIndex(it.code)
+							curImg.renderImage(x, y, it.code, scaleBuffer)
+						}
+					}
+					skipLines -= foldLine
+					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
+				} else {
+					val heightLine = (region.heightInPixels * scrollState.scale).roundToInt()
+					val remaining = heightLine % config.pixelsPerLine
+					if(foldLine > 0 && foldLine * config.pixelsPerLine > heightLine - remaining){
+						skipLines += (heightLine - remaining) / config.pixelsPerLine
+						addY += remaining
+					}else{
+						addY += heightLine - foldLine * config.pixelsPerLine
+					}
+					skipLines -= foldLine + 1
+					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
+					val line = (editor.document.getLineNumber(hlIter.start) + skipLines) * config.pixelsPerLine + addY
+					selfY.value.add(Pair(editor.offsetToVisualLine(endOffset),Range(y,line)))
+				}
 			} else {
 				val end = hlIter.end
 				val highlightList = getHighlightColor(start, end)
@@ -99,6 +118,7 @@ class Minimap(glancePanel: AbstractGlancePanel){
 			}
 		}
 		g.dispose()
+		if(selfY.isInitialized()) glancePanel.selfY = selfY.value
 		preBuffer?.let {
 			img = lazyOf(curImg)
 			it.flush()

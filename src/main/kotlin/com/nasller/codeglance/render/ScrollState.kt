@@ -25,8 +25,10 @@ class ScrollState {
         private set
 
     fun AbstractGlancePanel.computeDimensions() {
+        val oldScale = scale
         scale = config.pixelsPerLine.toFloat() / editor.lineHeight
         documentHeight = (editor.contentComponent.height * scale).toInt()
+        if(oldScale > 0 && oldScale != scale) updateImage()
     }
 
     fun recomputeVisible(visibleArea: Rectangle) {

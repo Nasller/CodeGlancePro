@@ -2,7 +2,6 @@ package com.nasller.codeglance.panel.scroll
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
-import com.intellij.codeInsight.documentation.render.DocRenderManager
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
@@ -32,8 +31,6 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
     private val editor = glancePanel.editor
     private val scrollState = glancePanel.scrollState
     private val myEditorFragmentRenderer = CustomEditorFragmentRenderer(editor)
-    private val notReaderMode
-        get() = !DocRenderManager.isDocRenderingEnabled(editor)
 
     private var visibleRectAlpha = DEFAULT_ALPHA
         set(value) {
@@ -170,7 +167,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
         }
 
         private fun showMyEditorPreviewHint(e: MouseEvent): Boolean {
-            if (config.showEditorToolTip && notReaderMode && e.x > 10 && e.y < scrollState.drawHeight) {
+            if (config.showEditorToolTip && e.x > 10 && e.y < scrollState.drawHeight) {
                 if (myEditorFragmentRenderer.getEditorPreviewHint() == null) {
                     alarm.cancelAllRequests()
                     alarm.addRequest({
@@ -208,22 +205,15 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 
         private fun jumpToLineAt(y: Int,action:()->Unit) {
             hideMyEditorPreviewHint()
-            val visualLine = (y + scrollState.visibleStart) / config.pixelsPerLine
-            val renderLine = editor.visualToLogicalPosition(VisualPosition(visualLine, 0)).line.run{
-                glancePanel.getDocumentRenderLine(this, this)
-            }
-            val checkLine = visualLine - renderLine.first
-            if(checkLine >= 0){
-                val line = fitLineToEditor(editor, checkLine)
-                editor.caretModel.moveToVisualPosition(VisualPosition(line,0))
-                editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
-                editor.scrollingModel.runActionOnScrollingFinished(action)
-            }else action()
+            val line = fitLineToEditor(editor, glancePanel.getDocumentRenderVisualLine(y + scrollState.visibleStart))
+            editor.caretModel.moveToVisualPosition(VisualPosition(line,0))
+            editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
+            editor.scrollingModel.runActionOnScrollingFinished(action)
         }
 
         private fun showToolTipByMouseMove(e: MouseEvent) {
             val y = e.y + myWheelAccumulator
-            val visualLine = fitLineToEditor(editor, (y + scrollState.visibleStart) / config.pixelsPerLine)
+            val visualLine = fitLineToEditor(editor, glancePanel.getDocumentRenderVisualLine(y + scrollState.visibleStart))
             myLastVisualLine = visualLine
             val point = SwingUtilities.convertPoint(
                 this@ScrollBar, 0,

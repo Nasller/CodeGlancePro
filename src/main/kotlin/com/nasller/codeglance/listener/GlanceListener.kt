@@ -2,6 +2,7 @@ package com.nasller.codeglance.listener
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.editor.CustomFoldRegion
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.ex.FoldingListener
@@ -37,6 +38,10 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     }
     /** FoldingListener */
     override fun onFoldProcessingEnd() = glancePanel.updateImage()
+
+    override fun onCustomFoldRegionPropertiesChange(region: CustomFoldRegion, flags: Int) {
+        if(flags == FoldingListener.ChangeFlags.HEIGHT_CHANGED) alarm.cancelAndRequest()
+    }
 
     /** SoftWrapChangeListener */
     override fun softWrapsChanged() {

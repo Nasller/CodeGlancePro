@@ -77,12 +77,12 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
             val endByte = editor.selectionModel.blockSelectionEnds[index]
             val start = editor.offsetToVisualPosition(startByte)
             val end = editor.offsetToVisualPosition(endByte)
-            val documentLine = getDocumentRenderLine(editor.document.getLineNumber(startByte),editor.document.getLineNumber(endByte))
+            val documentLine = getDocumentRenderLine(start.line,end.line)
 
             val sX = start.column
-            val sY = (start.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
+            val sY = start.line * config.pixelsPerLine + documentLine.first - scrollState.visibleStart
             val eX = end.column + 1
-            val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
+            val eY = end.line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
             if(sY >= 0 || eY >= 0) {
                 setGraphics2DInfo(srcOver,editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR))
                 // Single line is real easy
@@ -105,8 +105,8 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
     override fun Graphics2D.paintCaretPosition() {
         setGraphics2DInfo(srcOver,editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR))
         editor.caretModel.allCarets.forEach{
-            val documentLine = getDocumentRenderLine(it.logicalPosition.line,it.logicalPosition.line)
-            val start = (it.visualPosition.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
+            val documentLine = getDocumentRenderLine(it.visualPosition.line,it.visualPosition.line)
+            val start = it.visualPosition.line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
             if(start >= 0) fillRect(0, start, width, config.pixelsPerLine)
         }
     }
@@ -140,13 +140,13 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
     private fun Graphics2D.drawMarkupLine(it: RangeHighlighter, color: Color,highSeverity: Boolean){
         val fullLineError = config.showFullLineError()
         setGraphics2DInfo(if(highSeverity && fullLineError) srcOver0_6 else srcOver,color)
-        val documentLine = getDocumentRenderLine(editor.offsetToLogicalPosition(it.startOffset).line, editor.offsetToLogicalPosition(it.endOffset).line)
         val start = editor.offsetToVisualPosition(it.startOffset)
         val end = editor.offsetToVisualPosition(it.endOffset)
+        val documentLine = getDocumentRenderLine(start.line, end.line)
         var sX = if (start.column > (width - minGap)) width - minGap else start.column
-        val sY = (start.line + documentLine.first) * config.pixelsPerLine - scrollState.visibleStart
+        val sY = start.line  * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
         var eX = if (start.column < (width - minGap)) end.column + 1 else width
-        val eY = (end.line + documentLine.second) * config.pixelsPerLine - scrollState.visibleStart
+        val eY = end.line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
         if(sY >= 0 || eY >= 0){
             val collapsed = editor.foldingModel.getCollapsedRegionAtOffset(it.startOffset)
             if (sY == eY && collapsed == null) {

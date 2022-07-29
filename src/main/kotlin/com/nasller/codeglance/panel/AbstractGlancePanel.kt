@@ -3,12 +3,13 @@ package com.nasller.codeglance.panel
 import com.intellij.codeHighlighting.HighlightDisplayLevel
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.util.ObjectUtils
+import com.intellij.util.Range
+import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
@@ -26,6 +27,7 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
     val vcsRenderService: VcsRenderService? = project.getService(VcsRenderService::class.java)
     val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
     var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
+    var selfY: List<Pair<Int, Range<Int>>> = ContainerUtil.emptyList()
     protected val renderLock = DirtyLock()
     val isDisabled: Boolean
         get() = config.disabled || editor.document.lineCount > config.maxLinesCount
@@ -87,18 +89,28 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
     fun getDocumentRenderLine(lineStart:Int,lineEnd:Int):Pair<Int,Int>{
         var startAdd = 0
         var endAdd = 0
-        editor.foldingModel.allFoldRegions.filter{ !it.isExpanded && it is CustomFoldRegionImpl }.forEach {
-            val start = it.document.getLineNumber(it.startOffset)
-            val end = it.document.getLineNumber(it.endOffset)
-            val i = end - start
-            if (lineStart < start && end < lineEnd) {
-                endAdd += i
-            } else if (end < lineEnd) {
+        selfY.forEach {
+            if (it.first in (lineStart + 1) until lineEnd) {
+                endAdd += it.second.to - it.second.from
+            } else if (it.first < lineStart) {
+                val i = it.second.to - it.second.from
                 startAdd += i
                 endAdd += i
             }
         }
         return startAdd to endAdd
+    }
+
+    fun getDocumentRenderVisualLine(y:Int):Int{
+        var minus = 0
+        for (pair in selfY) {
+            if (y in pair.second.from .. pair.second.to) {
+                return pair.first
+            } else if (pair.second.to < y) {
+                minus += pair.second.to - pair.second.from
+            }
+        }
+        return (y - minus) / config.pixelsPerLine
     }
 
     override fun paint(gfx: Graphics) {

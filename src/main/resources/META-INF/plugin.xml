@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.4.7</h3>
+		<ul>
+			<li>fix the reader mode calculate</li>
+		</ul>
 		<h3>1.4.6</h3>
 		<ul>
 			<li>Ctrl shift g now control current editor</li>
