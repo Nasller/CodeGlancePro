@@ -121,7 +121,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
             dragging = true
             visibleRectAlpha = DRAG_ALPHA
             dragStart = y
-            dragStartDelta = scrollState.viewportStart - scrollState.visibleStart
+            dragStartDelta = vOffset
         }
 
         override fun mouseDragged(e: MouseEvent) {

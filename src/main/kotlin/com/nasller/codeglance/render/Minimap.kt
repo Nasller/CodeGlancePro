@@ -25,8 +25,6 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 		var curImg = img.value
 		if(editor.document.lineCount <= 0) return
 		if (curImg.height < scrollState.documentHeight || curImg.width < config.width) {
-			// Create an image that is a bit bigger then the one we need, so we don't need to re-create it again soon.
-			// Documents can get big, so rather than relative sizes lets just add a fixed amount on.
 			preBuffer = img.value
 			curImg = BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 		}
@@ -60,13 +58,16 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 				else -> x += 1
 			}
 		}
+		val renderChar = { it: Char ->
+			moveCharIndex(it.code)
+			curImg.renderImage(x, y, it.code, scaleBuffer)
+		}
 		val moveInlayHeight = { start: Int ->
 			val visualLine = curVisualLine
 			curVisualLine = editor.offsetToVisualLine(start)
 			if (visualLine != curVisualLine) {
-				val sumBlock = editor.inlayModel.getBlockElementsForVisualLine(curVisualLine, true).sumOf {
-					(it.heightInPixels * scrollState.scale).roundToInt()
-				}
+				val sumBlock = editor.inlayModel.getBlockElementsForVisualLine(curVisualLine, true)
+					.sumOf { (it.heightInPixels * scrollState.scale).roundToInt() }
 				if (sumBlock > 0) {
 					myRangeList.value.add(Pair(curVisualLine - 1, Range(y, y + sumBlock)))
 					y += sumBlock
@@ -80,34 +81,34 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 		loop@ while (!hlIter.atEnd()) {
 			val start = hlIter.start
 			y = editor.document.getLineNumber(start) * config.pixelsPerLine + skipY
+			val color by lazy(LazyThreadSafetyMode.NONE){ try {
+				hlIter.textAttributes.foregroundColor
+			} catch (_: ConcurrentModificationException){ null } }
 			val region = editor.foldingModel.getCollapsedRegionAtOffset(start)
 			if (region != null) {
+				val startLineNumber = editor.document.getLineNumber(region.startOffset)
 				val endOffset = region.endOffset
-				val foldLine = editor.document.getLineNumber(endOffset) - editor.document.getLineNumber(region.startOffset)
+				val foldLine = editor.document.getLineNumber(endOffset) - startLineNumber
 				if(region !is CustomFoldRegionImpl){
 					if(region.placeholderText.isNotBlank()) {
 						(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor).apply(setColorRgba)
-						StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach {
-							moveCharIndex(it.code)
-							curImg.renderImage(x, y, it.code, scaleBuffer)
-						}
+						StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach(renderChar)
 					}
 					skipY -= foldLine * config.pixelsPerLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 				} else {
+					(color ?: defaultColor).apply(setColorRgba)
 					val heightLine = (region.heightInPixels * scrollState.scale).roundToInt()
 					skipY += heightLine - (foldLine + 1) * config.pixelsPerLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
-					val line = editor.document.getLineNumber(hlIter.start) * config.pixelsPerLine + skipY
-					myRangeList.value.add(Pair(editor.offsetToVisualLine(endOffset),Range(y,line)))
+					myRangeList.value.add(Pair(editor.offsetToVisualLine(endOffset),
+						Range(y,editor.document.getLineNumber(hlIter.start) * config.pixelsPerLine + skipY)))
+					text.subSequence(start, editor.document.getLineEndOffset(startLineNumber + (heightLine / config.pixelsPerLine) - 1)).forEach(renderChar)
 				}
 			} else {
 				if(hasBlockInlay) moveInlayHeight(start)
 				val end = hlIter.end
 				val highlightList = getHighlightColor(start, end)
-				val color by lazy(LazyThreadSafetyMode.NONE){ try {
-					hlIter.textAttributes.foregroundColor
-				} catch (_: ConcurrentModificationException){ null } }
 				for(offset in start until end){
 					// Watch out for tokens that extend past the document
 					if (offset >= text.length) break@loop
