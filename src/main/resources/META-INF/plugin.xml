@@ -27,6 +27,7 @@
 		<h3>1.4.7</h3>
 		<ul>
 			<li>fix the reader mode calculate</li>
+			<li>fix the inlay hits calculate</li>
 		</ul>
 		<h3>1.4.6</h3>
 		<ul>
