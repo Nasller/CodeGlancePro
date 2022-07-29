@@ -32,7 +32,7 @@ class MyVcsListener(private val myVcsPanel: MyVcsPanel,private val glancePanel: 
     override fun visibleAreaChanged(e: VisibleAreaEvent) = repaint()
 
     private fun repaint() {
-        if(myVcsPanel.isVisible && glancePanel.shouldUpdate()) glancePanel.vcsRenderService?.trackerManager?.invokeAfterUpdate {
+        if(myVcsPanel.isVisible && glancePanel.checkVisible()) glancePanel.vcsRenderService?.trackerManager?.invokeAfterUpdate {
             myVcsPanel.repaint()
         }
     }

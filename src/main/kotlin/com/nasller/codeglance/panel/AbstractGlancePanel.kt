@@ -60,12 +60,12 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
     }
 
     fun updateImage(directUpdate: Boolean = false, updateScroll:Boolean = false) =
-        if (shouldUpdate() && renderLock.acquire()) {
+        if (checkVisible() && renderLock.acquire()) {
             if (directUpdate) updateImgTask(updateScroll)
             else ApplicationManager.getApplication().invokeLater{ updateImgTask(updateScroll) }
         } else Unit
 
-    fun shouldUpdate() = !((!config.hoveringToShowScrollBar && !isVisible) || project.isDisposed)
+    fun checkVisible() = !((!config.hoveringToShowScrollBar && !isVisible) || editor.isDisposed)
 
     fun updateScrollState() = scrollState.run{
         computeDimensions()
