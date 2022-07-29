@@ -55,7 +55,7 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
             cancel()
             showHideOriginScrollBar(true)
         }
-        changeVisible()
+        isVisible = !isDisabled
     }
 
     override fun updateImgTask(updateScroll:Boolean) {

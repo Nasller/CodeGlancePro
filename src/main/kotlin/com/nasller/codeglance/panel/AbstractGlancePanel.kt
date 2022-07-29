@@ -39,7 +39,7 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
         isOpaque = false
         editor.component.isOpaque = false
         layout = BorderLayout()
-        changeVisible()
+        isVisible = !isDisabled
     }
 
     fun refresh(refreshImage:Boolean = true,directUpdate:Boolean = false) {
@@ -66,10 +66,6 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
         } else Unit
 
     fun shouldUpdate() = !((!config.hoveringToShowScrollBar && !isVisible) || project.isDisposed)
-
-    fun changeVisible(){
-        isVisible = !isDisabled
-    }
 
     fun updateScrollState() = scrollState.run{
         computeDimensions()
