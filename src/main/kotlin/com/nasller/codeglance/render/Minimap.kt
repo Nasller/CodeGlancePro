@@ -1,11 +1,8 @@
 package com.nasller.codeglance.render
 
-import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
-import com.intellij.openapi.editor.impl.view.IterationState
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.Range
-import com.intellij.util.containers.ContainerUtil
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import java.awt.Color
 import java.awt.image.BufferedImage
@@ -30,11 +27,11 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 		}
 		// These are just to reduce allocations. Premature optimization???
 		val scaleBuffer = FloatArray(4)
-		val setColorRgba: (Color).() -> Unit = {
-			scaleBuffer[0] = red.toFloat()
-			scaleBuffer[1] = green.toFloat()
-			scaleBuffer[2] = blue.toFloat()
-			scaleBuffer[3] = alpha.toFloat()
+		val setColorRgba = { color: Color ->
+			scaleBuffer[0] = color.red.toFloat()
+			scaleBuffer[1] = color.green.toFloat()
+			scaleBuffer[2] = color.blue.toFloat()
+			scaleBuffer[3] = color.alpha.toFloat()
 		}
 
 		val text = editor.document.immutableCharSequence
@@ -91,13 +88,13 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 				val foldLine = editor.document.getLineNumber(endOffset) - startLineNumber
 				if(region !is CustomFoldRegionImpl){
 					if(region.placeholderText.isNotBlank()) {
-						(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor).apply(setColorRgba)
+						setColorRgba(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor)
 						StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach(renderChar)
 					}
 					skipY -= foldLine * config.pixelsPerLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 				} else {
-					(color ?: defaultColor).apply(setColorRgba)
+					setColorRgba(color ?: defaultColor)
 					val heightLine = (region.heightInPixels * scrollState.scale).roundToInt()
 					skipY -= (foldLine + 1) * config.pixelsPerLine - heightLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
@@ -121,7 +118,9 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 					val charCode = text[offset].code
 					moveCharIndex(charCode)
 					curImg.renderImage(x, y, charCode, scaleBuffer){
-						(highlightList.applyColor(offset) ?: color ?: defaultColor).apply(setColorRgba)
+						setColorRgba(highlightList.firstOrNull {
+							offset >= it.startOffset && offset < it.endOffset
+						}?.foregroundColor ?: color ?: defaultColor)
 					}
 				}
 				hlIter.advance()
@@ -136,20 +135,15 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 		}.also { preBuffer = it }
 	}
 
-	private fun getHighlightColor(startOffset:Int,endOffset:Int):MutableList<RangeHighlighterEx>{
-		val list = mutableListOf<RangeHighlighterEx>()
+	private fun getHighlightColor(startOffset:Int,endOffset:Int):MutableList<RangeHighlightColor>{
+		val list = mutableListOf<RangeHighlightColor>()
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(startOffset,endOffset) {
-			if (it.getTextAttributes(editor.colorsScheme)?.foregroundColor != null) list.add(it)
+			val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
+			if (foregroundColor != null) list.add(RangeHighlightColor(it.startOffset,it.endOffset,foregroundColor))
 			return@processRangeHighlightersOverlappingWith true
 		}
 		return list
 	}
-
-	private fun MutableList<RangeHighlighterEx>.applyColor(offset: Int): Color? = this.filter {
-		offset >= it.startOffset && offset < it.endOffset
-	}.apply {
-		if (size > 1) ContainerUtil.quickSort(this, IterationState.createByLayerThenByAttributesComparator(editor.colorsScheme))
-	}.firstOrNull()?.getTextAttributes(editor.colorsScheme)?.foregroundColor
 
 	private fun BufferedImage.renderImage(x: Int, y: Int, char: Int, scaleBuffer: FloatArray,consumer: (()->Unit)? = null) {
 		if (char !in 0..32 && x in 0 until width && 0 <= y && y + config.pixelsPerLine < height) {
@@ -225,6 +219,8 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 		scaleBuffer[3] = alpha * 0xFF
 		raster.setPixel(x, y, scaleBuffer)
 	}
+
+	private data class RangeHighlightColor(val startOffset: Int,val endOffset: Int,val foregroundColor: Color)
 
 	private companion object{
 		const val TAB = 9
