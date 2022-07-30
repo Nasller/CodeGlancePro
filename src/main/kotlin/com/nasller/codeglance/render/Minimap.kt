@@ -59,23 +59,25 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 			moveCharIndex(it.code)
 			curImg.renderImage(x, y, it.code, scaleBuffer)
 		}
-		val moveInlayHeight = { start: Int ->
-			val visualLine = curVisualLine
-			curVisualLine = editor.offsetToVisualLine(start)
-			if (visualLine != curVisualLine) {
-				val sumBlock = editor.inlayModel.getBlockElementsForVisualLine(curVisualLine, true)
-					.sumOf { (it.heightInPixels * scrollState.scale).roundToInt() }
-				if (sumBlock > 0) {
-					myRangeList.value.add(Pair(curVisualLine - 1, Range(y, y + sumBlock)))
-					y += sumBlock
-					skipY += sumBlock
+		val moveInlayHeight = { start: Int,end: Int ->
+			if (hasBlockInlay) {
+				val visualLine = curVisualLine
+				curVisualLine = editor.offsetToVisualLine(start)
+				if (visualLine != curVisualLine) {
+					val sumBlock = editor.inlayModel.getBlockElementsInRange(start, end)
+						.sumOf { (it.heightInPixels * scrollState.scale).roundToInt() }
+					if (sumBlock > 0) {
+						myRangeList.value.add(Pair(curVisualLine - 1, Range(y, y + sumBlock)))
+						y += sumBlock
+						skipY += sumBlock
+					}
 				}
 			}
 		}
 		val g = curImg.createGraphics()
 		g.composite = AbstractGlancePanel.CLEAR
 		g.fillRect(0, 0, curImg.width, curImg.height)
-		loop@ while (!hlIter.atEnd()) {
+		loop@ while (!hlIter.atEnd() && !editor.isDisposed) {
 			val start = hlIter.start
 			y = editor.document.getLineNumber(start) * config.pixelsPerLine + skipY
 			val color by lazy(LazyThreadSafetyMode.NONE){ try {
@@ -103,8 +105,8 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 					text.subSequence(start, editor.document.getLineEndOffset(startLineNumber - 1 + (heightLine / config.pixelsPerLine))).forEach(renderChar)
 				}
 			} else {
-				if(hasBlockInlay) moveInlayHeight(start)
 				val end = hlIter.end
+				moveInlayHeight(start,end)
 				val highlightList = getHighlightColor(start, end)
 				for(offset in start until end){
 					// Watch out for tokens that extend past the document
@@ -127,12 +129,13 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 			}
 		}
 		g.dispose()
-		if(myRangeList.isInitialized()) glancePanel.myRangeList = myRangeList.value
 		preBuffer?.let {
 			img = lazyOf(curImg)
 			it.flush()
 			null
 		}.also { preBuffer = it }
+		if(glancePanel.myRangeList.isNotEmpty()) glancePanel.myRangeList.clear()
+		if(myRangeList.isInitialized()) glancePanel.myRangeList.addAll(myRangeList.value)
 	}
 
 	private fun getHighlightColor(startOffset:Int,endOffset:Int):MutableList<RangeHighlightColor>{

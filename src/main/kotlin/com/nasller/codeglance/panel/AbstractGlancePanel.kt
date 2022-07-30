@@ -26,12 +26,12 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
     val scrollState = ScrollState()
     val vcsRenderService: VcsRenderService? = project.getService(VcsRenderService::class.java)
     val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
-    var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
-    var myRangeList: List<Pair<Int, Range<Int>>> = ContainerUtil.emptyList()
-    protected val renderLock = DirtyLock()
+    val myRangeList: MutableList<Pair<Int, Range<Int>>> = ContainerUtil.createLockFreeCopyOnWriteList()
     val isDisabled: Boolean
         get() = config.disabled || editor.document.lineCount > config.maxLinesCount
+    protected val renderLock = DirtyLock()
     private var buf: BufferedImage? = null
+    var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
     var scrollbar: ScrollBar? = null
     var myVcsPanel: MyVcsPanel? = null
 
