@@ -88,12 +88,18 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     override fun recalculationEnds() = Unit
 
     /** MarkupModelListener */
-    override fun afterAdded(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter)
+    override fun afterAdded(highlighter: RangeHighlighterEx) =
+        updateRangeHighlight(EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))
 
-    override fun beforeRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter)
+    override fun beforeRemoved(highlighter: RangeHighlighterEx) =
+        updateRangeHighlight(EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))
 
-    private fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
-        if(EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) repaintOrRequest(true)
+    override fun attributesChanged(highlighter: RangeHighlighterEx,
+        renderersChanged: Boolean, fontStyleChanged: Boolean, foregroundColorChanged: Boolean) = updateRangeHighlight(foregroundColorChanged)
+
+    private fun updateRangeHighlight(foregroundColorChanged: Boolean) {
+        if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || !foregroundColorChanged) return
+        repaintOrRequest(true)
     }
 
     /** CaretListener */

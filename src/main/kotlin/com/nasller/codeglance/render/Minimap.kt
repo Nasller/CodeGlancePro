@@ -1,5 +1,6 @@
 package com.nasller.codeglance.render
 
+import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.Range
@@ -43,36 +44,21 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 		var x = 0
 		var y = 0
 		var skipY = 0
-		var curVisualLine = 0
 		val myRangeList = lazy(LazyThreadSafetyMode.NONE){ mutableListOf<Pair<Int,Range<Int>>>() }
-		val moveCharIndex = { code: Int ->
+		val moveCharIndex = { code: Int,enterAction: (()->Unit)? ->
 			when (code) {
 				ENTER -> {
 					x = 0
 					y += config.pixelsPerLine
+					enterAction?.invoke()
 				}
 				TAB -> x += 4
 				else -> x += 1
 			}
 		}
-		val renderChar = { it: Char ->
-			moveCharIndex(it.code)
+		val moveAndRenderChar = { it: Char ->
+			moveCharIndex(it.code,null)
 			curImg.renderImage(x, y, it.code, scaleBuffer)
-		}
-		val moveInlayHeight = { start: Int,end: Int ->
-			if (hasBlockInlay) {
-				val visualLine = curVisualLine
-				curVisualLine = editor.offsetToVisualLine(start)
-				if (visualLine != curVisualLine) {
-					val sumBlock = editor.inlayModel.getBlockElementsInRange(start, end)
-						.sumOf { (it.heightInPixels * scrollState.scale).roundToInt() }
-					if (sumBlock > 0) {
-						myRangeList.value.add(Pair(curVisualLine - 1, Range(y, y + sumBlock)))
-						y += sumBlock
-						skipY += sumBlock
-					}
-				}
-			}
 		}
 		val g = curImg.createGraphics()
 		g.composite = AbstractGlancePanel.CLEAR
@@ -91,7 +77,7 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 				if(region !is CustomFoldRegionImpl){
 					if(region.placeholderText.isNotBlank()) {
 						setColorRgba(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor)
-						StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach(renderChar)
+						StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach(moveAndRenderChar)
 					}
 					skipY -= foldLine * config.pixelsPerLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
@@ -102,23 +88,31 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 					myRangeList.value.add(Pair(editor.offsetToVisualLine(endOffset),
 						Range(y,editor.document.getLineNumber(hlIter.start) * config.pixelsPerLine + skipY)))
-					text.subSequence(start, editor.document.getLineEndOffset(startLineNumber - 1 + (heightLine / config.pixelsPerLine))).forEach(renderChar)
+					text.subSequence(start, editor.document.getLineEndOffset(startLineNumber - 1 + (heightLine / config.pixelsPerLine))).forEach(moveAndRenderChar)
 				}
 			} else {
 				val end = hlIter.end
-				moveInlayHeight(start,end)
 				val highlightList = getHighlightColor(start, end)
 				for(offset in start until end){
 					// Watch out for tokens that extend past the document
 					if (offset >= text.length) break@loop
 					if (softWrapEnable) editor.softWrapModel.getSoftWrap(offset)?.let { softWrap ->
-						softWrap.chars.forEach {
-							moveCharIndex(it.code)
-							if(it.code == ENTER) skipY += config.pixelsPerLine
-						}
+						softWrap.chars.forEach { moveCharIndex(it.code){ skipY += config.pixelsPerLine } }
 					}
 					val charCode = text[offset].code
-					moveCharIndex(charCode)
+					moveCharIndex(charCode){ if (hasBlockInlay) {
+						val startOffset = offset + 1
+						val visualLine = editor.offsetToVisualLine(startOffset)
+						val endOffset = if (visualLine == editor.visibleLineCount - 1) text.length else editor.visualLineStartOffset(visualLine + 1) - 1
+						val sumBlock = editor.inlayModel.getBlockElementsInRange(startOffset, endOffset)
+							.filter { it.placement == Inlay.Placement.ABOVE_LINE }
+							.sumOf { (it.heightInPixels * scrollState.scale).roundToInt() }
+						if (sumBlock > 0) {
+							myRangeList.value.add(Pair(visualLine - 1, Range(y, y + sumBlock)))
+							y += sumBlock
+							skipY += sumBlock
+						}
+					} }
 					curImg.renderImage(x, y, charCode, scaleBuffer){
 						setColorRgba(highlightList.firstOrNull {
 							offset >= it.startOffset && offset < it.endOffset
