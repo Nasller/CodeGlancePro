@@ -167,6 +167,7 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
     abstract fun getDrawImage() : BufferedImage?
 
     override fun dispose() {
+        editor.component.remove(this)
         scrollbar?.let {
             it.dispose()
             remove(it)

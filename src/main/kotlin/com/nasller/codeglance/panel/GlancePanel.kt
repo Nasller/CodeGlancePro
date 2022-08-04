@@ -189,11 +189,11 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
     }
 
     override fun dispose() {
-        mapRef.clear()
+        super.dispose()
+        editor.putUserData(CURRENT_GLANCE,null)
         glanceListener.dispose()
         removeHideScrollBarListener()
-        editor.putUserData(CURRENT_GLANCE,null)
-        super.dispose()
+        mapRef.clear()
     }
 }
 

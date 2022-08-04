@@ -6,7 +6,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.FileEditorManager
-import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
@@ -45,10 +44,6 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
             }
         }
     }
-
-    override fun selectionChanged(event: FileEditorManagerEvent) {}
-
-    override fun fileClosed(source: FileEditorManager, file: VirtualFile) {}
 
     /** SettingsChangeListener */
     override fun onGlobalChanged() {
