@@ -96,7 +96,7 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         return glancePanel
     }
 
-    private class MyPanel(val panel: AbstractGlancePanel):JPanel(){
+    internal class MyPanel(val panel: AbstractGlancePanel):JPanel(){
         init{
             layout = BorderLayout()
             isOpaque = false

@@ -254,7 +254,10 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
             editor.visualPositionToOffset(VisualPosition(visualLine, if (startLine) 0 else Int.MAX_VALUE))
     }
 
-    override fun dispose() = myEditorFragmentRenderer.clearHint()
+    override fun dispose() {
+        myEditorFragmentRenderer.clearHint()
+        glancePanel.remove(this)
+    }
 
     companion object {
         private const val DEFAULT_ALPHA = 0.15f

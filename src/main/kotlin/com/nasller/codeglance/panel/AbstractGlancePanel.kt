@@ -11,6 +11,7 @@ import com.intellij.util.ObjectUtils
 import com.intellij.util.Range
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.ui.UIUtil
+import com.nasller.codeglance.EditorPanelInjector
 import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.panel.scroll.ScrollBar
@@ -167,11 +168,9 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
     abstract fun getDrawImage() : BufferedImage?
 
     override fun dispose() {
-        editor.component.remove(this)
-        scrollbar?.let {
-            it.dispose()
-            remove(it)
-        }
+        editor.component.remove(if(this.parent is EditorPanelInjector.MyPanel) this.parent else this)
+        editor.putUserData(CURRENT_GLANCE,null)
+        scrollbar?.dispose()
         myVcsPanel?.dispose()
     }
 
