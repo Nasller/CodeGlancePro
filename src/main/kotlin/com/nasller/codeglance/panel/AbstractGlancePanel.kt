@@ -1,13 +1,11 @@
 package com.nasller.codeglance.panel
 
-import com.intellij.codeHighlighting.HighlightDisplayLevel
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
-import com.intellij.util.ObjectUtils
 import com.intellij.util.Range
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.ui.UIUtil
@@ -83,6 +81,8 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
 
     abstract fun Graphics2D.paintErrorStripes()
 
+    abstract fun Graphics2D.paintDocumentMarkup()
+
     fun getMyRenderLine(lineStart:Int, lineEnd:Int):Pair<Int,Int>{
         var startAdd = 0
         var endAdd = 0
@@ -148,6 +148,7 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
         else paintCaretPosition()
         paintOtherHighlight()
         paintErrorStripes()
+        paintDocumentMarkup()
     }
 
     protected fun Graphics2D.setGraphics2DInfo(al: AlphaComposite,col: Color?){
@@ -183,7 +184,6 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
         val srcOver0_6: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.60f)
         val srcOver0_8: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
         val srcOver: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
-        val minSeverity = ObjectUtils.notNull(HighlightDisplayLevel.find("TYPO"), HighlightDisplayLevel.DO_NOT_SHOW).severity
         val CURRENT_GLANCE = Key<GlancePanel>("CURRENT_GLANCE")
     }
 }

@@ -5,11 +5,9 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.*
 import com.intellij.openapi.editor.Inlay.Placement
 import com.intellij.openapi.editor.event.*
-import com.intellij.openapi.editor.ex.FoldingListener
-import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
-import com.intellij.openapi.editor.ex.RangeHighlighterEx
-import com.intellij.openapi.editor.ex.SoftWrapChangeListener
+import com.intellij.openapi.editor.ex.*
 import com.intellij.openapi.editor.ex.util.EditorUtil
+import com.intellij.openapi.editor.impl.DocumentMarkupModel
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.intellij.util.SingleAlarm
 import com.nasller.codeglance.config.SettingsChangeListener
@@ -34,8 +32,11 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
         editor.inlayModel.addListener(this,glancePanel)
         editor.softWrapModel.addSoftWrapChangeListener(this)
         editor.caretModel.addCaretListener(this,glancePanel)
-        editor.markupModel.addMarkupModelListener(glancePanel, GlanceOtherListener(glancePanel))
         editor.filteredDocumentMarkupModel.addMarkupModelListener(glancePanel, this)
+        editor.markupModel.addMarkupModelListener(glancePanel, GlanceOtherListener(glancePanel){
+            it.getErrorStripeMarkColor(glancePanel.editor.colorsScheme) != null
+        })
+        (DocumentMarkupModel.forDocument(editor.document, glancePanel.project, true) as MarkupModelEx).addMarkupModelListener(glancePanel,GlanceOtherListener(glancePanel))
         ApplicationManager.getApplication().messageBus.connect(glancePanel).subscribe(SettingsChangeListener.TOPIC, this)
     }
     /** FoldingListener */
@@ -166,13 +167,13 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
     }
 }
 
-class GlanceOtherListener(private val glancePanel: GlancePanel) : MarkupModelListener {
+class GlanceOtherListener(private val glancePanel: GlancePanel,private val predicate: ((RangeHighlighterEx)->Boolean)? = null): MarkupModelListener {
     override fun afterAdded(highlighter: RangeHighlighterEx) = repaint(highlighter)
 
     override fun beforeRemoved(highlighter: RangeHighlighterEx) = repaint(highlighter)
 
     private fun repaint(highlighter: RangeHighlighterEx) {
-        if(highlighter.getErrorStripeMarkColor(glancePanel.editor.colorsScheme) != null && glancePanel.checkVisible()){
+        if((predicate == null || predicate.invoke(highlighter)) && glancePanel.checkVisible()){
             glancePanel.repaint()
         }
     }

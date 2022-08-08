@@ -2,6 +2,8 @@ package com.nasller.codeglance.panel
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.openapi.editor.colors.EditorColors
+import com.intellij.openapi.editor.ex.MarkupModelEx
+import com.intellij.openapi.editor.impl.DocumentMarkupModel
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.project.Project
@@ -118,7 +120,7 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
             val layer = map.value[key]
             it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
                 if(layer == null || layer < it.layer){
-                    drawMarkupLine(it,this,false)
+                    drawMarkupLine(it,this,false, fullLineWithActualHighlight = false)
                     map.value[key] = it.layer
                 }
             }
@@ -128,18 +130,16 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
 
     override fun Graphics2D.paintErrorStripes() {
         editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0, editor.document.textLength) {
-            HighlightInfo.fromRangeHighlighter(it) ?.let {info ->
+            HighlightInfo.fromRangeHighlighter(it) ?.let { _ ->
                 it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-                    drawMarkupLine(it,this,info.severity.myVal > minSeverity.myVal)
+                    drawMarkupLine(it,this, config.showFullLineError(),true)
                 }
             }
             return@processRangeHighlightersOverlappingWith true
         }
     }
 
-    private fun Graphics2D.drawMarkupLine(it: RangeHighlighter, color: Color,highSeverity: Boolean){
-        val fullLineError = config.showFullLineError()
-        setGraphics2DInfo(if(highSeverity && fullLineError) srcOver0_6 else srcOver,color)
+    private fun Graphics2D.drawMarkupLine(it: RangeHighlighter, color: Color,fullLine: Boolean,fullLineWithActualHighlight: Boolean){
         val start = editor.offsetToVisualPosition(it.startOffset)
         val end = editor.offsetToVisualPosition(it.endOffset)
         val documentLine = getMyRenderLine(start.line, end.line)
@@ -148,31 +148,50 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
         var eX = if (start.column < (width - minGap)) end.column + 1 else width
         val eY = end.line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
         if(sY >= 0 || eY >= 0){
+            setGraphics2DInfo(if(fullLine && fullLineWithActualHighlight) srcOver0_6 else srcOver,color)
             val collapsed = editor.foldingModel.getCollapsedRegionAtOffset(it.startOffset)
             if (sY == eY && collapsed == null) {
-                if(highSeverity && eX - sX < minGap){
+                if(fullLineWithActualHighlight && eX - sX < minGap){
                     eX += minGap-(eX - sX)
                     if(eX > width) sX -= eX - width
                 }
-                if(highSeverity && fullLineError) {
-                    fillRect(0, sY, width, config.pixelsPerLine)
-                    setGraphics2DInfo(srcOver,color.brighter())
-                }
-                fillRect(sX, sY, eX - sX, config.pixelsPerLine)
+                drawMarkOneLine(fullLine, fullLineWithActualHighlight, color, sY, sX, eX)
             } else if (collapsed != null) {
                 val startVis = editor.offsetToVisualPosition(collapsed.startOffset)
                 val endVis = editor.offsetToVisualPosition(collapsed.endOffset)
-                if(highSeverity && fullLineError) {
-                    fillRect(0, sY, width, config.pixelsPerLine)
-                    setGraphics2DInfo(srcOver,color.brighter())
-                }
-                fillRect(startVis.column, sY, endVis.column - startVis.column, config.pixelsPerLine)
+                drawMarkOneLine(fullLine,fullLineWithActualHighlight, color, sY,startVis.column,endVis.column)
             } else {
                 val notEqual = eY + config.pixelsPerLine != sY
                 composite = srcOver
-                fillRect(sX, sY, width - sX, config.pixelsPerLine)
+                fillRect(sX, sY, if(fullLine) width else width - sX, config.pixelsPerLine)
                 if (notEqual) fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
-                fillRect(0, eY, eX, config.pixelsPerLine)
+                fillRect(0, eY, if(fullLine) width else eX, config.pixelsPerLine)
+            }
+        }
+    }
+
+    private fun Graphics2D.drawMarkOneLine(fullLine: Boolean, fullLineWithActualHighlight: Boolean, color: Color, sY: Int, sX: Int, eX: Int) {
+        if (fullLine && fullLineWithActualHighlight) {
+            fillRect(0, sY, width, config.pixelsPerLine)
+            setGraphics2DInfo(srcOver, color.brighter())
+            fillRect(sX, sY, eX - sX, config.pixelsPerLine)
+        } else if (fullLine) {
+            fillRect(0, sY, width, config.pixelsPerLine)
+        } else {
+            fillRect(sX, sY, eX - sX, config.pixelsPerLine)
+        }
+    }
+
+    override fun Graphics2D.paintDocumentMarkup() {
+        (DocumentMarkupModel.forDocument(editor.document, project, false) as? MarkupModelEx)?.let {
+            it.processRangeHighlightersOverlappingWith(0, editor.document.textLength) { range->
+                if(range.isThinErrorStripeMark) return@processRangeHighlightersOverlappingWith true
+                range.getTextAttributes(editor.colorsScheme)?.let { textAttributes ->
+                    (textAttributes.backgroundColor)?.apply{
+                        drawMarkupLine(range,this,true, fullLineWithActualHighlight = false)
+                    }
+                }
+                return@processRangeHighlightersOverlappingWith true
             }
         }
     }

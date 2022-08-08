@@ -86,7 +86,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
         g.fillRect(0, vOffset, width, scrollState.viewportHeight)
     }
 
-    inner class MouseHandler : MouseAdapter() {
+    private inner class MouseHandler : MouseAdapter() {
         private var resizing = false
         private var resizeStart: Int = 0
 
