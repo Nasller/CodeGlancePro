@@ -13,6 +13,7 @@ import com.intellij.ui.HintHint
 import com.intellij.util.Alarm
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.MouseEventAdapter
+import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.*
@@ -71,7 +72,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
             }
             else -> {
                 visibleRectAlpha = DEFAULT_ALPHA
-                cursor = if(y < scrollState.drawHeight) Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                cursor = if(MouseJumpEnum.NONE != config.jumpOnMouseDown && y < scrollState.drawHeight) Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
                 else Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
                 false
             }
@@ -108,8 +109,8 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
                     resizeStart = e.xOnScreen
                     widthStart = glancePanel.width
                 }
-                isInRect(e.y) -> dragMove(e.y)
-                config.jumpOnMouseDown -> jumpToLineAt(e.y){
+                isInRect(e.y) || MouseJumpEnum.NONE == config.jumpOnMouseDown -> dragMove(e.y)
+                MouseJumpEnum.MOUSE_DOWN == config.jumpOnMouseDown -> jumpToLineAt(e.y) {
                     visibleRectAlpha = DEFAULT_ALPHA
                     cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
                     dragMove(e.y)
@@ -141,7 +142,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
                     delta * (documentHeight - viewportHeight + 1) / (visibleHeight - viewportHeight)
                 }
                 editor.scrollPane.verticalScrollBar.value = (newPos / scrollState.scale).roundToInt()
-            }else if(!config.jumpOnMouseDown) showMyEditorPreviewHint(e)
+            }else if(MouseJumpEnum.MOUSE_UP == config.jumpOnMouseDown) showMyEditorPreviewHint(e)
         }
 
         override fun mouseReleased(e: MouseEvent) {
@@ -151,7 +152,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
                 resizing = false
                 hideScrollBar(e)
             }
-            if (!config.jumpOnMouseDown && !dragging && !resizing && !e.isPopupTrigger) jumpToLineAt(e.y,action)
+            if (MouseJumpEnum.MOUSE_UP == config.jumpOnMouseDown && !dragging && !resizing && !e.isPopupTrigger) jumpToLineAt(e.y,action)
             else editor.scrollingModel.runActionOnScrollingFinished(action)
         }
 

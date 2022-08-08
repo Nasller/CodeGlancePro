@@ -2,6 +2,7 @@ package com.nasller.codeglance.config
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.util.messages.Topic
+import com.nasller.codeglance.config.enums.MouseJumpEnum
 import kotlin.properties.Delegates
 
 class CodeGlanceConfig {
@@ -19,7 +20,7 @@ class CodeGlanceConfig {
             SettingsChangePublisher.onHoveringOriginalScrollBarChanged(newValue)
         }
     }
-    var jumpOnMouseDown = true
+    var jumpOnMouseDown = MouseJumpEnum.MOUSE_DOWN
     var width = 110
     var viewportColor = "A0A0A0"
     var clean = true

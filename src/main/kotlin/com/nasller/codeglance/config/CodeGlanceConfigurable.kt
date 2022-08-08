@@ -5,6 +5,7 @@ import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.dsl.builder.*
 import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
+import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.AbstractGlancePanel
 import com.nasller.codeglance.util.message
 import java.awt.event.InputEvent
@@ -52,11 +53,9 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 				).bottomGap(BottomGap.SMALL)
 				twoColumnsRow(
 					{
-						val items = arrayOf(message("settings.jump.down"), message("settings.jump.up"))
-						comboBox(DefaultComboBoxModel(items))
+						comboBox(DefaultComboBoxModel(MouseJumpEnum.values().map { it.getMessage() }.toTypedArray()))
 							.label(message("settings.jump"))
-							.bindItem({ if (config.jumpOnMouseDown) items[0] else items[1] },
-								{ config.jumpOnMouseDown = it == items[0] })
+							.bindItem({ config.jumpOnMouseDown.getMessage() },{ config.jumpOnMouseDown = MouseJumpEnum.findMouseJumpEnum(it)})
 							.accessibleName(message("settings.jump"))
 							.applyToComponent { addMouseWheelListener(scrollListener) }
 					},

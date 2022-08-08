@@ -21,7 +21,8 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 
 	fun update() {
 		var curImg = img.value
-		if(editor.document.lineCount <= 0) return
+		val lineCount = editor.document.lineCount
+		if(lineCount <= 0) return
 		if (curImg.height < scrollState.documentHeight || curImg.width < config.width) {
 			preBuffer = img.value
 			curImg = BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
@@ -83,12 +84,15 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 				} else {
 					setColorRgba(color ?: defaultColor)
+					//jump over the fold line
 					val heightLine = (region.heightInPixels * scrollState.scale).roundToInt()
 					skipY -= (foldLine + 1) * config.pixelsPerLine - heightLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 					myRangeList.value.add(Pair(editor.offsetToVisualLine(endOffset),
 						Range(y,editor.document.getLineNumber(hlIter.start) * config.pixelsPerLine + skipY)))
-					text.subSequence(start, editor.document.getLineEndOffset(startLineNumber - 1 + (heightLine / config.pixelsPerLine))).forEach(moveAndRenderChar)
+					//this is render document
+					val line = startLineNumber - 1 + (heightLine / config.pixelsPerLine)
+					text.subSequence(start, editor.document.getLineEndOffset(if(lineCount < line) lineCount else line)).forEach(moveAndRenderChar)
 				}
 			} else {
 				val end = hlIter.end
