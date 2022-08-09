@@ -146,8 +146,8 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
         if(!config.hideOriginalScrollBar) paintVcs(rangeOffset)
         if(editor.selectionModel.hasSelection()) paintSelection()
         else paintCaretPosition()
-        paintEditorMarkupModel(rangeOffset)
         paintEditorFilterMarkupModel(rangeOffset)
+        paintEditorMarkupModel(rangeOffset)
     }
 
     fun Graphics2D.setGraphics2DInfo(al: AlphaComposite,col: Color?){
