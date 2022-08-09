@@ -27,8 +27,6 @@ class CodeGlanceConfig {
     var locked = false
 
     fun singleFileVisibleButton() = !hoveringToShowScrollBar && singleFileVisibleButton
-
-    fun showFullLineHighlight() = hideOriginalScrollBar && showFullLineHighlight
 }
 
 val SettingsChangePublisher = ApplicationManager.getApplication().messageBus.syncPublisher(SettingsChangeListener.TOPIC)

@@ -11,6 +11,7 @@ import com.intellij.openapi.fileEditor.impl.EditorWindowHolder
 import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.PopupMenuListenerAdapter
@@ -38,15 +39,13 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
                     config.hoveringToShowScrollBar = selected
                 }
             }),
-            DumbAwareToggleOptionAction(object : ToggleOptionAction.Option {
-                override fun getName(): String = message("popup.showFullLineHighlight")
-                override fun isEnabled(): Boolean = config.hideOriginalScrollBar
-                override fun isAlwaysVisible(): Boolean = true
-                override fun isSelected(): Boolean = config.showFullLineHighlight
-                override fun setSelected(selected: Boolean) {
-                    config.showFullLineHighlight = selected
+            object : DumbAwareToggleAction(message("popup.showFullLineHighlight")){
+                override fun isSelected(e: AnActionEvent): Boolean = config.showFullLineHighlight
+
+                override fun setSelected(e: AnActionEvent, state: Boolean) {
+                    config.showFullLineHighlight = state
                 }
-            }),
+            },
             DumbAwareToggleOptionAction(object : ToggleOptionAction.Option {
                 override fun getName(): String = message("popup.singleFileVisibleButton")
                 override fun isEnabled(): Boolean = !config.hoveringToShowScrollBar

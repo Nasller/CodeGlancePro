@@ -1,5 +1,6 @@
 package com.nasller.codeglance.panel
 
+import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.HighlighterLayer
@@ -157,7 +158,8 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
         editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
             if (!it.isThinErrorStripeMark && it.layer >= HighlighterLayer.CARET_ROW && it.layer <= HighlighterLayer.SELECTION) {
                 it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-                    drawMarkupLine(it, this, config.showFullLineHighlight(), it.targetArea == HighlighterTargetArea.EXACT_RANGE)
+                    val showFullLine = config.showFullLineHighlight && (config.hideOriginalScrollBar || HighlightInfo.fromRangeHighlighter(it) == null)
+                    drawMarkupLine(it, this, showFullLine, it.targetArea == HighlighterTargetArea.EXACT_RANGE)
                 }
             }
             return@processRangeHighlightersOverlappingWith true
