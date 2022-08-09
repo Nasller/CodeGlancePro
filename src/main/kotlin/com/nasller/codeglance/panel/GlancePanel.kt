@@ -2,6 +2,7 @@ package com.nasller.codeglance.panel
 
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.impl.EditorImpl
+import com.intellij.openapi.editor.markup.HighlighterLayer
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.project.Project
@@ -140,9 +141,9 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
     override fun Graphics2D.paintEditorMarkupModel(rangeOffset: Range<Int>) {
         val map = lazy{ hashMapOf<String,Int>() }
         editor.markupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
-            val key = (it.startOffset+it.endOffset).toString()
-            val layer = map.value[key]
             it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
+                val key = (it.startOffset+it.endOffset).toString()
+                val layer = map.value[key]
                 if(layer == null || layer < it.layer){
                     drawMarkupLine(it,this,false, fullLineWithActualHighlight = false)
                     map.value[key] = it.layer
@@ -154,9 +155,8 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
 
     override fun Graphics2D.paintEditorFilterMarkupModel(rangeOffset: Range<Int>) {
         editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
-            if(it.isThinErrorStripeMark) return@processRangeHighlightersOverlappingWith true
-            it.getTextAttributes(editor.colorsScheme)?.let { textAttributes ->
-                (textAttributes.errorStripeColor ?: textAttributes.backgroundColor)?.apply {
+            if (!it.isThinErrorStripeMark && it.layer >= HighlighterLayer.CARET_ROW && it.layer <= HighlighterLayer.SELECTION) {
+                it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
                     drawMarkupLine(it, this, config.showFullLineHighlight(), it.targetArea == HighlighterTargetArea.EXACT_RANGE)
                 }
             }

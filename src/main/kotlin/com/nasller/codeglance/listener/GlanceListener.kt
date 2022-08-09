@@ -106,7 +106,12 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 		//如果开启隐藏滚动条则忽略Vcs高亮
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode
 			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark)) return
-		repaintOrRequest(EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))
+		val textAttributes = highlighter.getTextAttributes(editor.colorsScheme)
+		if(EditorUtil.attributesImpactForegroundColor(textAttributes)) {
+			repaintOrRequest(true)
+		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null || (textAttributes != null && textAttributes.backgroundColor != null)){
+			repaintOrRequest(false)
+		}
 	}
 
 	/** CaretListener */

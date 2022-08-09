@@ -42,7 +42,8 @@ class MyVcsPanel(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 		}
 
 		override fun mouseMoved(e: MouseEvent) {
-			val process = editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0, editor.document.textLength) {
+			val rangeOffset = glancePanel.getVisibleRangeOffset()
+			val process = editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from,rangeOffset.to) {
 				if (it.isThinErrorStripeMark) it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
 					val visualLine = fitLineToEditor(editor,glancePanel.getMyRenderVisualLine(e.y + glancePanel.scrollState.visibleStart))
 					val startVisual = editor.offsetToVisualLine(it.startOffset)

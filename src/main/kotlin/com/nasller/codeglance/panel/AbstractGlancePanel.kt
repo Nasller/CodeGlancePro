@@ -156,12 +156,17 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
     }
 
     fun getVisibleRangeOffset():Range<Int>{
-        if(scrollState.visibleStart > 0 && scrollState.visibleEnd > 0) {
-            val startOffset = editor.visualLineStartOffset(fitLineToEditor(editor,getMyRenderVisualLine(scrollState.visibleStart)))
-            val endOffset = EditorUtil.getVisualLineEndOffset(editor,fitLineToEditor(editor,getMyRenderVisualLine(scrollState.visibleEnd)))
-            return Range(startOffset - 1,endOffset + 1)
+        var startOffset = 0
+        var endOffset = editor.document.textLength
+        if(scrollState.visibleStart > 0) {
+            val offset = editor.visualLineStartOffset(fitLineToEditor(editor, getMyRenderVisualLine(scrollState.visibleStart))) - 1
+            startOffset = if(offset > 0) offset else 0
         }
-        return Range(0,editor.document.textLength)
+        if(scrollState.visibleEnd > 0){
+            val offset = EditorUtil.getVisualLineEndOffset(editor,fitLineToEditor(editor,getMyRenderVisualLine(scrollState.visibleEnd))) + 1
+            endOffset = if(offset < endOffset) offset else endOffset
+        }
+        return Range(startOffset,endOffset)
     }
 
     fun changeOriginScrollBarWidth(control:Boolean = true){
