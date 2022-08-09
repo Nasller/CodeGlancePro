@@ -109,7 +109,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 		val textAttributes = highlighter.getTextAttributes(editor.colorsScheme)
 		if(EditorUtil.attributesImpactForegroundColor(textAttributes)) {
 			repaintOrRequest(true)
-		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null || (textAttributes != null && textAttributes.backgroundColor != null)){
+		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
 			repaintOrRequest()
 		}
 	}

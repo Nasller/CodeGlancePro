@@ -140,14 +140,14 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
     }
 
     override fun Graphics2D.paintEditorMarkupModel(rangeOffset: Range<Int>) {
-        val map = lazy{ hashMapOf<String,Int>() }
+        val map by lazy{ hashMapOf<String,Int>() }
         editor.markupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
             it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
                 val key = (it.startOffset+it.endOffset).toString()
-                val layer = map.value[key]
+                val layer = map[key]
                 if(layer == null || layer < it.layer){
                     drawMarkupLine(it,this,false, fullLineWithActualHighlight = false)
-                    map.value[key] = it.layer
+                    map[key] = it.layer
                 }
             }
             return@processRangeHighlightersOverlappingWith true

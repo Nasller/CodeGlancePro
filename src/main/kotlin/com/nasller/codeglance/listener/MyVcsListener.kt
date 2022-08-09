@@ -42,7 +42,8 @@ class MyVcsListener(private val myVcsPanel: MyVcsPanel) : ComponentAdapter(),
     override fun attributesChanged(highlighter: RangeHighlighterEx, renderersChanged: Boolean, fontStyleChanged: Boolean) = repaint(highlighter)
 
     private fun repaint(highlighter: RangeHighlighterEx? = null) {
-        if(myVcsPanel.isVisible && (highlighter == null || highlighter.isThinErrorStripeMark)) myVcsPanel.repaint()
+        if(myVcsPanel.isVisible && (highlighter == null ||
+                    (highlighter.isThinErrorStripeMark && highlighter.getErrorStripeMarkColor(myVcsPanel.editor.colorsScheme) != null))) myVcsPanel.repaint()
     }
 
     override fun dispose() {
