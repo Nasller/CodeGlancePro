@@ -7,7 +7,6 @@ import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.ex.MarkupModelEx
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
-import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.ui.HintHint
 import com.intellij.util.Alarm
@@ -15,6 +14,7 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.MouseEventAdapter
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.AbstractGlancePanel
+import com.nasller.codeglance.panel.AbstractGlancePanel.Companion.fitLineToEditor
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.*
 import java.awt.event.MouseAdapter
@@ -265,16 +265,6 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
         private const val HOVER_ALPHA = 0.25f
         private const val DRAG_ALPHA = 0.35f
         val PREVIEW_LINES = max(2, min(25, Integer.getInteger("preview.lines", 5)))
-
-        fun fitLineToEditor(editor: EditorImpl, visualLine: Int): Int {
-            val lineCount = editor.visibleLineCount
-            var shift = 0
-            if (visualLine >= lineCount - 1) {
-                val sequence = editor.document.charsSequence
-                shift = if (sequence.isEmpty()) 0 else if (sequence[sequence.length - 1] == '\n') 1 else 0
-            }
-            return 0.coerceAtLeast((lineCount - shift).coerceAtMost(visualLine))
-        }
 
         private fun createHint(me: MouseEvent): HintHint = HintHint(me)
             .setAwtTooltip(true)

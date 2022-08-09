@@ -1,15 +1,14 @@
 package com.nasller.codeglance.panel
 
-import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.openapi.editor.colors.EditorColors
-import com.intellij.openapi.editor.ex.MarkupModelEx
-import com.intellij.openapi.editor.impl.DocumentMarkupModel
 import com.intellij.openapi.editor.impl.EditorImpl
+import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.reference.SoftReference
 import com.intellij.ui.scale.ScaleContext
+import com.intellij.util.Range
 import com.nasller.codeglance.listener.GlanceListener
 import com.nasller.codeglance.listener.HideScrollBarListener
 import com.nasller.codeglance.panel.scroll.ScrollBar
@@ -74,6 +73,31 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
         }
     }
 
+    override fun Graphics2D.paintVcs(rangeOffset: Range<Int>) {
+        composite = if(config.hideOriginalScrollBar) srcOver else srcOver0_4
+        editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
+            if (it.isThinErrorStripeMark) it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
+                val start = editor.offsetToVisualPosition(it.startOffset)
+                val end = editor.offsetToVisualPosition(it.endOffset)
+                val documentLine = getMyRenderLine(start.line, end.line)
+                val sY = start.line * config.pixelsPerLine + documentLine.first - scrollState.visibleStart
+                val eY = end.line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
+                if (sY >= 0 || eY >= 0) {
+                    color = this
+                    if (sY == eY) {
+                        fillRect(0, sY, width, config.pixelsPerLine)
+                    } else {
+                        val notEqual = eY + config.pixelsPerLine != sY
+                        fillRect(0, sY, width, config.pixelsPerLine)
+                        if (notEqual) fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
+                        fillRect(0, eY, width, config.pixelsPerLine)
+                    }
+                }
+            }
+            return@processRangeHighlightersOverlappingWith true
+        }
+    }
+
     override fun Graphics2D.paintSelection() {
         for ((index, startByte) in editor.selectionModel.blockSelectionStarts.withIndex()) {
             val endByte = editor.selectionModel.blockSelectionEnds[index]
@@ -113,9 +137,9 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
         }
     }
 
-    override fun Graphics2D.paintOtherHighlight() {
+    override fun Graphics2D.paintEditorMarkupModel(rangeOffset: Range<Int>) {
         val map = lazy{ hashMapOf<String,Int>() }
-        editor.markupModel.processRangeHighlightersOverlappingWith(0, editor.document.textLength) {
+        editor.markupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
             val key = (it.startOffset+it.endOffset).toString()
             val layer = map.value[key]
             it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
@@ -128,11 +152,12 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
         }
     }
 
-    override fun Graphics2D.paintErrorStripes() {
-        editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0, editor.document.textLength) {
-            HighlightInfo.fromRangeHighlighter(it) ?.let { _ ->
-                it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-                    drawMarkupLine(it,this, config.showFullLineError(),true)
+    override fun Graphics2D.paintEditorFilterMarkupModel(rangeOffset: Range<Int>) {
+        editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
+            if(it.isThinErrorStripeMark) return@processRangeHighlightersOverlappingWith true
+            it.getTextAttributes(editor.colorsScheme)?.let { textAttributes ->
+                (textAttributes.errorStripeColor ?: textAttributes.backgroundColor)?.apply {
+                    drawMarkupLine(it, this, config.showFullLineHighlight(), it.targetArea == HighlighterTargetArea.EXACT_RANGE)
                 }
             }
             return@processRangeHighlightersOverlappingWith true
@@ -144,7 +169,7 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
         val end = editor.offsetToVisualPosition(it.endOffset)
         val documentLine = getMyRenderLine(start.line, end.line)
         var sX = if (start.column > (width - minGap)) width - minGap else start.column
-        val sY = start.line  * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
+        val sY = start.line  * config.pixelsPerLine + documentLine.first - scrollState.visibleStart
         var eX = if (start.column < (width - minGap)) end.column + 1 else width
         val eY = end.line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
         if(sY >= 0 || eY >= 0){
@@ -162,8 +187,7 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
                 drawMarkOneLine(fullLine,fullLineWithActualHighlight, color, sY,startVis.column,endVis.column)
             } else {
                 val notEqual = eY + config.pixelsPerLine != sY
-                composite = srcOver
-                fillRect(sX, sY, if(fullLine) width else width - sX, config.pixelsPerLine)
+                fillRect(if(fullLine) 0 else sX, sY, if(fullLine) width else width - sX, config.pixelsPerLine)
                 if (notEqual) fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
                 fillRect(0, eY, if(fullLine) width else eX, config.pixelsPerLine)
             }
@@ -179,20 +203,6 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
             fillRect(0, sY, width, config.pixelsPerLine)
         } else {
             fillRect(sX, sY, eX - sX, config.pixelsPerLine)
-        }
-    }
-
-    override fun Graphics2D.paintDocumentMarkup() {
-        (DocumentMarkupModel.forDocument(editor.document, project, false) as? MarkupModelEx)?.let {
-            it.processRangeHighlightersOverlappingWith(0, editor.document.textLength) { range->
-                if(range.isThinErrorStripeMark) return@processRangeHighlightersOverlappingWith true
-                range.getTextAttributes(editor.colorsScheme)?.let { textAttributes ->
-                    (textAttributes.backgroundColor)?.apply{
-                        drawMarkupLine(range,this,true, fullLineWithActualHighlight = false)
-                    }
-                }
-                return@processRangeHighlightersOverlappingWith true
-            }
         }
     }
 

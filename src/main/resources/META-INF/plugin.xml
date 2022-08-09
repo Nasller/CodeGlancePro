@@ -27,6 +27,7 @@
 		<h3>1.4.8</h3>
 		<ul>
 			<li>Add a None setting to Jump to position on</li>
+			<li>Improve highlight,and support more highlight</li>
 		</ul>
 		<h3>1.4.7</h3>
 		<ul>
@@ -57,7 +58,6 @@
 	]]></change-notes>
 
 	<depends>com.intellij.modules.lang</depends>
-	<depends config-file="vcs-render.xml" optional="true">com.intellij.modules.vcs</depends>
 
 	<applicationListeners>
 		<listener topic="com.intellij.openapi.project.ProjectManagerListener"

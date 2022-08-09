@@ -6,17 +6,20 @@ import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.VisibleAreaEvent
 import com.intellij.openapi.editor.event.VisibleAreaListener
 import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
-import com.nasller.codeglance.panel.GlancePanel
+import com.intellij.openapi.editor.ex.RangeHighlighterEx
+import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
 
-class MyVcsListener(private val myVcsPanel: MyVcsPanel,private val glancePanel: GlancePanel) : ComponentAdapter(),
-    PrioritizedDocumentListener, VisibleAreaListener, Disposable {
+class MyVcsListener(private val myVcsPanel: MyVcsPanel) : ComponentAdapter(),
+    PrioritizedDocumentListener, VisibleAreaListener, MarkupModelListener, Disposable {
     init {
-        myVcsPanel.editor.contentComponent.addComponentListener(this)
-        myVcsPanel.editor.document.addDocumentListener(this,myVcsPanel)
-        myVcsPanel.editor.scrollingModel.addVisibleAreaListener(this,myVcsPanel)
+        val editor = myVcsPanel.editor
+        editor.contentComponent.addComponentListener(this)
+        editor.document.addDocumentListener(this,myVcsPanel)
+        editor.scrollingModel.addVisibleAreaListener(this,myVcsPanel)
+        editor.filteredDocumentMarkupModel.addMarkupModelListener(myVcsPanel, this)
     }
     /** ComponentAdapter */
     override fun componentResized(componentEvent: ComponentEvent?) = repaint()
@@ -31,10 +34,15 @@ class MyVcsListener(private val myVcsPanel: MyVcsPanel,private val glancePanel: 
     /** VisibleAreaListener */
     override fun visibleAreaChanged(e: VisibleAreaEvent) = repaint()
 
-    private fun repaint() {
-        if(myVcsPanel.isVisible && glancePanel.checkVisible()) glancePanel.vcsRenderService?.trackerManager?.invokeAfterUpdate {
-            myVcsPanel.repaint()
-        }
+    /** MarkupModelListener */
+    override fun afterAdded(highlighter: RangeHighlighterEx) = repaint(highlighter)
+
+    override fun beforeRemoved(highlighter: RangeHighlighterEx) = repaint(highlighter)
+
+    override fun attributesChanged(highlighter: RangeHighlighterEx, renderersChanged: Boolean, fontStyleChanged: Boolean) = repaint(highlighter)
+
+    private fun repaint(highlighter: RangeHighlighterEx? = null) {
+        if(myVcsPanel.isVisible && (highlighter == null || highlighter.isThinErrorStripeMark)) myVcsPanel.repaint()
     }
 
     override fun dispose() {

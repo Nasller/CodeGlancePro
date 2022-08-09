@@ -17,6 +17,7 @@ import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.ImageUtil
 import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
+import com.nasller.codeglance.panel.AbstractGlancePanel.Companion.fitLineToEditor
 import com.nasller.codeglance.panel.scroll.ScrollBar.Companion.PREVIEW_LINES
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap
 import java.awt.*
@@ -47,8 +48,8 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 		if (myVisualLine == -1) return
 		val oldStartLine = myStartVisualLine
 		val oldEndLine = myEndVisualLine
-		myStartVisualLine = ScrollBar.fitLineToEditor(myEditor, myVisualLine - PREVIEW_LINES)
-		myEndVisualLine = ScrollBar.fitLineToEditor(myEditor, myVisualLine + PREVIEW_LINES)
+		myStartVisualLine = fitLineToEditor(myEditor, myVisualLine - PREVIEW_LINES)
+		myEndVisualLine = fitLineToEditor(myEditor, myVisualLine + PREVIEW_LINES)
 		isDirty = isDirty or (oldStartLine != myStartVisualLine || oldEndLine != myEndVisualLine)
 	}
 

@@ -2,6 +2,7 @@ package com.nasller.codeglance.panel
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
@@ -14,7 +15,6 @@ import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.panel.scroll.ScrollBar
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
-import com.nasller.codeglance.panel.vcs.VcsRenderService
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
 import java.awt.image.BufferedImage
@@ -23,7 +23,6 @@ import javax.swing.JPanel
 sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JPanel(),Disposable {
     val config = ConfigInstance.state
     val scrollState = ScrollState()
-    val vcsRenderService: VcsRenderService? = project.getService(VcsRenderService::class.java)
     val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
     val myRangeList: MutableList<Pair<Int, Range<Int>>> = ContainerUtil.createLockFreeCopyOnWriteList()
     val isDisabled: Boolean
@@ -73,15 +72,15 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
 
     protected abstract fun updateImgTask(updateScroll:Boolean = false)
 
+    abstract fun Graphics2D.paintVcs(rangeOffset: Range<Int>)
+
     abstract fun Graphics2D.paintSelection()
 
     abstract fun Graphics2D.paintCaretPosition()
 
-    abstract fun Graphics2D.paintOtherHighlight()
+    abstract fun Graphics2D.paintEditorMarkupModel(rangeOffset: Range<Int>)
 
-    abstract fun Graphics2D.paintErrorStripes()
-
-    abstract fun Graphics2D.paintDocumentMarkup()
+    abstract fun Graphics2D.paintEditorFilterMarkupModel(rangeOffset: Range<Int>)
 
     fun getMyRenderLine(lineStart:Int, lineEnd:Int):Pair<Int,Int>{
         var startAdd = 0
@@ -143,17 +142,26 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
     }
 
     private fun Graphics2D.paintSomething(){
-        vcsRenderService?.paintVcs(this@AbstractGlancePanel,this,config.hideOriginalScrollBar)
+        val rangeOffset = getVisibleRangeOffset()
+        if(!config.hideOriginalScrollBar) paintVcs(rangeOffset)
         if(editor.selectionModel.hasSelection()) paintSelection()
         else paintCaretPosition()
-        paintOtherHighlight()
-        paintErrorStripes()
-        paintDocumentMarkup()
+        paintEditorMarkupModel(rangeOffset)
+        paintEditorFilterMarkupModel(rangeOffset)
     }
 
-    protected fun Graphics2D.setGraphics2DInfo(al: AlphaComposite,col: Color?){
+    fun Graphics2D.setGraphics2DInfo(al: AlphaComposite,col: Color?){
         composite = al
         color = col
+    }
+
+    fun getVisibleRangeOffset():Range<Int>{
+        if(scrollState.visibleStart > 0 && scrollState.visibleEnd > 0) {
+            val startOffset = editor.visualLineStartOffset(fitLineToEditor(editor,getMyRenderVisualLine(scrollState.visibleStart)))
+            val endOffset = EditorUtil.getVisualLineEndOffset(editor,fitLineToEditor(editor,getMyRenderVisualLine(scrollState.visibleEnd)))
+            return Range(startOffset - 1,endOffset + 1)
+        }
+        return Range(0,editor.document.textLength)
     }
 
     fun changeOriginScrollBarWidth(control:Boolean = true){
@@ -185,5 +193,15 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
         val srcOver0_8: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
         val srcOver: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
         val CURRENT_GLANCE = Key<GlancePanel>("CURRENT_GLANCE")
+
+        fun fitLineToEditor(editor: EditorImpl, visualLine: Int): Int {
+            val lineCount = editor.visibleLineCount
+            var shift = 0
+            if (visualLine >= lineCount - 1) {
+                val sequence = editor.document.charsSequence
+                shift = if (sequence.isEmpty()) 0 else if (sequence[sequence.length - 1] == '\n') 1 else 0
+            }
+            return 0.coerceAtLeast((lineCount - shift).coerceAtMost(visualLine))
+        }
     }
 }
