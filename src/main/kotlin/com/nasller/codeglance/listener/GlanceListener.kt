@@ -110,7 +110,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 		if(EditorUtil.attributesImpactForegroundColor(textAttributes)) {
 			repaintOrRequest(true)
 		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null || (textAttributes != null && textAttributes.backgroundColor != null)){
-			repaintOrRequest(false)
+			repaintOrRequest()
 		}
 	}
 
