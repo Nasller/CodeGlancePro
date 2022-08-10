@@ -92,7 +92,7 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 						Range(y,editor.document.getLineNumber(hlIter.start) * config.pixelsPerLine + skipY)))
 					//this is render document
 					val line = startLineNumber - 1 + (heightLine / config.pixelsPerLine)
-					text.subSequence(start, editor.document.getLineEndOffset(if(lineCount < line) lineCount else line)).forEach(moveAndRenderChar)
+					text.subSequence(start, if(lineCount < line) endOffset else editor.document.getLineEndOffset(line)).forEach(moveAndRenderChar)
 				}
 			} else {
 				val end = hlIter.end
