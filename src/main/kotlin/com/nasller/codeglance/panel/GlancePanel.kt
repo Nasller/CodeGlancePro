@@ -202,10 +202,8 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
             setGraphics2DInfo(srcOver, it.color.brighter())
             fillRect(sX, sY, eX - sX, config.pixelsPerLine)
         } else if (it.fullLine) {
-            clearRect(0, sY, width, config.pixelsPerLine)
             fillRect(0, sY, width, config.pixelsPerLine)
         } else {
-            clearRect(sX, sY, eX - sX, config.pixelsPerLine)
             fillRect(sX, sY, eX - sX, config.pixelsPerLine)
         }
     }
