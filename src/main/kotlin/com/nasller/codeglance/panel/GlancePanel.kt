@@ -4,8 +4,6 @@ import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.HighlighterLayer
-import com.intellij.openapi.editor.markup.HighlighterTargetArea
-import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.reference.SoftReference
@@ -15,7 +13,6 @@ import com.nasller.codeglance.listener.GlanceListener
 import com.nasller.codeglance.listener.HideScrollBarListener
 import com.nasller.codeglance.panel.scroll.ScrollBar
 import com.nasller.codeglance.render.Minimap
-import java.awt.Color
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.util.function.Function
@@ -143,11 +140,13 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
         val map by lazy{ hashMapOf<String,Int>() }
         editor.markupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
             it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-                val key = (it.startOffset+it.endOffset).toString()
-                val layer = map[key]
-                if(layer == null || layer < it.layer){
-                    drawMarkupLine(it,this,false, fullLineWithActualHighlight = false)
-                    map[key] = it.layer
+                val highlightColor = RangeHighlightColor(it, this)
+                map.compute(highlightColor.startOffset.toString() + highlightColor.endOffset){ _,layer->
+                    if(layer == null || layer < it.layer){
+                        drawMarkupLine(highlightColor)
+                        return@compute it.layer
+                    }
+                    return@compute layer
                 }
             }
             return@processRangeHighlightersOverlappingWith true
@@ -158,52 +157,55 @@ class GlancePanel(project: Project, editor: EditorImpl) : AbstractGlancePanel(pr
         editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
             if (!it.isThinErrorStripeMark && it.layer >= HighlighterLayer.CARET_ROW && it.layer <= HighlighterLayer.SELECTION) {
                 it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-                    val showFullLine = config.showFullLineHighlight && (config.hideOriginalScrollBar || HighlightInfo.fromRangeHighlighter(it) == null)
-                    drawMarkupLine(it, this, showFullLine, it.targetArea == HighlighterTargetArea.EXACT_RANGE)
+                    val highlightColor = RangeHighlightColor(it, this,
+                        config.showFullLineHighlight && (config.hideOriginalScrollBar || HighlightInfo.fromRangeHighlighter(it) == null))
+                    drawMarkupLine(highlightColor)
                 }
             }
             return@processRangeHighlightersOverlappingWith true
         }
     }
 
-    private fun Graphics2D.drawMarkupLine(it: RangeHighlighter, color: Color,fullLine: Boolean,fullLineWithActualHighlight: Boolean){
-        val start = editor.offsetToVisualPosition(it.startOffset)
-        val end = editor.offsetToVisualPosition(it.endOffset)
+    private fun Graphics2D.drawMarkupLine(it: RangeHighlightColor){
+        val start = it.startVis
+        val end = it.endVis
         val documentLine = getMyRenderLine(start.line, end.line)
         var sX = if (start.column > (width - minGap)) width - minGap else start.column
         val sY = start.line  * config.pixelsPerLine + documentLine.first - scrollState.visibleStart
         var eX = if (start.column < (width - minGap)) end.column + 1 else width
         val eY = end.line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
         if(sY >= 0 || eY >= 0){
-            setGraphics2DInfo(if(fullLine && fullLineWithActualHighlight) srcOver0_6 else srcOver,color)
+            setGraphics2DInfo(if(it.fullLine && it.fullLineWithActualHighlight) srcOver0_6 else srcOver,it.color)
             val collapsed = editor.foldingModel.getCollapsedRegionAtOffset(it.startOffset)
             if (sY == eY && collapsed == null) {
-                if(fullLineWithActualHighlight && eX - sX < minGap){
+                if(it.fullLineWithActualHighlight && eX - sX < minGap){
                     eX += minGap-(eX - sX)
                     if(eX > width) sX -= eX - width
                 }
-                drawMarkOneLine(fullLine, fullLineWithActualHighlight, color, sY, sX, eX)
+                drawMarkOneLine(it, sY, sX, eX)
             } else if (collapsed != null) {
                 val startVis = editor.offsetToVisualPosition(collapsed.startOffset)
                 val endVis = editor.offsetToVisualPosition(collapsed.endOffset)
-                drawMarkOneLine(fullLine,fullLineWithActualHighlight, color, sY,startVis.column,endVis.column)
+                drawMarkOneLine(it, sY,startVis.column,endVis.column)
             } else {
                 val notEqual = eY + config.pixelsPerLine != sY
-                fillRect(if(fullLine) 0 else sX, sY, if(fullLine) width else width - sX, config.pixelsPerLine)
+                fillRect(if(it.fullLine) 0 else sX, sY, if(it.fullLine) width else width - sX, config.pixelsPerLine)
                 if (notEqual) fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
-                fillRect(0, eY, if(fullLine) width else eX, config.pixelsPerLine)
+                fillRect(0, eY, if(it.fullLine) width else eX, config.pixelsPerLine)
             }
         }
     }
 
-    private fun Graphics2D.drawMarkOneLine(fullLine: Boolean, fullLineWithActualHighlight: Boolean, color: Color, sY: Int, sX: Int, eX: Int) {
-        if (fullLine && fullLineWithActualHighlight) {
+    private fun Graphics2D.drawMarkOneLine(it: RangeHighlightColor, sY: Int, sX: Int, eX: Int) {
+        if (it.fullLine && it.fullLineWithActualHighlight) {
             fillRect(0, sY, width, config.pixelsPerLine)
-            setGraphics2DInfo(srcOver, color.brighter())
+            setGraphics2DInfo(srcOver, it.color.brighter())
             fillRect(sX, sY, eX - sX, config.pixelsPerLine)
-        } else if (fullLine) {
+        } else if (it.fullLine) {
+            clearRect(0, sY, width, config.pixelsPerLine)
             fillRect(0, sY, width, config.pixelsPerLine)
         } else {
+            clearRect(sX, sY, eX - sX, config.pixelsPerLine)
             fillRect(sX, sY, eX - sX, config.pixelsPerLine)
         }
     }

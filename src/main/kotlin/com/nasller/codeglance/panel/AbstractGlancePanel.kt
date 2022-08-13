@@ -2,8 +2,10 @@ package com.nasller.codeglance.panel
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.EditorImpl
+import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
@@ -186,6 +188,13 @@ sealed class AbstractGlancePanel(val project: Project,val editor: EditorImpl):JP
         editor.putUserData(CURRENT_GLANCE,null)
         scrollbar?.dispose()
         myVcsPanel?.dispose()
+    }
+
+    inner class RangeHighlightColor(val startOffset: Int,val endOffset: Int, val color: Color, val fullLine: Boolean, val fullLineWithActualHighlight: Boolean){
+        constructor(it:RangeHighlighterEx,color: Color) : this(it.startOffset,it.endOffset,color,false,false)
+        constructor(it:RangeHighlighterEx,color: Color,fullLine: Boolean) : this(it.startOffset,it.endOffset,color,fullLine,it.targetArea == HighlighterTargetArea.EXACT_RANGE)
+        val startVis by lazy{ editor.offsetToVisualPosition(startOffset) }
+        val endVis by lazy{ editor.offsetToVisualPosition(endOffset) }
     }
 
     companion object{
