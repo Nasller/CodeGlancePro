@@ -8,7 +8,7 @@ import java.awt.event.MouseEvent
 
 class HideScrollBarListener(private val glancePanel: GlancePanel):MouseAdapter() {
 	private val alarm = SingleAlarm({
-		if (!glancePanel.myPopHandler.isVisible && glancePanel.scrollbar?.hovering == false) {
+		if (!glancePanel.myPopHandler.isVisible && !glancePanel.scrollbar.hovering) {
 			glancePanel.isVisible = false
 			showHideOriginScrollBar(true)
 		}
@@ -23,7 +23,7 @@ class HideScrollBarListener(private val glancePanel: GlancePanel):MouseAdapter()
 
 	fun hideGlanceRequest(){
 		if (!alarm.isDisposed && glancePanel.config.hoveringToShowScrollBar &&
-			glancePanel.isVisible && !glancePanel.myPopHandler.isVisible && glancePanel.scrollbar?.hovering == false) {
+				glancePanel.isVisible && !glancePanel.myPopHandler.isVisible && !glancePanel.scrollbar.hovering) {
 			alarm.cancelAndRequest()
 		}
 	}
@@ -38,5 +38,33 @@ class HideScrollBarListener(private val glancePanel: GlancePanel):MouseAdapter()
 				preferredSize = Dimension(0, preferredSize.height)
 			}
 		}
+	}
+
+	fun addHideScrollBarListener() = glancePanel.run {
+		if (config.hoveringToShowScrollBar && !isDisabled) {
+			if (!config.hideOriginalScrollBar) {
+				editor.scrollPane.verticalScrollBar.addMouseListener(hideScrollBarListener)
+				editor.scrollPane.verticalScrollBar.addMouseMotionListener(hideScrollBarListener)
+			} else {
+				myVcsPanel?.addMouseListener(hideScrollBarListener)
+				myVcsPanel?.addMouseMotionListener(hideScrollBarListener)
+			}
+			isVisible = false
+		}
+	}
+
+	fun removeHideScrollBarListener() = glancePanel.run {
+		hideScrollBarListener.apply {
+			if (!config.hideOriginalScrollBar) {
+				editor.scrollPane.verticalScrollBar.removeMouseListener(this)
+				editor.scrollPane.verticalScrollBar.removeMouseMotionListener(this)
+			} else {
+				myVcsPanel?.removeMouseListener(this)
+				myVcsPanel?.removeMouseMotionListener(this)
+			}
+			cancel()
+			showHideOriginScrollBar(true)
+		}
+		isVisible = !isDisabled
 	}
 }

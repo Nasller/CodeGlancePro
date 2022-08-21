@@ -17,13 +17,12 @@ import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.ImageUtil
 import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
-import com.nasller.codeglance.panel.AbstractGlancePanel.Companion.fitLineToEditor
+import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
 import com.nasller.codeglance.panel.scroll.ScrollBar.Companion.PREVIEW_LINES
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap
 import java.awt.*
 import java.awt.geom.*
 import java.awt.image.BufferedImage
-import java.util.concurrent.atomic.AtomicReference
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
 import kotlin.math.max
@@ -33,10 +32,7 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 	private var myVisualLine = 0
 	private var myStartVisualLine = 0
 	private var myEndVisualLine = 0
-	private var myRelativeY = 0
 	private var isDirty = false
-	private val myPointHolder = AtomicReference<Point>()
-	private val myHintHolder = AtomicReference<HintHint>()
 	private var myEditorPreviewHint: LightweightHint? = null
 
 	fun getEditorPreviewHint(): LightweightHint? {
@@ -53,13 +49,15 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 		isDirty = isDirty or (oldStartLine != myStartVisualLine || oldEndLine != myEndVisualLine)
 	}
 
-	private fun showEditorHint(hintManager: HintManagerImpl, point: Point, hintInfo: HintHint) {
+	private fun showEditorHint(point: Point, hintInfo: HintHint) {
 		val flags = HintManager.HIDE_BY_ANY_KEY or HintManager.HIDE_BY_TEXT_CHANGE or HintManager.HIDE_BY_MOUSEOVER or
 				HintManager.HIDE_BY_ESCAPE or HintManager.HIDE_BY_SCROLLING
-		hintManager.showEditorHint(myEditorPreviewHint!!, myEditor, point, flags, 0, false, hintInfo)
+		HintManagerImpl.getInstanceImpl().showEditorHint(myEditorPreviewHint!!, myEditor, point, flags, 0, false, hintInfo)
 	}
 
 	fun show(visualLine: Int, rangeHighlighters: MutableList<RangeHighlighterEx>, hintInfo: HintHint) {
+		val scrollBar = myEditor.scrollPane.verticalScrollBar
+		val rootPane = myEditor.component.rootPane ?: SwingUtilities.getWindowAncestor(scrollBar) ?: return
 		update(visualLine)
 		rangeHighlighters.sortWith { ex1: RangeHighlighterEx, ex2: RangeHighlighterEx ->
 			val startPos1 = myEditor.offsetToLogicalPosition(ex1.affectedAreaStartOffset)
@@ -68,21 +66,17 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 			startPos1.column - startPos2.column
 		}
 		val contentInsets = JBUIScale.scale(2) // BalloonPopupBuilderImpl.myContentInsets
-		val hintManager = HintManagerImpl.getInstanceImpl()
 		if (myEditorPreviewHint == null) {
 			val editorFragmentPreviewPanel = EditorFragmentPreviewPanel(contentInsets, rangeHighlighters)
 			editorFragmentPreviewPanel.putClientProperty(BalloonImpl.FORCED_NO_SHADOW, true)
 			myEditorPreviewHint = LightweightHint(editorFragmentPreviewPanel)
 			myEditorPreviewHint!!.setForceLightweightPopup(true)
 		}
-		var point = Point(hintInfo.originalPoint)
 		hintInfo.setTextBg(myEditor.backgroundColor)
 		val borderColor = myEditor.colorsScheme.getAttributes(EditorColors.CODE_LENS_BORDER_COLOR).effectColor
 		hintInfo.borderColor = borderColor ?: myEditor.colorsScheme.defaultForeground
-		point = SwingUtilities.convertPoint(myEditor.scrollPane.verticalScrollBar, point, myEditor.component.rootPane)
-		myPointHolder.set(point)
-		myHintHolder.set(hintInfo)
-		showEditorHint(hintManager, point, hintInfo)
+		val point = SwingUtilities.convertPoint(scrollBar, Point(hintInfo.originalPoint), rootPane)
+		showEditorHint(point, hintInfo)
 	}
 
 	fun clearHint() {
@@ -154,7 +148,6 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 				isDirty = true
 			}
 			if (isDirty) {
-				myRelativeY = SwingUtilities.convertPoint(this, 0, 0, myEditor.scrollPane).y
 				val g2d = myCacheLevel1!!.createGraphics()
 				val transform = g2d.transform
 				EditorUIUtil.setupAntialiasing(g2d)

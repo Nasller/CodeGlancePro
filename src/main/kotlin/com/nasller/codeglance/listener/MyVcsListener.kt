@@ -15,7 +15,7 @@ import java.awt.event.ComponentEvent
 class MyVcsListener(private val myVcsPanel: MyVcsPanel) : ComponentAdapter(),
     PrioritizedDocumentListener, VisibleAreaListener, MarkupModelListener, Disposable {
     init {
-        val editor = myVcsPanel.editor
+        val editor = myVcsPanel.glancePanel.editor
         editor.contentComponent.addComponentListener(this)
         editor.document.addDocumentListener(this,myVcsPanel)
         editor.scrollingModel.addVisibleAreaListener(this,myVcsPanel)
@@ -42,11 +42,12 @@ class MyVcsListener(private val myVcsPanel: MyVcsPanel) : ComponentAdapter(),
     override fun attributesChanged(highlighter: RangeHighlighterEx, renderersChanged: Boolean, fontStyleChanged: Boolean) = repaint(highlighter)
 
     private fun repaint(highlighter: RangeHighlighterEx? = null) {
+        val editor = myVcsPanel.glancePanel.editor
         if(myVcsPanel.isVisible && (highlighter == null ||
-                    (highlighter.isThinErrorStripeMark && highlighter.getErrorStripeMarkColor(myVcsPanel.editor.colorsScheme) != null))) myVcsPanel.repaint()
+                    (highlighter.isThinErrorStripeMark && highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null))) myVcsPanel.repaint()
     }
 
     override fun dispose() {
-        myVcsPanel.editor.contentComponent.removeComponentListener(this)
+        myVcsPanel.glancePanel.editor.contentComponent.removeComponentListener(this)
     }
 }

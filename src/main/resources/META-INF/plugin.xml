@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.4.9</h3>
+		<ul>
+			<li>Fix an error in show code lens on minimap</li>
+		</ul>
 		<h3>1.4.8</h3>
 		<ul>
 			<li>Add a None setting to Jump to position on</li>

@@ -13,9 +13,8 @@ import com.intellij.util.Alarm
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.MouseEventAdapter
 import com.nasller.codeglance.config.enums.MouseJumpEnum
-import com.nasller.codeglance.panel.AbstractGlancePanel
-import com.nasller.codeglance.panel.AbstractGlancePanel.Companion.fitLineToEditor
 import com.nasller.codeglance.panel.GlancePanel
+import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
 import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -31,7 +30,11 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
     private val config = glancePanel.config
     private val editor = glancePanel.editor
     private val scrollState = glancePanel.scrollState
+    private val alarm = Alarm(glancePanel)
     private val myEditorFragmentRenderer = CustomEditorFragmentRenderer(editor)
+    //视图滚动
+    private var myWheelAccumulator = 0
+    private var myLastVisualLine = 0
 
     private var visibleRectAlpha = DEFAULT_ALPHA
         set(value) {
@@ -86,6 +89,48 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
         g.fillRect(0, vOffset, width, scrollState.viewportHeight)
     }
 
+    private fun showToolTipByMouseMove(e: MouseEvent) {
+        val y = e.y + myWheelAccumulator
+        val visualLine = fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(y + scrollState.visibleStart))
+        myLastVisualLine = visualLine
+        val point = SwingUtilities.convertPoint(
+            this@ScrollBar, 0,
+            if (y > 0 && y < scrollState.drawHeight) y else if (y <= 0) 0 else scrollState.drawHeight, editor.scrollPane.verticalScrollBar
+        )
+        val me = MouseEvent(
+            editor.scrollPane.verticalScrollBar, e.id, e.`when`, e.modifiersEx, 1,
+            point.y, e.clickCount, e.isPopupTrigger
+        )
+        val highlighters = mutableListOf<RangeHighlighterEx>()
+        collectRangeHighlighters(editor.markupModel, visualLine, highlighters)
+        collectRangeHighlighters(editor.filteredDocumentMarkupModel, visualLine, highlighters)
+        myEditorFragmentRenderer.show(visualLine, highlighters, createHint(me))
+    }
+
+    private fun collectRangeHighlighters(markupModel: MarkupModelEx, visualLine: Int, highlighters: MutableCollection<in RangeHighlighterEx>) {
+        val startOffset: Int = getOffset(fitLineToEditor(editor, visualLine - PREVIEW_LINES), true)
+        val endOffset: Int = getOffset(fitLineToEditor(editor, visualLine + PREVIEW_LINES), false)
+        markupModel.processRangeHighlightersOverlappingWith(startOffset, endOffset) { highlighter ->
+            val tooltip = highlighter.errorStripeTooltip
+            if (tooltip != null && !(tooltip is HighlightInfo && tooltip.type === HighlightInfoType.TODO) &&
+                highlighter.startOffset < endOffset && highlighter.endOffset > startOffset &&
+                highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null) {
+                highlighters.add(highlighter)
+            }
+            true
+        }
+    }
+
+    private fun getOffset(visualLine: Int, startLine: Boolean): Int =
+        editor.visualPositionToOffset(VisualPosition(visualLine, if (startLine) 0 else Int.MAX_VALUE))
+
+    private fun hideMyEditorPreviewHint() {
+        alarm.cancelAllRequests()
+        myEditorFragmentRenderer.hideHint()
+        myWheelAccumulator = 0
+        myLastVisualLine = 0
+    }
+
     private inner class MouseHandler : MouseAdapter() {
         private var resizing = false
         private var resizeStart: Int = 0
@@ -95,11 +140,6 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
         private var dragStartDelta: Int = 0
 
         private var widthStart: Int = 0
-
-        //视图滚动
-        private var myWheelAccumulator = 0
-        private var myLastVisualLine = 0
-        private val alarm = Alarm(glancePanel)
 
         override fun mousePressed(e: MouseEvent) {
             if (e.button != MouseEvent.BUTTON1) return
@@ -128,7 +168,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
         override fun mouseDragged(e: MouseEvent) {
             if (resizing) {
                 val newWidth = widthStart + resizeStart - e.xOnScreen
-                config.width = newWidth.coerceIn(AbstractGlancePanel.minWidth, AbstractGlancePanel.maxWidth)
+                config.width = newWidth.coerceIn(GlancePanel.minWidth, GlancePanel.maxWidth)
                 glancePanel.refresh()
             } else if (dragging) {
                 val delta = (dragStartDelta + (e.y - dragStart)).toFloat()
@@ -211,51 +251,10 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
             editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
             editor.scrollingModel.runActionOnScrollingFinished(action)
         }
-
-        private fun showToolTipByMouseMove(e: MouseEvent) {
-            val y = e.y + myWheelAccumulator
-            val visualLine = fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(y + scrollState.visibleStart))
-            myLastVisualLine = visualLine
-            val point = SwingUtilities.convertPoint(
-                this@ScrollBar, 0,
-                if (y > 0 && y < scrollState.drawHeight) y else if (y <= 0) 0 else scrollState.drawHeight, editor.scrollPane.verticalScrollBar
-            )
-            val me = MouseEvent(
-                editor.scrollPane.verticalScrollBar, e.id, e.`when`, e.modifiersEx, 1,
-                point.y, e.clickCount, e.isPopupTrigger
-            )
-            val highlighters = mutableListOf<RangeHighlighterEx>()
-            collectRangeHighlighters(editor.markupModel, visualLine, highlighters)
-            collectRangeHighlighters(editor.filteredDocumentMarkupModel, visualLine, highlighters)
-            myEditorFragmentRenderer.show(visualLine, highlighters, createHint(me))
-        }
-
-        private fun hideMyEditorPreviewHint() {
-            alarm.cancelAllRequests()
-            myEditorFragmentRenderer.hideHint()
-            myWheelAccumulator = 0
-            myLastVisualLine = 0
-        }
-
-        private fun collectRangeHighlighters(markupModel: MarkupModelEx, visualLine: Int, highlighters: MutableCollection<in RangeHighlighterEx>) {
-            val startOffset: Int = getOffset(fitLineToEditor(editor, visualLine - PREVIEW_LINES), true)
-            val endOffset: Int = getOffset(fitLineToEditor(editor, visualLine + PREVIEW_LINES), false)
-            markupModel.processRangeHighlightersOverlappingWith(startOffset, endOffset) { highlighter ->
-                val tooltip = highlighter.errorStripeTooltip
-                if (tooltip != null && !(tooltip is HighlightInfo && tooltip.type === HighlightInfoType.TODO) &&
-                    highlighter.startOffset < endOffset && highlighter.endOffset > startOffset &&
-                    highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null) {
-                    highlighters.add(highlighter)
-                }
-                true
-            }
-        }
-
-        private fun getOffset(visualLine: Int, startLine: Boolean): Int =
-            editor.visualPositionToOffset(VisualPosition(visualLine, if (startLine) 0 else Int.MAX_VALUE))
     }
 
     override fun dispose() {
+        alarm.cancelAllRequests()
         myEditorFragmentRenderer.clearHint()
         glancePanel.remove(this)
     }

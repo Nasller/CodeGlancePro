@@ -25,7 +25,6 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	init {
 		glancePanel.addHierarchyListener(this)
 		glancePanel.addHierarchyBoundsListener(this)
-		val editor = editor
 		editor.contentComponent.addComponentListener(this)
 		editor.document.addDocumentListener(this, glancePanel)
 		editor.selectionModel.addSelectionListener(this, glancePanel)
@@ -143,8 +142,8 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	override fun getPriority(): Int = 170 //EditorDocumentPriorities
 
 	/** SettingsChangeListener */
-	override fun onHoveringOriginalScrollBarChanged(value: Boolean) = if (value) glancePanel.addHideScrollBarListener()
-	else glancePanel.removeHideScrollBarListener()
+	override fun onHoveringOriginalScrollBarChanged(value: Boolean) = if (value) glancePanel.hideScrollBarListener.addHideScrollBarListener()
+	else glancePanel.hideScrollBarListener.removeHideScrollBarListener()
 
 	/** VisibleAreaListener */
 	override fun visibleAreaChanged(e: VisibleAreaEvent) {
@@ -175,6 +174,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 		glancePanel.removeHierarchyListener(this)
 		glancePanel.removeHierarchyBoundsListener(this)
 		editor.contentComponent.removeComponentListener(this)
+		alarm.cancelAllRequests()
 	}
 }
 

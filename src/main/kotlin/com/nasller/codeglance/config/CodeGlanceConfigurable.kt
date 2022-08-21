@@ -6,7 +6,7 @@ import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.dsl.builder.*
 import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.config.enums.MouseJumpEnum
-import com.nasller.codeglance.panel.AbstractGlancePanel
+import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.message
 import java.awt.event.InputEvent
 import java.awt.event.MouseWheelEvent
@@ -84,7 +84,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 				}
 				twoColumnsRow(
 					{
-						spinner(AbstractGlancePanel.minWidth..AbstractGlancePanel.maxWidth, 5)
+						spinner(GlancePanel.minWidth..GlancePanel.maxWidth, 5)
 							.label(message("settings.width"))
 							.bindIntValue(config::width)
 							.accessibleName(message("settings.width"))

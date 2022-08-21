@@ -8,7 +8,7 @@ import com.intellij.openapi.actionSystem.ex.CustomComponentAction
 import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.util.ui.JBUI
-import com.nasller.codeglance.panel.AbstractGlancePanel
+import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.CodeGlanceIcons
 import com.nasller.codeglance.util.message
 import javax.swing.JComponent
@@ -48,6 +48,6 @@ class ToggleVisibleAction : DumbAwareToggleAction(), CustomComponentAction {
         }
     }
 
-    private fun <T>AnActionEvent.applyToGlance(action:AbstractGlancePanel.()->T) =
-        getData(CommonDataKeys.EDITOR)?.getUserData(AbstractGlancePanel.CURRENT_GLANCE)?.run(action)
+    private fun <T>AnActionEvent.applyToGlance(action: GlancePanel.()->T) =
+        getData(CommonDataKeys.EDITOR)?.getUserData(GlancePanel.CURRENT_GLANCE)?.run(action)
 }

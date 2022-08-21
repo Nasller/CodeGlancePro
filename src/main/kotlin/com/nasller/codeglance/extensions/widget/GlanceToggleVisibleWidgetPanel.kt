@@ -15,7 +15,7 @@ import com.intellij.openapi.wm.impl.status.StatusBarUtil
 import com.intellij.util.Consumer
 import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.config.SettingsChangeListener
-import com.nasller.codeglance.panel.AbstractGlancePanel
+import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.CodeGlanceIcons
 import com.nasller.codeglance.util.message
 import java.awt.event.MouseEvent
@@ -59,7 +59,7 @@ class GlanceToggleVisibleWidgetPanel(private val project: Project) : StatusBarWi
 		updateStatusBar()
 	}
 
-	private fun isVisible(editor: Editor) = editor.getUserData(AbstractGlancePanel.CURRENT_GLANCE)?.isVisible == false
+	private fun isVisible(editor: Editor) = editor.getUserData(GlancePanel.CURRENT_GLANCE)?.isVisible == false
 
 	private fun getEditor(): Editor? {
 		val fileEditor = StatusBarUtil.getCurrentFileEditor(myStatusBar) ?: FileEditorManagerEx.getInstanceEx(project).selectedEditor

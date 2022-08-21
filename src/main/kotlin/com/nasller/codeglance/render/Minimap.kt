@@ -4,7 +4,7 @@ import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.Range
-import com.nasller.codeglance.panel.AbstractGlancePanel
+import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Color
 import java.awt.image.BufferedImage
 import kotlin.math.roundToInt
@@ -12,7 +12,7 @@ import kotlin.math.roundToInt
 /**
  * A rendered minimap of a document
  */
-class Minimap(private val glancePanel: AbstractGlancePanel){
+class Minimap(private val glancePanel: GlancePanel){
 	private val editor = glancePanel.editor
 	private val config = glancePanel.config
 	private val scrollState = glancePanel.scrollState
@@ -62,7 +62,7 @@ class Minimap(private val glancePanel: AbstractGlancePanel){
 			curImg.renderImage(x, y, it.code, scaleBuffer)
 		}
 		val g = curImg.createGraphics()
-		g.composite = AbstractGlancePanel.CLEAR
+		g.composite = GlancePanel.CLEAR
 		g.fillRect(0, 0, curImg.width, curImg.height)
 		loop@ while (!hlIter.atEnd() && !editor.isDisposed) {
 			val start = hlIter.start

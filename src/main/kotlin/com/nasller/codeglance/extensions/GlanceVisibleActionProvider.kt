@@ -6,7 +6,7 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.ex.ActionManagerEx
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.markup.InspectionWidgetActionProvider
-import com.nasller.codeglance.panel.AbstractGlancePanel.Companion.CURRENT_GLANCE
+import com.nasller.codeglance.panel.GlancePanel.Companion.CURRENT_GLANCE
 
 private class GlanceVisibleActionProvider : InspectionWidgetActionProvider {
 	override fun createAction(editor: Editor): AnAction {

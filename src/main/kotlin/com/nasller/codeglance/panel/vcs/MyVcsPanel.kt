@@ -4,8 +4,8 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
 import com.nasller.codeglance.listener.MyVcsListener
-import com.nasller.codeglance.panel.AbstractGlancePanel.Companion.fitLineToEditor
 import com.nasller.codeglance.panel.GlancePanel
+import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
 import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.Graphics
@@ -14,8 +14,7 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.JPanel
 
-class MyVcsPanel(private val glancePanel: GlancePanel) : JPanel(), Disposable {
-	val editor = glancePanel.editor
+class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(), Disposable {
 	private val myVcsListener = MyVcsListener(this)
 	init{
 		val mouseHandler = MouseHandler()
@@ -36,12 +35,14 @@ class MyVcsPanel(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 
 		override fun mouseClicked(e: MouseEvent) {
 			hoverVcsLine?.let {
+				val editor = glancePanel.editor
 				editor.caretModel.moveToVisualPosition(VisualPosition(it,0))
 				editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
 			}
 		}
 
 		override fun mouseMoved(e: MouseEvent) {
+			val editor = glancePanel.editor
 			val rangeOffset = glancePanel.getVisibleRangeOffset()
 			val process = editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from,rangeOffset.to) {
 				if (it.isThinErrorStripeMark) it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {

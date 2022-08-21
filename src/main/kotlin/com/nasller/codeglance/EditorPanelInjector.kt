@@ -13,7 +13,6 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
 import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.config.SettingsChangeListener
-import com.nasller.codeglance.panel.AbstractGlancePanel
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import java.awt.BorderLayout
@@ -86,17 +85,17 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
             glancePanel.myVcsPanel = MyVcsPanel(glancePanel)
             add(glancePanel.myVcsPanel!!, BorderLayout.WEST)
         } else glancePanel
-        glancePanel.addHideScrollBarListener()
+        glancePanel.hideScrollBarListener.addHideScrollBarListener()
         return jPanel
     }
 
-    private fun Component.applyGlancePanel(block: AbstractGlancePanel.()->Unit): AbstractGlancePanel?{
-        val glancePanel = if (this is MyPanel) panel else if (this is AbstractGlancePanel) this else null
+    private fun Component.applyGlancePanel(block: GlancePanel.()->Unit): GlancePanel?{
+        val glancePanel = if (this is MyPanel) panel else if (this is GlancePanel) this else null
         glancePanel?.block()
         return glancePanel
     }
 
-    internal class MyPanel(val panel: AbstractGlancePanel):JPanel(){
+    internal class MyPanel(val panel: GlancePanel):JPanel(){
         init{
             layout = BorderLayout()
             isOpaque = false

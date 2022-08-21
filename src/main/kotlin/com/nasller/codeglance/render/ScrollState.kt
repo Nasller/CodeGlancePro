@@ -1,6 +1,6 @@
 package com.nasller.codeglance.render
 
-import com.nasller.codeglance.panel.AbstractGlancePanel
+import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Rectangle
 import kotlin.math.min
 
@@ -24,7 +24,7 @@ class ScrollState {
     var viewportHeight: Int = 0
         private set
 
-    fun AbstractGlancePanel.computeDimensions() {
+    fun GlancePanel.computeDimensions() {
         val oldScale = scale
         scale = config.pixelsPerLine.toFloat() / editor.lineHeight
         documentHeight = (editor.contentComponent.height * scale).toInt()
