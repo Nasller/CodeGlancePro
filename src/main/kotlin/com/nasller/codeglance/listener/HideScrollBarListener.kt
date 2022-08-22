@@ -15,7 +15,7 @@ class HideScrollBarListener(private val glancePanel: GlancePanel):MouseAdapter()
 	},500,glancePanel)
 	override fun mouseMoved(e: MouseEvent) {
 		if(!glancePanel.isVisible){
-			cancel()
+			alarm.cancel()
 			glancePanel.isVisible = true
 			showHideOriginScrollBar(false)
 		}
@@ -28,9 +28,7 @@ class HideScrollBarListener(private val glancePanel: GlancePanel):MouseAdapter()
 		}
 	}
 
-	fun cancel() = alarm.cancel()
-
-	fun showHideOriginScrollBar(show:Boolean){
+	private fun showHideOriginScrollBar(show : Boolean){
 		if(!glancePanel.config.hideOriginalScrollBar){
 			if(show) glancePanel.editor.scrollPane.verticalScrollBar.apply {
 				preferredSize = Dimension(glancePanel.originalScrollbarWidth, preferredSize.height)
@@ -62,7 +60,7 @@ class HideScrollBarListener(private val glancePanel: GlancePanel):MouseAdapter()
 				myVcsPanel?.removeMouseListener(this)
 				myVcsPanel?.removeMouseMotionListener(this)
 			}
-			cancel()
+			alarm.cancel()
 			showHideOriginScrollBar(true)
 		}
 		isVisible = !isDisabled

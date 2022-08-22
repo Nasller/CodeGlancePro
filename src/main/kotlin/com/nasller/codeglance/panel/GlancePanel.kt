@@ -43,14 +43,14 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	private val renderLock = DirtyLock()
 	val myPopHandler = CustomScrollBarPopup(this)
 	val hideScrollBarListener = HideScrollBarListener(this)
-	private val glanceListener = GlanceListener(this)
-	private var mapRef = MinimapCache { MinimapRef(Minimap(this)) }
-	private var buf: BufferedImage? = null
 	val scrollbar = ScrollBar(this)
 	var myVcsPanel: MyVcsPanel? = null
+	private var mapRef = MinimapCache { MinimapRef(Minimap(this)) }
+	private var buf: BufferedImage? = null
 
 	init {
 		Disposer.register(editor.disposable, this)
+		GlanceListener(this)
 		isOpaque = false
 		editor.component.isOpaque = false
 		layout = BorderLayout()
@@ -347,9 +347,8 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	}
 
 	override fun dispose() {
-		editor.component.remove(if (this.parent is EditorPanelInjector.MyPanel) this.parent else this)
 		editor.putUserData(CURRENT_GLANCE, null)
-		glanceListener.dispose()
+		editor.component.remove(if (this.parent is EditorPanelInjector.MyPanel) this.parent else this)
 		hideScrollBarListener.removeHideScrollBarListener()
 		scrollbar.dispose()
 		myVcsPanel?.dispose()

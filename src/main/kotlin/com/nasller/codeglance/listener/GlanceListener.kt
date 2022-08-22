@@ -11,6 +11,7 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.SoftWrapChangeListener
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
+import com.intellij.openapi.util.Disposer
 import com.intellij.util.SingleAlarm
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.GlancePanel
@@ -23,6 +24,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	private var softWrapEnabled = false
 	private val alarm = SingleAlarm({ glancePanel.updateImage(true) }, 500, glancePanel)
 	init {
+		Disposer.register(glancePanel,this)
 		glancePanel.addHierarchyListener(this)
 		glancePanel.addHierarchyBoundsListener(this)
 		editor.contentComponent.addComponentListener(this)
