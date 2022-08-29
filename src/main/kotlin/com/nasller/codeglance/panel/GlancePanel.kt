@@ -50,7 +50,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 
 	init {
 		Disposer.register(editor.disposable, this)
-		GlanceListener(this)
+		Disposer.register(this,GlanceListener(this))
 		isOpaque = false
 		editor.component.isOpaque = false
 		layout = BorderLayout()
