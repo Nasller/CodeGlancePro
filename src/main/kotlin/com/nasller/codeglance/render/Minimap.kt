@@ -3,6 +3,7 @@ package com.nasller.codeglance.render
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Color
@@ -110,7 +111,7 @@ class Minimap(private val glancePanel: GlancePanel){
 					moveCharIndex(charCode){ if (hasBlockInlay) {
 						val startOffset = offset + 1
 						val visualLine = editor.offsetToVisualLine(startOffset)
-						val endOffset = if (visualLine == editor.visibleLineCount - 1) text.length else editor.visualLineStartOffset(visualLine + 1) - 1
+						val endOffset = if (visualLine == editor.visibleLineCount - 1) text.length else DocumentUtil.getLineEndOffset(startOffset,editor.document) - 1
 						val sumBlock = editor.inlayModel.getBlockElementsInRange(startOffset, endOffset)
 							.filter { it.placement == Inlay.Placement.ABOVE_LINE }
 							.sumOf { (it.heightInPixels * scrollState.scale).roundToInt() }

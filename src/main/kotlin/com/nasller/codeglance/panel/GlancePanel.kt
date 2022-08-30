@@ -61,13 +61,6 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	}
 
 	fun refresh(refreshImage: Boolean = true, directUpdate: Boolean = false) {
-		val calWidth = if (fileEditorManagerEx.isInSplitter) {
-			val calWidth = editor.component.width / 12
-			if (calWidth < config.width) {
-				if (calWidth < 20) 20 else calWidth
-			} else config.width
-		} else config.width
-		preferredSize = Dimension(calWidth, 0)
 		if (refreshImage) updateImage(directUpdate, updateScroll = true)
 		else repaint()
 		revalidate()
@@ -282,28 +275,41 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		return Range(startOffset, endOffset)
 	}
 
+	override fun getPreferredSize():Dimension{
+		val calWidth = if (fileEditorManagerEx.isInSplitter) {
+			val calWidth = editor.component.width / 12
+			if (calWidth < config.width) {
+				if (calWidth < 20) 20 else calWidth
+			} else config.width
+		} else config.width
+		return Dimension(calWidth, 0)
+	}
+
 	override fun paint(gfx: Graphics) {
-		if (renderLock.locked) return paintLast(gfx as Graphics2D)
+		if (renderLock.locked) return paintLast(gfx)
 		val img = getDrawImage() ?: return
 		if (buf == null || buf?.width!! < width || buf?.height!! < height) {
 			buf = BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR)
 		}
-		UIUtil.useSafely(buf!!.graphics) {
-			it.composite = CLEAR
-			it.fillRect(0, 0, width, height)
-			it.composite = srcOver
+		val bufGraphics = buf!!.graphics.create() as Graphics2D
+		val graphics2D = gfx.create() as Graphics2D
+		try {
+			bufGraphics.composite = CLEAR
+			bufGraphics.fillRect(0, 0, width, height)
 			if (editor.document.textLength != 0) {
-				it.drawImage(
+				bufGraphics.composite = srcOver
+				bufGraphics.drawImage(
 					img, 0, 0, img.width, scrollState.drawHeight,
 					0, scrollState.visibleStart, img.width, scrollState.visibleEnd, null
 				)
 			}
-		}
-		with(gfx as Graphics2D) {
-			paintSomething()
-			composite = srcOver0_8
-			drawImage(buf, 0, 0, null)
-			scrollbar.paint(this)
+			graphics2D.paintSomething()
+			graphics2D.composite = srcOver0_8
+			graphics2D.drawImage(buf, 0, 0, null)
+			scrollbar.paint(graphics2D)
+		}finally {
+			bufGraphics.dispose()
+			graphics2D.dispose()
 		}
 	}
 
@@ -318,13 +324,15 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		}
 	}
 
-	private fun paintLast(gfx: Graphics2D) {
-		buf?.apply {
-			gfx.composite = srcOver0_8
-			gfx.drawImage(this, 0, 0, width, height, 0, 0, width, height, null)
+	private fun paintLast(gfx: Graphics) {
+		UIUtil.useSafely(gfx){
+			buf?.apply {
+				it.composite = srcOver0_8
+				it.drawImage(this, 0, 0, width, height, 0, 0, width, height, null)
+			}
+			it.paintSomething()
+			scrollbar.paint(it)
 		}
-		gfx.paintSomething()
-		scrollbar.paint(gfx)
 	}
 
 	private fun Graphics2D.paintSomething() {
@@ -351,7 +359,6 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		editor.component.remove(if (this.parent is EditorPanelInjector.MyPanel) this.parent else this)
 		hideScrollBarListener.removeHideScrollBarListener()
 		scrollbar.dispose()
-		myVcsPanel?.dispose()
 		mapRef.clear()
 	}
 

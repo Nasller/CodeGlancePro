@@ -1,33 +1,32 @@
 package com.nasller.codeglance.panel.vcs
 
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
+import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.listener.MyVcsListener
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
 import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.Graphics
-import java.awt.Graphics2D
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.JPanel
 
-class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(), Disposable {
-	private val myVcsListener = MyVcsListener(this)
+class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 	init{
+		MyVcsListener(this)
 		val mouseHandler = MouseHandler()
 		addMouseListener(mouseHandler)
 		addMouseWheelListener(mouseHandler)
 		addMouseMotionListener(mouseHandler)
 		addMouseListener(glancePanel.myPopHandler)
-		preferredSize = Dimension(vcsWidth,0)
+		preferredSize = Dimension(8,0)
 		isOpaque = false
 	}
 
-	override fun paint(gfx: Graphics) {
-		glancePanel.run { (gfx as Graphics2D).paintVcs(getVisibleRangeOffset()) }
+	override fun paint(gfx: Graphics) = glancePanel.run {
+		UIUtil.useSafely(gfx){ it.paintVcs(getVisibleRangeOffset()) }
 	}
 
 	private inner class MouseHandler : MouseAdapter() {
@@ -66,13 +65,5 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(), Disposable {
 			cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
 			hoverVcsLine = null
 		}
-	}
-
-	override fun dispose() {
-		myVcsListener.dispose()
-	}
-
-	companion object{
-		const val vcsWidth:Int = 8
 	}
 }

@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.5.0</h3>
+		<ul>
+			<li>Fix an error in custom fold region</li>
+		</ul>
 		<h3>1.4.9</h3>
 		<ul>
 			<li>Fix an error in show code lens on minimap</li>
@@ -50,14 +54,6 @@
 		<ul>
 			<li>Change disabled to disabled by default</li>
 			<li>fix sync theme with IDE: <a href="https://github.com/Nasller/CodeGlancePro/issues/36">#36</a></li>
-		</ul>
-		<h3>1.4.3</h3>
-		<ul>
-			<li>Show full line error stripes on selected hideOriginalScrollBar</li>
-		</ul>
-		<h3>1.4.2</h3>
-		<ul>
-			<li>Split Vcs part of code for jetbrains client</li>
 		</ul>
 	]]></change-notes>
 
