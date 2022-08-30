@@ -313,26 +313,22 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		}
 	}
 
-	private fun getDrawImage(): BufferedImage? {
-		return mapRef.get(ScaleContext.create(this)).let {
-			if (!it.img.isInitialized()) {
-				updateImage()
-				null
-			} else {
-				it.img.value
-			}
+	private fun getDrawImage(): BufferedImage? = mapRef.get(ScaleContext.create(this)).let {
+		if (!it.img.isInitialized()) {
+			updateImage()
+			null
+		} else {
+			it.img.value
 		}
 	}
 
-	private fun paintLast(gfx: Graphics) {
-		UIUtil.useSafely(gfx){
-			buf?.apply {
-				it.composite = srcOver0_8
-				it.drawImage(this, 0, 0, width, height, 0, 0, width, height, null)
-			}
-			it.paintSomething()
-			scrollbar.paint(it)
+	private fun paintLast(gfx: Graphics) = UIUtil.useSafely(gfx){
+		buf?.apply {
+			it.composite = srcOver0_8
+			it.drawImage(this, 0, 0, width, height, 0, 0, width, height, null)
 		}
+		it.paintSomething()
+		scrollbar.paint(it)
 	}
 
 	private fun Graphics2D.paintSomething() {
