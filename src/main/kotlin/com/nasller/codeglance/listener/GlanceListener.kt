@@ -98,9 +98,6 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	override fun beforeRemoved(highlighter: RangeHighlighterEx) =
 		updateRangeHighlight(highlighter)
 
-	override fun attributesChanged(highlighter: RangeHighlighterEx, renderersChanged: Boolean, fontStyleChanged: Boolean) =
-		updateRangeHighlight(highlighter)
-
 	private fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
 		//如果开启隐藏滚动条则忽略Vcs高亮
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode
