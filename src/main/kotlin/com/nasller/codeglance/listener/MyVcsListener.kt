@@ -5,7 +5,6 @@ import com.intellij.openapi.editor.event.VisibleAreaEvent
 import com.intellij.openapi.editor.event.VisibleAreaListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
-import com.intellij.openapi.util.Disposer
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
@@ -13,11 +12,9 @@ import java.awt.event.ComponentEvent
 class MyVcsListener(private val myVcsPanel: MyVcsPanel) : ComponentAdapter(), VisibleAreaListener, MarkupModelListener, Disposable {
     init {
         val editor = myVcsPanel.glancePanel.editor
-        val disposable = editor.disposable
-        Disposer.register(disposable, this)
         editor.contentComponent.addComponentListener(this)
-        editor.scrollingModel.addVisibleAreaListener(this, disposable)
-        editor.filteredDocumentMarkupModel.addMarkupModelListener(disposable, this)
+        editor.scrollingModel.addVisibleAreaListener(this, this)
+        editor.filteredDocumentMarkupModel.addMarkupModelListener(this, this)
     }
     /** ComponentAdapter */
     override fun componentResized(componentEvent: ComponentEvent?) = repaint()

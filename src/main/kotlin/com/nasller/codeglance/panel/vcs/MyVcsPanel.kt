@@ -2,6 +2,7 @@ package com.nasller.codeglance.panel.vcs
 
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
+import com.intellij.openapi.util.Disposer
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.listener.MyVcsListener
 import com.nasller.codeglance.panel.GlancePanel
@@ -15,7 +16,7 @@ import javax.swing.JPanel
 
 class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 	init{
-		MyVcsListener(this)
+		Disposer.register(glancePanel.editor.disposable, MyVcsListener(this))
 		val mouseHandler = MouseHandler()
 		addMouseListener(mouseHandler)
 		addMouseWheelListener(mouseHandler)
