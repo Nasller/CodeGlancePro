@@ -237,14 +237,14 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	private fun getMyRenderLine(lineStart: Int, lineEnd: Int): Pair<Int, Int> {
 		var startAdd = 0
 		var endAdd = 0
-		myRangeList.forEach {
-			if (it.first in (lineStart + 1) until lineEnd) {
-				endAdd += it.second.to - it.second.from
-			} else if (it.first < lineStart) {
-				val i = it.second.to - it.second.from
+		for (pair in myRangeList) {
+			if (pair.first in (lineStart + 1) until lineEnd) {
+				endAdd += pair.second.to - pair.second.from
+			} else if (pair.first < lineStart) {
+				val i = pair.second.to - pair.second.from
 				startAdd += i
 				endAdd += i
-			}
+			} else break
 		}
 		return startAdd to endAdd
 	}
@@ -256,7 +256,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 				return pair.first
 			} else if (pair.second.to < y) {
 				minus += pair.second.to - pair.second.from
-			}
+			} else break
 		}
 		return (y - minus) / config.pixelsPerLine
 	}
