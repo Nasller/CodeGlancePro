@@ -1,8 +1,7 @@
 package com.nasller.codeglance.concurrent
 
 class DirtyLock {
-    var locked = false
-        private set
+    private var locked = false
 
     var dirty = false
         private set

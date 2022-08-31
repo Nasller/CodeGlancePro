@@ -8,6 +8,7 @@ import com.intellij.util.Range
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Color
 import java.awt.image.BufferedImage
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.roundToInt
 
 /**
@@ -17,15 +18,17 @@ class Minimap(private val glancePanel: GlancePanel){
 	private val editor = glancePanel.editor
 	private val config = glancePanel.config
 	private val scrollState = glancePanel.scrollState
-	private var preBuffer:BufferedImage? = null
-	var img = lazy { BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR) }
+	val img = lazy(LazyThreadSafetyMode.NONE){
+		AtomicReference(BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR))
+	}
 
 	fun update() {
-		var curImg = img.value
+		var curImg = img.value.get()
 		val lineCount = editor.document.lineCount
 		if(lineCount <= 0) return
+		var preBuffer : BufferedImage? = null
 		if (curImg.height < scrollState.documentHeight || curImg.width < config.width) {
-			preBuffer = img.value
+			preBuffer = curImg
 			curImg = BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 		}
 		// These are just to reduce allocations. Premature optimization???
@@ -132,7 +135,7 @@ class Minimap(private val glancePanel: GlancePanel){
 		}
 		g.dispose()
 		preBuffer?.let {
-			img = lazyOf(curImg)
+			img.value.compareAndSet(it,curImg)
 			it.flush()
 		}.also { preBuffer = null }
 		if(glancePanel.myRangeList.isNotEmpty()) glancePanel.myRangeList.clear()

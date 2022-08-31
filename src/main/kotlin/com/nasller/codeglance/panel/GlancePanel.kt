@@ -46,7 +46,6 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	val scrollbar = ScrollBar(this)
 	var myVcsPanel: MyVcsPanel? = null
 	private var mapRef = MinimapCache { MinimapRef(Minimap(this)) }
-	private var buf: BufferedImage? = null
 
 	init {
 		Disposer.register(editor.disposable, this)
@@ -286,30 +285,17 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	}
 
 	override fun paint(gfx: Graphics) {
-		if (renderLock.locked) return paintLast(gfx)
 		val img = getDrawImage() ?: return
-		if (buf == null || buf?.width!! < width || buf?.height!! < height) {
-			buf = BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR)
-		}
-		val bufGraphics = buf!!.graphics.create() as Graphics2D
-		val graphics2D = gfx.create() as Graphics2D
-		try {
-			bufGraphics.composite = CLEAR
-			bufGraphics.fillRect(0, 0, width, height)
+		UIUtil.useSafely(gfx){
+			it.paintSomething()
 			if (editor.document.textLength != 0) {
-				bufGraphics.composite = srcOver
-				bufGraphics.drawImage(
+				it.composite = srcOver0_8
+				it.drawImage(
 					img, 0, 0, img.width, scrollState.drawHeight,
 					0, scrollState.visibleStart, img.width, scrollState.visibleEnd, null
 				)
 			}
-			graphics2D.paintSomething()
-			graphics2D.composite = srcOver0_8
-			graphics2D.drawImage(buf, 0, 0, null)
-			scrollbar.paint(graphics2D)
-		}finally {
-			bufGraphics.dispose()
-			graphics2D.dispose()
+			scrollbar.paint(it)
 		}
 	}
 
@@ -317,18 +303,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		if (!it.img.isInitialized()) {
 			updateImage()
 			null
-		} else {
-			it.img.value
-		}
-	}
-
-	private fun paintLast(gfx: Graphics) = UIUtil.useSafely(gfx){
-		buf?.apply {
-			it.composite = srcOver0_8
-			it.drawImage(this, 0, 0, width, height, 0, 0, width, height, null)
-		}
-		it.paintSomething()
-		scrollbar.paint(it)
+		} else it.img.value.get()
 	}
 
 	private fun Graphics2D.paintSomething() {
