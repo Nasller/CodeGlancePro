@@ -32,7 +32,7 @@ import java.awt.image.BufferedImage
 import java.util.function.Function
 import javax.swing.JPanel
 
-class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disposable {
+class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderLayout()), Disposable {
 	var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
 	val config = CodeGlanceConfigService.ConfigInstance.state
 	val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
@@ -40,29 +40,27 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	val scrollState = ScrollState()
 	val isDisabled: Boolean
 		get() = config.disabled || editor.document.lineCount > config.maxLinesCount
-	private val renderLock = DirtyLock()
 	val myPopHandler = CustomScrollBarPopup(this)
 	val hideScrollBarListener = HideScrollBarListener(this)
 	val scrollbar = ScrollBar(this)
 	var myVcsPanel: MyVcsPanel? = null
-	private var mapRef = MinimapCache { MinimapRef(Minimap(this)) }
+	private val renderLock = DirtyLock()
+	private val mapRef = MinimapCache { MinimapRef(Minimap(this)) }
 
 	init {
 		Disposer.register(editor.disposable, this)
 		Disposer.register(this,GlanceListener(this))
 		isOpaque = false
 		editor.component.isOpaque = false
-		layout = BorderLayout()
-		add(scrollbar)
 		isVisible = !isDisabled
 		refresh()
 		editor.putUserData(CURRENT_GLANCE, this)
 	}
 
 	fun refresh(refreshImage: Boolean = true, directUpdate: Boolean = false) {
+		revalidate()
 		if (refreshImage) updateImage(directUpdate, updateScroll = true)
 		else repaint()
-		revalidate()
 	}
 
 	fun updateImage(directUpdate: Boolean = false, updateScroll: Boolean = false) =
@@ -91,6 +89,42 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	}
 
 	fun checkVisible() = !((!config.hoveringToShowScrollBar && !isVisible) || editor.isDisposed)
+
+	fun changeOriginScrollBarWidth(control: Boolean = true) {
+		if (config.hideOriginalScrollBar && control && (!isDisabled || isVisible)) {
+			myVcsPanel?.apply { isVisible = true }
+			editor.scrollPane.verticalScrollBar.apply { preferredSize = Dimension(0, preferredSize.height) }
+		} else {
+			myVcsPanel?.apply { isVisible = false }
+			editor.scrollPane.verticalScrollBar.apply { preferredSize = Dimension(originalScrollbarWidth, preferredSize.height) }
+		}
+	}
+
+	fun getMyRenderVisualLine(y: Int): Int {
+		var minus = 0
+		for (pair in myRangeList) {
+			if (y in pair.second.from..pair.second.to) {
+				return pair.first
+			} else if (pair.second.to < y) {
+				minus += pair.second.to - pair.second.from
+			} else break
+		}
+		return (y - minus) / config.pixelsPerLine
+	}
+
+	fun getVisibleRangeOffset(): Range<Int> {
+		var startOffset = 0
+		var endOffset = editor.document.textLength
+		if (scrollState.visibleStart > 0) {
+			val offset = editor.visualLineStartOffset(fitLineToEditor(editor, getMyRenderVisualLine(scrollState.visibleStart))) - 1
+			startOffset = if (offset > 0) offset else 0
+		}
+		if (scrollState.visibleEnd > 0) {
+			val offset = EditorUtil.getVisualLineEndOffset(editor, fitLineToEditor(editor, getMyRenderVisualLine(scrollState.visibleEnd))) + 1
+			endOffset = if (offset < endOffset) offset else endOffset
+		}
+		return Range(startOffset, endOffset)
+	}
 
 	fun Graphics2D.paintVcs(rangeOffset: Range<Int>) {
 		composite = if (config.hideOriginalScrollBar) srcOver else srcOver0_4
@@ -248,32 +282,6 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		return startAdd to endAdd
 	}
 
-	fun getMyRenderVisualLine(y: Int): Int {
-		var minus = 0
-		for (pair in myRangeList) {
-			if (y in pair.second.from..pair.second.to) {
-				return pair.first
-			} else if (pair.second.to < y) {
-				minus += pair.second.to - pair.second.from
-			} else break
-		}
-		return (y - minus) / config.pixelsPerLine
-	}
-
-	fun getVisibleRangeOffset(): Range<Int> {
-		var startOffset = 0
-		var endOffset = editor.document.textLength
-		if (scrollState.visibleStart > 0) {
-			val offset = editor.visualLineStartOffset(fitLineToEditor(editor, getMyRenderVisualLine(scrollState.visibleStart))) - 1
-			startOffset = if (offset > 0) offset else 0
-		}
-		if (scrollState.visibleEnd > 0) {
-			val offset = EditorUtil.getVisualLineEndOffset(editor, fitLineToEditor(editor, getMyRenderVisualLine(scrollState.visibleEnd))) + 1
-			endOffset = if (offset < endOffset) offset else endOffset
-		}
-		return Range(startOffset, endOffset)
-	}
-
 	override fun getPreferredSize():Dimension{
 		val calWidth = if (fileEditorManagerEx.isInSplitter) {
 			val calWidth = editor.component.width / 12
@@ -313,16 +321,6 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		else paintCaretPosition()
 		paintEditorFilterMarkupModel(rangeOffset)
 		paintEditorMarkupModel(rangeOffset)
-	}
-
-	fun changeOriginScrollBarWidth(control: Boolean = true) {
-		if (config.hideOriginalScrollBar && control && (!isDisabled || isVisible)) {
-			myVcsPanel?.apply { isVisible = true }
-			editor.scrollPane.verticalScrollBar.apply { preferredSize = Dimension(0, preferredSize.height) }
-		} else {
-			myVcsPanel?.apply { isVisible = false }
-			editor.scrollPane.verticalScrollBar.apply { preferredSize = Dimension(originalScrollbarWidth, preferredSize.height) }
-		}
 	}
 
 	override fun dispose() {

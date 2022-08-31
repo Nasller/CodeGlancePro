@@ -55,6 +55,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
         addMouseWheelListener(mouseHandler)
         addMouseMotionListener(mouseHandler)
         addMouseListener(glancePanel.myPopHandler)
+        glancePanel.add(this)
     }
 
     private fun isInResizeGutter(x: Int): Boolean {
