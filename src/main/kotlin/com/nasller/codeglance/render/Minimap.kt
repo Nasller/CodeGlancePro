@@ -8,7 +8,6 @@ import com.intellij.util.Range
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Color
 import java.awt.image.BufferedImage
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.roundToInt
 
 /**
@@ -18,12 +17,12 @@ class Minimap(private val glancePanel: GlancePanel){
 	private val editor = glancePanel.editor
 	private val config = glancePanel.config
 	private val scrollState = glancePanel.scrollState
-	val img = lazy(LazyThreadSafetyMode.NONE){
-		AtomicReference(BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR))
+	@Volatile var img = lazy(LazyThreadSafetyMode.NONE){
+		BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 	}
 
 	fun update() {
-		var curImg = img.value.get()
+		var curImg = img.value
 		val lineCount = editor.document.lineCount
 		if(lineCount <= 0) return
 		var preBuffer : BufferedImage? = null
@@ -52,12 +51,12 @@ class Minimap(private val glancePanel: GlancePanel){
 		val myRangeList = lazy(LazyThreadSafetyMode.NONE){ mutableListOf<Pair<Int,Range<Int>>>() }
 		val moveCharIndex = { code: Int,enterAction: (()->Unit)? ->
 			when (code) {
-				ENTER -> {
+				9 -> x += 4//TAB
+				10 -> {//ENTER
 					x = 0
 					y += config.pixelsPerLine
 					enterAction?.invoke()
 				}
-				TAB -> x += 4
 				else -> x += 1
 			}
 		}
@@ -135,7 +134,7 @@ class Minimap(private val glancePanel: GlancePanel){
 		}
 		g.dispose()
 		preBuffer?.let {
-			img.value.compareAndSet(it,curImg)
+			img = lazyOf(curImg)
 			it.flush()
 		}.also { preBuffer = null }
 		if(glancePanel.myRangeList.isNotEmpty()) glancePanel.myRangeList.clear()
@@ -228,9 +227,4 @@ class Minimap(private val glancePanel: GlancePanel){
 	}
 
 	private data class RangeHighlightColor(val startOffset: Int,val endOffset: Int,val foregroundColor: Color)
-
-	private companion object{
-		const val TAB = 9
-		const val ENTER = 10
-	}
 }

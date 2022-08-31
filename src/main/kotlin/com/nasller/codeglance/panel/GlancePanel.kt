@@ -303,7 +303,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		if (!it.img.isInitialized()) {
 			updateImage()
 			null
-		} else it.img.value.get()
+		} else it.img.value
 	}
 
 	private fun Graphics2D.paintSomething() {
