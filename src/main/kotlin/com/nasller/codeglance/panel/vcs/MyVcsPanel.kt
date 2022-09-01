@@ -26,7 +26,7 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 		isOpaque = false
 	}
 
-	override fun paint(gfx: Graphics) = glancePanel.run {
+	override fun paintComponent(gfx: Graphics) = glancePanel.run {
 		UIUtil.useSafely(gfx){ it.paintVcs(getVisibleRangeOffset()) }
 	}
 
