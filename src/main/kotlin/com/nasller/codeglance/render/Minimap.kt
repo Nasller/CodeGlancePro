@@ -17,7 +17,7 @@ class Minimap(private val glancePanel: GlancePanel){
 	private val editor = glancePanel.editor
 	private val config = glancePanel.config
 	private val scrollState = glancePanel.scrollState
-	@Volatile var img = lazy(LazyThreadSafetyMode.NONE){
+	var img = lazy(LazyThreadSafetyMode.NONE){
 		BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 	}
 

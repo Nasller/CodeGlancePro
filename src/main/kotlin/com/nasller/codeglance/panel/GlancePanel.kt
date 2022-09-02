@@ -20,7 +20,6 @@ import com.intellij.util.SingleAlarm
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.EditorPanelInjector
-import com.nasller.codeglance.concurrent.DirtyLock
 import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.listener.GlanceListener
 import com.nasller.codeglance.listener.HideScrollBarListener
@@ -30,6 +29,7 @@ import com.nasller.codeglance.render.Minimap
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
 import java.awt.image.BufferedImage
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Function
 import javax.swing.JPanel
 
@@ -45,7 +45,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderL
 	val hideScrollBarListener = HideScrollBarListener(this)
 	val scrollbar = ScrollBar(this)
 	var myVcsPanel: MyVcsPanel? = null
-	private val renderLock = DirtyLock()
+	private val lock = AtomicBoolean(false)
 	private val mapRef = MinimapCache { MinimapRef(Minimap(this)) }
 	private val alarm = SingleAlarm({ updateImage(true) }, 500, this)
 
@@ -55,7 +55,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderL
 		isOpaque = false
 		editor.component.isOpaque = false
 		isVisible = !isDisabled
-		refresh()
+		refresh(directUpdate = true)
 		editor.putUserData(CURRENT_GLANCE, this)
 	}
 
@@ -66,7 +66,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderL
 	}
 
 	fun updateImage(directUpdate: Boolean = false, updateScroll: Boolean = false) =
-		if (checkVisible() && renderLock.acquire()) {
+		if (checkVisible() && lock.compareAndSet(false,true)) {
 			if (directUpdate) updateImgTask(updateScroll)
 			else ApplicationManager.getApplication().invokeLater { updateImgTask(updateScroll) }
 		} else Unit
@@ -79,11 +79,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderL
 			alarm.cancelAllRequests()
 			mapRef.get(ScaleContext.create(this)).update()
 		} finally {
-			renderLock.release()
-			if (renderLock.dirty) {
-				renderLock.clean()
-				updateImage()
-			}
+			lock.set(false)
 			repaint()
 		}
 	}
