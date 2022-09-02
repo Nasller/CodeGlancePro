@@ -16,6 +16,7 @@ import com.intellij.openapi.util.Key
 import com.intellij.reference.SoftReference
 import com.intellij.ui.scale.ScaleContext
 import com.intellij.util.Range
+import com.intellij.util.SingleAlarm
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.EditorPanelInjector
@@ -46,6 +47,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderL
 	var myVcsPanel: MyVcsPanel? = null
 	private val renderLock = DirtyLock()
 	private val mapRef = MinimapCache { MinimapRef(Minimap(this)) }
+	private val alarm = SingleAlarm({ updateImage(true) }, 500, this)
 
 	init {
 		Disposer.register(editor.disposable, this)
@@ -69,9 +71,12 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderL
 			else ApplicationManager.getApplication().invokeLater { updateImgTask(updateScroll) }
 		} else Unit
 
+	fun delayUpdateImage() = alarm.cancelAndRequest()
+
 	private fun updateImgTask(updateScroll: Boolean = false) {
 		try {
 			if (updateScroll) updateScrollState()
+			alarm.cancelAllRequests()
 			mapRef.get(ScaleContext.create(this)).update()
 		} finally {
 			renderLock.release()
@@ -327,6 +332,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderL
 		editor.putUserData(CURRENT_GLANCE, null)
 		editor.component.remove(if (this.parent is EditorPanelInjector.MyPanel) this.parent else this)
 		hideScrollBarListener.removeHideScrollBarListener()
+		alarm.cancelAllRequests()
 		scrollbar.dispose()
 		mapRef.clear()
 	}

@@ -11,7 +11,6 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.SoftWrapChangeListener
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
-import com.intellij.util.SingleAlarm
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.event.*
@@ -21,7 +20,6 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	HierarchyBoundsListener, HierarchyListener, SoftWrapChangeListener, InlayModel.Listener, Disposable {
 	private val editor = glancePanel.editor
 	private var softWrapEnabled = false
-	private val alarm = SingleAlarm({ glancePanel.updateImage(true) }, 500, glancePanel)
 	init {
 		glancePanel.addHierarchyListener(this)
 		glancePanel.addHierarchyBoundsListener(this)
@@ -162,7 +160,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
 	private fun repaintOrRequest(request: Boolean = false) {
 		if (glancePanel.checkVisible()) {
-			if (request) alarm.cancelAndRequest()
+			if (request) glancePanel.delayUpdateImage()
 			else glancePanel.repaint()
 		}
 	}
@@ -171,7 +169,6 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 		glancePanel.removeHierarchyListener(this)
 		glancePanel.removeHierarchyBoundsListener(this)
 		editor.contentComponent.removeComponentListener(this)
-		alarm.cancelAllRequests()
 	}
 }
 
