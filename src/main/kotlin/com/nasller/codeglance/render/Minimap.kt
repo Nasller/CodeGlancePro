@@ -112,13 +112,11 @@ class Minimap(private val glancePanel: GlancePanel){
 					val charCode = text[offset].code
 					moveCharIndex(charCode){ if (hasBlockInlay) {
 						val startOffset = offset + 1
-						val visualLine = editor.offsetToVisualLine(startOffset)
-						val endOffset = DocumentUtil.getLineEndOffset(startOffset,editor.document) - 1
-						val sumBlock = editor.inlayModel.getBlockElementsInRange(startOffset, endOffset)
+						val sumBlock = editor.inlayModel.getBlockElementsInRange(startOffset, DocumentUtil.getLineEndOffset(startOffset,editor.document))
 							.filter { it.placement == Inlay.Placement.ABOVE_LINE }
 							.sumOf { (it.heightInPixels * scrollState.scale).roundToInt() }
 						if (sumBlock > 0) {
-							myRangeList.value.add(Pair(visualLine - 1, Range(y, y + sumBlock)))
+							myRangeList.value.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
 							y += sumBlock
 							skipY += sumBlock
 						}
