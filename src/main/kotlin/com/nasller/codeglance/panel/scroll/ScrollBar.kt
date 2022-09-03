@@ -32,11 +32,10 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 	private val scrollState = glancePanel.scrollState
 	private val alarm = Alarm(glancePanel)
 	private val myEditorFragmentRenderer = CustomEditorFragmentRenderer(editor)
-
 	//视图滚动
 	private var myWheelAccumulator = 0
 	private var myLastVisualLine = 0
-
+	private var visibleRectColor: Color = Color.decode("#" + config.viewportColor)
 	private var visibleRectAlpha = DEFAULT_ALPHA
 		set(value) {
 			if (field != value) {
@@ -44,9 +43,6 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 				parent.repaint()
 			}
 		}
-
-	private var visibleRectColor: Color = Color.decode("#" + config.viewportColor)
-
 	//矩形y轴
 	private val vOffset: Int
 		get() = scrollState.viewportStart - scrollState.visibleStart
@@ -61,7 +57,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 	}
 
 	private fun isInResizeGutter(x: Int): Boolean =
-		if (config.locked || (!config.autoCalWidthInSplitterMode && glancePanel.fileEditorManagerEx.isInSplitter)) false else x in 0..7
+		if (config.locked || glancePanel.fileEditorManagerEx.isInSplitter) false else x in 0..7
 
 	private fun isInRect(y: Int): Boolean = y in vOffset..(vOffset + scrollState.viewportHeight)
 
