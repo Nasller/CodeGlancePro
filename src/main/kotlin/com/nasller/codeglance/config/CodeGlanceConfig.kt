@@ -13,6 +13,7 @@ class CodeGlanceConfig {
     var singleFileVisibleButton = true
     var hideOriginalScrollBar = false
     var showFullLineHighlight = true
+    var autoCalWidthInSplitterMode = true
     var showEditorToolTip = true
     var isRightAligned = true
     var hoveringToShowScrollBar by Delegates.observable(false) { _, oldValue, newValue ->
@@ -32,8 +33,9 @@ class CodeGlanceConfig {
 val SettingsChangePublisher = ApplicationManager.getApplication().messageBus.syncPublisher(SettingsChangeListener.TOPIC)
 
 interface SettingsChangeListener {
-
     fun onHoveringOriginalScrollBarChanged(value:Boolean) {}
+
+    fun refresh(directUpdate: Boolean = false, updateScroll: Boolean = false) {}
 
     fun onGlobalChanged() {}
 

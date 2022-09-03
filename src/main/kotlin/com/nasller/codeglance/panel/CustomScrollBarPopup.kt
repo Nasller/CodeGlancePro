@@ -17,6 +17,7 @@ import com.intellij.ui.PopupHandler
 import com.intellij.ui.PopupMenuListenerAdapter
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.ui.UIUtil
+import com.nasller.codeglance.config.SettingsChangePublisher
 import com.nasller.codeglance.util.message
 import java.awt.Component
 import java.awt.Point
@@ -44,6 +45,14 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
 
                 override fun setSelected(e: AnActionEvent, state: Boolean) {
                     config.showFullLineHighlight = state
+                }
+            },
+            object : DumbAwareToggleAction(message("popup.autoCalculateWidth")){
+                override fun isSelected(e: AnActionEvent): Boolean = config.autoCalWidthInSplitterMode
+
+                override fun setSelected(e: AnActionEvent, state: Boolean) {
+                    config.autoCalWidthInSplitterMode = state
+                    SettingsChangePublisher.refresh(directUpdate = false)
                 }
             },
             DumbAwareToggleOptionAction(object : ToggleOptionAction.Option {

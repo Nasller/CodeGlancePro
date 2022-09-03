@@ -140,6 +140,8 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	override fun onHoveringOriginalScrollBarChanged(value: Boolean) = if (value) glancePanel.hideScrollBarListener.addHideScrollBarListener()
 	else glancePanel.hideScrollBarListener.removeHideScrollBarListener()
 
+	override fun refresh(directUpdate: Boolean, updateScroll: Boolean) = glancePanel.refresh(directUpdate, updateScroll)
+
 	/** VisibleAreaListener */
 	override fun visibleAreaChanged(e: VisibleAreaEvent) {
 		glancePanel.scrollState.recomputeVisible(e.newRectangle)
@@ -150,20 +152,23 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	override fun ancestorMoved(e: HierarchyEvent) {}
 
 	override fun ancestorResized(e: HierarchyEvent) {
-		if (glancePanel.checkVisible()) glancePanel.refresh(false)
+		if (checkWithGlance {config.autoCalWidthInSplitterMode}) glancePanel.refresh(false)
 	}
 
 	/** HierarchyListener */
 	override fun hierarchyChanged(e: HierarchyEvent) {
-		if (e.changeFlags and HierarchyEvent.PARENT_CHANGED.toLong() != 0L && glancePanel.checkVisible()) glancePanel.refresh(false)
+		if (checkWithGlance {config.autoCalWidthInSplitterMode} &&
+			e.changeFlags and HierarchyEvent.PARENT_CHANGED.toLong() != 0L) glancePanel.refresh(false)
 	}
 
 	private fun repaintOrRequest(request: Boolean = false) {
-		if (glancePanel.checkVisible()) {
+		if (checkWithGlance()) {
 			if (request) glancePanel.delayUpdateImage()
 			else glancePanel.repaint()
 		}
 	}
+
+	private fun checkWithGlance(predicate:(GlancePanel.()->Boolean)? = null) = glancePanel.checkVisible() && (predicate == null || predicate.invoke(glancePanel))
 
 	override fun dispose() {
 		glancePanel.removeHierarchyListener(this)

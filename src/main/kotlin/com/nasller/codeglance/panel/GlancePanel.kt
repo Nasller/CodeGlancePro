@@ -284,7 +284,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderL
 	}
 
 	override fun getPreferredSize():Dimension{
-		val calWidth = if (fileEditorManagerEx.isInSplitter) {
+		val calWidth = if (config.autoCalWidthInSplitterMode && fileEditorManagerEx.isInSplitter) {
 			val calWidth = editor.component.width / 12
 			if (calWidth < config.width) {
 				if (calWidth < 20) 20 else calWidth
