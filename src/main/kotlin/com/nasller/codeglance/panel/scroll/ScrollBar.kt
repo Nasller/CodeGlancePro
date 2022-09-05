@@ -11,7 +11,6 @@ import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.ui.HintHint
 import com.intellij.util.Alarm
 import com.intellij.util.ui.JBUI
-import com.intellij.util.ui.MouseEventAdapter
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
@@ -223,17 +222,14 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 		}
 
 		override fun mouseWheelMoved(e: MouseWheelEvent) {
-			if (myEditorFragmentRenderer.getEditorPreviewHint() == null) {
-				// process wheel event by the parent scroll pane if no code lens
-				MouseEventAdapter.redispatch(e, e.component.parent)
-				return
+			if (myEditorFragmentRenderer.getEditorPreviewHint() != null){
+				val units = e.unitsToScroll
+				if (units == 0) return
+				if (myLastVisualLine < editor.visibleLineCount - 1 && units > 0 || myLastVisualLine > 0 && units < 0) {
+					myWheelAccumulator += units
+				}
+				showToolTipByMouseMove(e)
 			}
-			val units = e.unitsToScroll
-			if (units == 0) return
-			if (myLastVisualLine < editor.visibleLineCount - 1 && units > 0 || myLastVisualLine > 0 && units < 0) {
-				myWheelAccumulator += units
-			}
-			showToolTipByMouseMove(e)
 		}
 
 		private fun hideScrollBar(e: MouseEvent) = if (!hovering && !dragging && !resizing && !e.isPopupTrigger)
