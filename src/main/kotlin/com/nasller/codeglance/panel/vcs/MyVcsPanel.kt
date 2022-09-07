@@ -27,7 +27,7 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 	}
 
 	override fun paintComponent(gfx: Graphics) = glancePanel.run {
-		UIUtil.useSafely(gfx){ it.paintVcs(getVisibleRangeOffset()) }
+		UIUtil.useSafely(gfx){ it.paintVcs(getVisibleRangeOffset(),this@MyVcsPanel.width) }
 	}
 
 	private inner class MouseHandler : MouseAdapter() {

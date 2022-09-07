@@ -127,7 +127,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderL
 		return Range(startOffset, endOffset)
 	}
 
-	fun Graphics2D.paintVcs(rangeOffset: Range<Int>) {
+	fun Graphics2D.paintVcs(rangeOffset: Range<Int>,width:Int) {
 		composite = if (config.hideOriginalScrollBar) srcOver else srcOver0_4
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
 			if (it.isThinErrorStripeMark) it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
@@ -317,7 +317,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderL
 
 	private fun Graphics2D.paintSomething() {
 		val rangeOffset = getVisibleRangeOffset()
-		if (!config.hideOriginalScrollBar) paintVcs(rangeOffset)
+		if (!config.hideOriginalScrollBar) paintVcs(rangeOffset,width)
 		if (editor.selectionModel.hasSelection()) paintSelection()
 		else paintCaretPosition()
 		paintEditorFilterMarkupModel(rangeOffset)
