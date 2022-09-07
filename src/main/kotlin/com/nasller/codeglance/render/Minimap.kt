@@ -134,7 +134,7 @@ class Minimap(private val glancePanel: GlancePanel){
 		preBuffer?.let {
 			img = lazyOf(curImg)
 			it.flush()
-		}.also { preBuffer = null }
+		}
 		if(glancePanel.myRangeList.isNotEmpty()) glancePanel.myRangeList.clear()
 		if(myRangeList.isInitialized()) glancePanel.myRangeList.addAll(myRangeList.value)
 	}
