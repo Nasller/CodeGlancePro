@@ -18,7 +18,7 @@ class HideScrollBarListener(private val glancePanel: GlancePanel):MouseAdapter()
 	private val checkHide
 		get()= glancePanel.config.hoveringToShowScrollBar && !glancePanel.myPopHandler.isVisible && !glancePanel.scrollbar.hovering
 
-	override fun mouseMoved(e: MouseEvent) {
+	override fun mouseEntered(e: MouseEvent) {
 		if(glancePanel.width == 0){
 			alarm.cancel()
 			start(0,glancePanel.getConfigSize().width)
