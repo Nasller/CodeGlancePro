@@ -5,24 +5,21 @@ import com.intellij.util.animation.JBAnimator
 import com.intellij.util.animation.animation
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Dimension
+import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
-import java.awt.event.MouseMotionAdapter
 
-class HideScrollBarListener(private val glancePanel: GlancePanel) : MouseMotionAdapter() {
+class HideScrollBarListener(private val glancePanel: GlancePanel) : MouseAdapter() {
 	private var animationId = -1L
 	private val animator = JBAnimator(glancePanel).apply {
 		name = "Minimap Width Animator"
 		ignorePowerSaveMode()
 	}
-	private val alarm = SingleAlarm({ if (checkHide) start(glancePanel.width, 0) },400,glancePanel)
+	private val alarm = SingleAlarm({ if (checkHide) start(glancePanel.width, 0) },500,glancePanel)
 	private val checkHide
 		get()= glancePanel.config.hoveringToShowScrollBar && !glancePanel.myPopHandler.isVisible && !glancePanel.scrollbar.hovering
 
-	override fun mouseMoved(e: MouseEvent) {
-		if(glancePanel.width == 0){
-			alarm.cancel()
-			start(0,glancePanel.getConfigSize().width)
-		}
+	override fun mouseEntered(e: MouseEvent) {
+		if(glancePanel.width == 0) start(0,glancePanel.getConfigSize().width)
 	}
 
 	fun hideGlanceRequest() = let{ if (checkHide) alarm.cancelAndRequest() }
@@ -57,16 +54,16 @@ class HideScrollBarListener(private val glancePanel: GlancePanel) : MouseMotionA
 
 	fun addHideScrollBarListener() = glancePanel.run {
 		if (config.hoveringToShowScrollBar && !isDisabled) {
-			if (!config.hideOriginalScrollBar) editor.scrollPane.verticalScrollBar.addMouseMotionListener(hideScrollBarListener)
-			else myVcsPanel?.addMouseMotionListener(hideScrollBarListener)
+			if (!config.hideOriginalScrollBar) editor.scrollPane.verticalScrollBar.addMouseListener(hideScrollBarListener)
+			else myVcsPanel?.addMouseListener(hideScrollBarListener)
 			start(glancePanel.width,0)
 		}
 	}
 
 	fun removeHideScrollBarListener() = glancePanel.run {
 		val scrollBarListener = this@HideScrollBarListener
-		if (!config.hideOriginalScrollBar) editor.scrollPane.verticalScrollBar.removeMouseMotionListener(scrollBarListener)
-		else myVcsPanel?.removeMouseMotionListener(scrollBarListener)
+		if (!config.hideOriginalScrollBar) editor.scrollPane.verticalScrollBar.removeMouseListener(scrollBarListener)
+		else myVcsPanel?.removeMouseListener(scrollBarListener)
 		alarm.cancel()
 		animator.stop()
 		showHideOriginScrollBar(true)

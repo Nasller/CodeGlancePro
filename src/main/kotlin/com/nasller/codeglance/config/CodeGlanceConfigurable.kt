@@ -1,6 +1,6 @@
 package com.nasller.codeglance.config
 
-import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.dsl.builder.*
@@ -125,8 +125,6 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 	override fun apply() {
 		super.apply()
 		if((!config.isRightAligned || config.disabled) && config.hoveringToShowScrollBar) config.hoveringToShowScrollBar = false
-		ApplicationManager.getApplication().invokeLater{
-			SettingsChangePublisher.onGlobalChanged()
-		}
+		invokeLater{ SettingsChangePublisher.onGlobalChanged() }
 	}
 }

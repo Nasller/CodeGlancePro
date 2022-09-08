@@ -2,7 +2,7 @@ package com.nasller.codeglance.panel
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
@@ -73,7 +73,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderL
 	fun updateImage(directUpdate: Boolean = false, updateScroll: Boolean = false) =
 		if (checkVisible() && lock.compareAndSet(false,true)) {
 			if (directUpdate) updateImgTask(updateScroll)
-			else ApplicationManager.getApplication().invokeLater { updateImgTask(updateScroll) }
+			else invokeLater { updateImgTask(updateScroll) }
 		} else Unit
 
 	fun delayUpdateImage() = alarm.cancelAndRequest()

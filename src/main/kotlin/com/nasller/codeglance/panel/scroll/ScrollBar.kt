@@ -135,6 +135,10 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 
 		private var widthStart: Int = 0
 
+		override fun mouseEntered(e: MouseEvent?) {
+			hovering = true
+		}
+
 		override fun mousePressed(e: MouseEvent) {
 			if (e.button != MouseEvent.BUTTON1) return
 			when {
@@ -191,7 +195,6 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 		}
 
 		override fun mouseMoved(e: MouseEvent) {
-			hovering = true
 			val isInRect = updateAlpha(e.y)
 			if (isInResizeGutter(e.x)) {
 				cursor = Cursor(Cursor.W_RESIZE_CURSOR)
@@ -232,7 +235,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 			}
 		}
 
-		private fun hideScrollBar(e: MouseEvent) = if (!hovering && !dragging && !resizing && !e.isPopupTrigger)
+		private fun hideScrollBar(e: MouseEvent) = if (!dragging && !resizing && !e.isPopupTrigger)
 			glancePanel.hideScrollBarListener.hideGlanceRequest() else Unit
 
 		private fun jumpToLineAt(y: Int, action: () -> Unit) {
