@@ -56,7 +56,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 	}
 
 	private fun isInResizeGutter(x: Int): Boolean =
-		if (config.locked || glancePanel.fileEditorManagerEx.isInSplitter) false else x in 0..7
+		if (config.locked || config.hoveringToShowScrollBar || glancePanel.fileEditorManagerEx.isInSplitter) false else x in 0..7
 
 	private fun isInRect(y: Int): Boolean = y in vOffset..(vOffset + scrollState.viewportHeight)
 
@@ -163,7 +163,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 			if (resizing) {
 				val newWidth = widthStart + resizeStart - e.xOnScreen
 				config.width = newWidth.coerceIn(GlancePanel.minWidth, GlancePanel.maxWidth)
-				glancePanel.refresh()
+				glancePanel.refreshWithWidth()
 			} else if (dragging) {
 				val delta = (dragStartDelta + (e.y - dragStart)).toFloat()
 				val newPos = if (scrollState.documentHeight < scrollState.visibleHeight)

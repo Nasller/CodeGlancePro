@@ -1,30 +1,47 @@
 package com.nasller.codeglance.listener
 
 import com.intellij.util.SingleAlarm
+import com.intellij.util.animation.JBAnimator
+import com.intellij.util.animation.animation
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Dimension
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 
 class HideScrollBarListener(private val glancePanel: GlancePanel):MouseAdapter() {
-	private val alarm = SingleAlarm({
-		if (!glancePanel.myPopHandler.isVisible && !glancePanel.scrollbar.hovering) {
-			glancePanel.isVisible = false
-			showHideOriginScrollBar(true)
-		}
-	},500,glancePanel)
+	private var animationId = -1L
+	private val animator = JBAnimator(glancePanel).apply {
+		name = "Minimap Width Animator"
+		ignorePowerSaveMode()
+	}
+	private val alarm = SingleAlarm({ if (checkHide) start(glancePanel.width, 0) },400,glancePanel)
+	private val checkHide
+		get()= glancePanel.config.hoveringToShowScrollBar && !glancePanel.myPopHandler.isVisible && !glancePanel.scrollbar.hovering
+
 	override fun mouseMoved(e: MouseEvent) {
-		if(!glancePanel.isVisible){
+		if(glancePanel.width == 0){
 			alarm.cancel()
-			glancePanel.isVisible = true
-			showHideOriginScrollBar(false)
+			start(0,glancePanel.getConfigSize().width)
 		}
 	}
 
-	fun hideGlanceRequest(){
-		if (!alarm.isDisposed && glancePanel.config.hoveringToShowScrollBar &&
-				glancePanel.isVisible && !glancePanel.myPopHandler.isVisible && !glancePanel.scrollbar.hovering) {
-			alarm.cancelAndRequest()
+	fun hideGlanceRequest() = let{ if (checkHide) alarm.cancelAndRequest() }
+
+	private fun start(from: Int, to: Int) {
+		if (from != to && !animator.isRunning(animationId)){
+			animationId = animator.animate(
+				animation(from, to) {
+					if (glancePanel.width != it) {
+						glancePanel.preferredSize = Dimension(it, 0)
+						glancePanel.revalidate()
+						glancePanel.repaint()
+					}
+				}.apply {
+					duration = 300
+					runWhenScheduled { showHideOriginScrollBar(to == 0) }
+					runWhenExpiredOrCancelled { if(glancePanel.width > 0 && to != 0) hideGlanceRequest() }
+				}
+			)
 		}
 	}
 
@@ -47,22 +64,22 @@ class HideScrollBarListener(private val glancePanel: GlancePanel):MouseAdapter()
 				myVcsPanel?.addMouseListener(hideScrollBarListener)
 				myVcsPanel?.addMouseMotionListener(hideScrollBarListener)
 			}
-			isVisible = false
+			start(glancePanel.width,0)
 		}
 	}
 
 	fun removeHideScrollBarListener() = glancePanel.run {
-		hideScrollBarListener.apply {
-			if (!config.hideOriginalScrollBar) {
-				editor.scrollPane.verticalScrollBar.removeMouseListener(this)
-				editor.scrollPane.verticalScrollBar.removeMouseMotionListener(this)
-			} else {
-				myVcsPanel?.removeMouseListener(this)
-				myVcsPanel?.removeMouseMotionListener(this)
-			}
-			alarm.cancel()
-			showHideOriginScrollBar(true)
+		val scrollBarListener = this@HideScrollBarListener
+		if (!config.hideOriginalScrollBar) {
+			editor.scrollPane.verticalScrollBar.removeMouseListener(scrollBarListener)
+			editor.scrollPane.verticalScrollBar.removeMouseMotionListener(scrollBarListener)
+		} else {
+			myVcsPanel?.removeMouseListener(scrollBarListener)
+			myVcsPanel?.removeMouseMotionListener(scrollBarListener)
 		}
-		isVisible = !isDisabled
+		alarm.cancel()
+		animator.stop()
+		showHideOriginScrollBar(true)
+		refreshWithWidth(false)
 	}
 }

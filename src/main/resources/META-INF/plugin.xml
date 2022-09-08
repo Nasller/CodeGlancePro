@@ -28,6 +28,7 @@
 		<ul>
 			<li>Remove dirty lock</li>
 			<li>Provide a configuration that turns off automatic width calculation</li>
+			<li>Hover to show minimap support animation</li>
 		</ul>
 		<h3>1.5.0</h3>
 		<ul>

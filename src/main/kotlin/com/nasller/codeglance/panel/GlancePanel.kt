@@ -39,7 +39,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderL
 	val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
 	val myRangeList: MutableList<Pair<Int, Range<Int>>> = ContainerUtil.createLockFreeCopyOnWriteList()
 	val scrollState = ScrollState()
-	val isDisabled: Boolean
+	val isDisabled
 		get() = config.disabled || editor.document.lineCount > config.maxLinesCount
 	val myPopHandler = CustomScrollBarPopup(this)
 	val hideScrollBarListener = HideScrollBarListener(this)
@@ -55,8 +55,13 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderL
 		isOpaque = false
 		editor.component.isOpaque = false
 		isVisible = !isDisabled
-		refresh(directUpdate = true)
+		refreshWithWidth(directUpdate = true)
 		editor.putUserData(CURRENT_GLANCE, this)
+	}
+
+	fun refreshWithWidth(refreshImage: Boolean = true, directUpdate: Boolean = false) {
+		preferredSize = if(!config.hoveringToShowScrollBar) getConfigSize() else Dimension(0,0)
+		refresh(refreshImage,directUpdate)
 	}
 
 	fun refresh(refreshImage: Boolean = true, directUpdate: Boolean = false) {
@@ -283,7 +288,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderL
 		return startAdd to endAdd
 	}
 
-	override fun getPreferredSize():Dimension{
+	fun getConfigSize(): Dimension{
 		val calWidth = if (config.autoCalWidthInSplitterMode && fileEditorManagerEx.isInSplitter) {
 			val calWidth = editor.component.width / 12
 			if (calWidth < config.width) {
