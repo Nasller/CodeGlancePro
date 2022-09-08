@@ -32,14 +32,12 @@ class HideScrollBarListener(private val glancePanel: GlancePanel) : MouseAdapter
 					if (glancePanel.width != it) {
 						glancePanel.preferredSize = Dimension(it, 0)
 						glancePanel.revalidate()
+						glancePanel.repaint()
 					}
 				}.apply {
 					duration = 300
 					runWhenScheduled { showHideOriginScrollBar(to == 0) }
-					runWhenExpiredOrCancelled {
-						glancePanel.repaint()
-						if(glancePanel.width > 0 && to != 0) hideGlanceRequest()
-					}
+					runWhenExpiredOrCancelled { if(glancePanel.width > 0 && to != 0) hideGlanceRequest() }
 				}
 			)
 		}
