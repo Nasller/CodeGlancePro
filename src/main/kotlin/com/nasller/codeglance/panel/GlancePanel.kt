@@ -297,7 +297,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderL
 		return Dimension(calWidth, 0)
 	}
 
-	override fun paint(gfx: Graphics) {
+	override fun paintComponent(gfx: Graphics) {
 		val img = getDrawImage() ?: return
 		with(gfx as Graphics2D){
 			paintSomething()
@@ -333,7 +333,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderL
 		editor.component.remove(if (this.parent is EditorPanelInjector.MyPanel) this.parent else this)
 		hideScrollBarListener.removeHideScrollBarListener()
 		alarm.cancelAllRequests()
-		scrollbar.dispose()
+		scrollbar.clear()
 		mapRef.clear()
 	}
 

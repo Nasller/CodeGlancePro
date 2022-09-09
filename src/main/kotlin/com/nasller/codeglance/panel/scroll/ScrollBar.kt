@@ -2,7 +2,6 @@ package com.nasller.codeglance.panel.scroll
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.ex.MarkupModelEx
@@ -14,17 +13,19 @@ import com.intellij.util.ui.JBUI
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
-import java.awt.*
+import java.awt.AlphaComposite
+import java.awt.Color
+import java.awt.Cursor
+import java.awt.Graphics2D
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
-import javax.swing.JPanel
 import javax.swing.SwingUtilities
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
+class ScrollBar(private val glancePanel: GlancePanel) {
 	var hovering = false
 	private val config = glancePanel.config
 	private val editor = glancePanel.editor
@@ -39,7 +40,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 		set(value) {
 			if (field != value) {
 				field = value
-				parent.repaint()
+				glancePanel.repaint()
 			}
 		}
 	//矩形y轴
@@ -48,53 +49,30 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 
 	init {
 		val mouseHandler = MouseHandler()
-		addMouseListener(mouseHandler)
-		addMouseWheelListener(mouseHandler)
-		addMouseMotionListener(mouseHandler)
-		addMouseListener(glancePanel.myPopHandler)
-		glancePanel.add(this)
+		glancePanel.addMouseListener(mouseHandler)
+		glancePanel.addMouseWheelListener(mouseHandler)
+		glancePanel.addMouseMotionListener(mouseHandler)
+		glancePanel.addMouseListener(glancePanel.myPopHandler)
 	}
 
-	private fun isInResizeGutter(x: Int): Boolean =
-		if (config.locked || config.hoveringToShowScrollBar || glancePanel.fileEditorManagerEx.isInSplitter) false else x in 0..7
-
-	private fun isInRect(y: Int): Boolean = y in vOffset..(vOffset + scrollState.viewportHeight)
-
-	private fun updateAlpha(y: Int): Boolean {
-		return when {
-			isInRect(y) -> {
-				visibleRectAlpha = HOVER_ALPHA
-				cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
-				true
-			}
-			else -> {
-				visibleRectAlpha = DEFAULT_ALPHA
-				cursor = if (MouseJumpEnum.NONE != config.jumpOnMouseDown && y < scrollState.drawHeight) Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-				else Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
-				false
-			}
-		}
+	fun paint(gfx: Graphics2D) {
+		gfx.color = visibleRectColor
+		gfx.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, visibleRectAlpha)
+		gfx.fillRect(0, vOffset, glancePanel.width, scrollState.viewportHeight)
 	}
 
-	override fun paint(gfx: Graphics) {
-		val g = gfx as Graphics2D
-		g.color = visibleRectColor
-		g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, visibleRectAlpha)
-		g.fillRect(0, vOffset, width, scrollState.viewportHeight)
+	fun clear() {
+		alarm.cancelAllRequests()
+		myEditorFragmentRenderer.clearHint()
 	}
 
 	private fun showToolTipByMouseMove(e: MouseEvent) {
 		val y = e.y + myWheelAccumulator
 		val visualLine = fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(y + scrollState.visibleStart))
 		myLastVisualLine = visualLine
-		val point = SwingUtilities.convertPoint(
-			this@ScrollBar, 0,
-			if (y > 0 && y < scrollState.drawHeight) y else if (y <= 0) 0 else scrollState.drawHeight, editor.scrollPane.verticalScrollBar
-		)
-		val me = MouseEvent(
-			editor.scrollPane.verticalScrollBar, e.id, e.`when`, e.modifiersEx, 1,
-			point.y, e.clickCount, e.isPopupTrigger
-		)
+		val point = SwingUtilities.convertPoint(glancePanel, 0, if (y > 0 && y < scrollState.drawHeight) y else if (y <= 0) 0 else scrollState.drawHeight,
+			editor.scrollPane.verticalScrollBar)
+		val me = MouseEvent(editor.scrollPane.verticalScrollBar, e.id, e.`when`, e.modifiersEx, 1, point.y, e.clickCount, e.isPopupTrigger)
 		val highlighters = mutableListOf<RangeHighlighterEx>()
 		collectRangeHighlighters(editor.markupModel, visualLine, highlighters)
 		collectRangeHighlighters(editor.filteredDocumentMarkupModel, visualLine, highlighters)
@@ -135,7 +113,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 
 		private var widthStart: Int = 0
 
-		override fun mouseEntered(e: MouseEvent?) {
+		override fun mouseEntered(e: MouseEvent) {
 			hovering = true
 		}
 
@@ -150,7 +128,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 				isInRect(e.y) || MouseJumpEnum.NONE == config.jumpOnMouseDown -> dragMove(e.y)
 				MouseJumpEnum.MOUSE_DOWN == config.jumpOnMouseDown -> jumpToLineAt(e.y) {
 					visibleRectAlpha = DEFAULT_ALPHA
-					cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
+					glancePanel.cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
 					dragMove(e.y)
 				}
 			}
@@ -197,7 +175,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 		override fun mouseMoved(e: MouseEvent) {
 			val isInRect = updateAlpha(e.y)
 			if (isInResizeGutter(e.x)) {
-				cursor = Cursor(Cursor.W_RESIZE_CURSOR)
+				glancePanel.cursor = Cursor(Cursor.W_RESIZE_CURSOR)
 			} else if (!isInRect && !resizing && !dragging && showMyEditorPreviewHint(e)) {
 				return
 			}
@@ -235,6 +213,27 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 			}
 		}
 
+		private fun isInResizeGutter(x: Int): Boolean =
+			if (config.locked || config.hoveringToShowScrollBar || glancePanel.fileEditorManagerEx.isInSplitter) false else x in 0..7
+
+		private fun isInRect(y: Int): Boolean = y in vOffset..(vOffset + scrollState.viewportHeight)
+
+		private fun updateAlpha(y: Int): Boolean {
+			return when {
+				isInRect(y) -> {
+					visibleRectAlpha = HOVER_ALPHA
+					glancePanel.cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
+					true
+				}
+				else -> {
+					visibleRectAlpha = DEFAULT_ALPHA
+					glancePanel.cursor = if (MouseJumpEnum.NONE != config.jumpOnMouseDown && y < scrollState.drawHeight) Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+					else Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
+					false
+				}
+			}
+		}
+
 		private fun hideScrollBar(e: MouseEvent) = if (!dragging && !resizing && !e.isPopupTrigger)
 			glancePanel.hideScrollBarListener.hideGlanceRequest() else Unit
 
@@ -247,18 +246,13 @@ class ScrollBar(private val glancePanel: GlancePanel) : JPanel(), Disposable {
 		}
 	}
 
-	override fun dispose() {
-		alarm.cancelAllRequests()
-		myEditorFragmentRenderer.clearHint()
-		glancePanel.remove(this)
-	}
-
 	companion object {
 		private const val DEFAULT_ALPHA = 0.15f
 		private const val HOVER_ALPHA = 0.25f
 		private const val DRAG_ALPHA = 0.35f
 		val PREVIEW_LINES = max(2, min(25, Integer.getInteger("preview.lines", 5)))
 
+		@JvmStatic
 		private fun createHint(me: MouseEvent): HintHint = HintHint(me)
 			.setAwtTooltip(true)
 			.setPreferredPosition(Balloon.Position.atLeft)
