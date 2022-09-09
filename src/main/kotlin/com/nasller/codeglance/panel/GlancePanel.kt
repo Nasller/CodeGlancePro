@@ -19,7 +19,7 @@ import com.intellij.util.Range
 import com.intellij.util.SingleAlarm
 import com.intellij.util.containers.ContainerUtil
 import com.nasller.codeglance.EditorPanelInjector
-import com.nasller.codeglance.config.CodeGlanceConfigService
+import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.listener.GlanceListener
 import com.nasller.codeglance.listener.HideScrollBarListener
 import com.nasller.codeglance.panel.scroll.ScrollBar
@@ -32,9 +32,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Function
 import javax.swing.JPanel
 
-class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderLayout()), Disposable {
+class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disposable {
 	var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
-	val config = CodeGlanceConfigService.ConfigInstance.state
+	val config = ConfigInstance.state
 	val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
 	val myRangeList: MutableList<Pair<Int, Range<Int>>> = ContainerUtil.createLockFreeCopyOnWriteList()
 	val scrollState = ScrollState()
