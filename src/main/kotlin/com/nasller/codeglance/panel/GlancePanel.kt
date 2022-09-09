@@ -18,7 +18,6 @@ import com.intellij.ui.scale.ScaleContext
 import com.intellij.util.Range
 import com.intellij.util.SingleAlarm
 import com.intellij.util.containers.ContainerUtil
-import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.EditorPanelInjector
 import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.listener.GlanceListener
@@ -300,16 +299,16 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(BorderL
 
 	override fun paint(gfx: Graphics) {
 		val img = getDrawImage() ?: return
-		UIUtil.useSafely(gfx){
-			it.paintSomething()
+		with(gfx as Graphics2D){
+			paintSomething()
 			if (editor.document.textLength != 0) {
-				it.composite = srcOver0_8
-				it.drawImage(
+				composite = srcOver0_8
+				drawImage(
 					img, 0, 0, img.width, scrollState.drawHeight,
 					0, scrollState.visibleStart, img.width, scrollState.visibleEnd, null
 				)
 			}
-			scrollbar.paint(it)
+			scrollbar.paint(this)
 		}
 	}
 
