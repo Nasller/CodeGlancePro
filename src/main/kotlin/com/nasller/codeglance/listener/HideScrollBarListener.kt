@@ -9,6 +9,7 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 
 class HideScrollBarListener(private val glancePanel: GlancePanel) : MouseAdapter() {
+	var hovering = false
 	private var animationId = -1L
 	private val animator = JBAnimator(glancePanel).apply {
 		name = "Minimap Width Animator"
@@ -17,7 +18,7 @@ class HideScrollBarListener(private val glancePanel: GlancePanel) : MouseAdapter
 	}
 	private val alarm = SingleAlarm({ if (checkHide) start(glancePanel.width, 0) },500,glancePanel)
 	private val checkHide
-		get()= glancePanel.config.hoveringToShowScrollBar && !glancePanel.myPopHandler.isVisible && !glancePanel.scrollbar.hovering
+		get()= glancePanel.config.hoveringToShowScrollBar && !hovering
 
 	override fun mouseEntered(e: MouseEvent) {
 		if(glancePanel.width == 0) start(0,glancePanel.getConfigSize().width)

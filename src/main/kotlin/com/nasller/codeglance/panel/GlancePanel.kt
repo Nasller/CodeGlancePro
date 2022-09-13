@@ -42,8 +42,8 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		get() = config.disabled || editor.document.lineCount > config.maxLinesCount
 	val myPopHandler = CustomScrollBarPopup(this)
 	val hideScrollBarListener = HideScrollBarListener(this)
-	val scrollbar = ScrollBar(this)
 	var myVcsPanel: MyVcsPanel? = null
+	private val scrollbar = ScrollBar(this)
 	private val lock = AtomicBoolean(false)
 	private val mapRef = MinimapCache { MinimapRef(Minimap(this)) }
 	private val alarm = SingleAlarm({ updateImage(true) }, 500, this)
