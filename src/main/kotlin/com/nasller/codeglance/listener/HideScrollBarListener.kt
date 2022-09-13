@@ -23,7 +23,9 @@ class HideScrollBarListener(private val glancePanel: GlancePanel) : MouseAdapter
 		if(glancePanel.width == 0) start(0,glancePanel.getConfigSize().width)
 	}
 
-	fun hideGlanceRequest() = let{ if (checkHide) alarm.cancelAndRequest() }
+	fun hideGlanceRequest() {
+		if (checkHide) alarm.cancelAndRequest()
+	}
 
 	private fun start(from: Int, to: Int) {
 		if (from != to && !animator.isRunning(animationId)){

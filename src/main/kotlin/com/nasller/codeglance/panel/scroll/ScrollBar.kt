@@ -119,7 +119,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			updateAlpha(e.y)
 			dragging = false
 			resizing = false
-			hideScrollBar(e)
+			hoveringOverAndHideScrollBar(e)
 		}
 		if (MouseJumpEnum.MOUSE_UP == config.jumpOnMouseDown && !dragging && !resizing && !e.isPopupTrigger) jumpToLineAt(e.y, action)
 		else editor.scrollingModel.runActionOnScrollingFinished(action)
@@ -136,10 +136,9 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	override fun mouseExited(e: MouseEvent) {
-		hovering = false
 		if (!dragging) visibleRectAlpha = DEFAULT_ALPHA
 		hideMyEditorPreviewHint()
-		hideScrollBar(e)
+		hoveringOverAndHideScrollBar(e)
 	}
 
 	override fun mouseWheelMoved(e: MouseWheelEvent) {
@@ -231,8 +230,12 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		}
 	}
 
-	private fun hideScrollBar(e: MouseEvent) = if (!dragging && !resizing && !e.isPopupTrigger)
-		glancePanel.hideScrollBarListener.hideGlanceRequest() else Unit
+	private fun hoveringOverAndHideScrollBar(e: MouseEvent) {
+		if (!dragging && !resizing && !e.isPopupTrigger){
+			hovering = false
+			glancePanel.hideScrollBarListener.hideGlanceRequest()
+		}
+	}
 
 	private fun jumpToLineAt(y: Int, action: () -> Unit) {
 		hideMyEditorPreviewHint()
