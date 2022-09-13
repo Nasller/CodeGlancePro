@@ -26,6 +26,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
+	var hovering = false
 	private val config = glancePanel.config
 	private val editor = glancePanel.editor
 	private val scrollState = glancePanel.scrollState
@@ -73,7 +74,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	override fun mouseEntered(e: MouseEvent) {
-		glancePanel.hideScrollBarListener.hovering = true
+		hovering = true
 	}
 
 	override fun mousePressed(e: MouseEvent) {
@@ -135,7 +136,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	override fun mouseExited(e: MouseEvent) {
-		glancePanel.hideScrollBarListener.hovering = false
+		hovering = false
 		if (!dragging) visibleRectAlpha = DEFAULT_ALPHA
 		hideMyEditorPreviewHint()
 		hideScrollBar(e)

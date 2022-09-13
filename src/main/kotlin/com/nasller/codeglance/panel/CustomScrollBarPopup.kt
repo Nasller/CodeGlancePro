@@ -24,6 +24,7 @@ import java.awt.Point
 import javax.swing.event.PopupMenuEvent
 
 class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler() {
+    var isVisible = false
     private val config = glancePanel.config
 
     override fun invokePopup(comp: Component?, x: Int, y: Int) {
@@ -86,14 +87,14 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
         }
         val menu = ActionManager.getInstance().createActionPopupMenu(ActionPlaces.RIGHT_EDITOR_GUTTER_POPUP, actionGroup).component
         menu.addPopupMenuListener(object :PopupMenuListenerAdapter(){
-            override fun popupMenuWillBecomeVisible(e: PopupMenuEvent) { glancePanel.hideScrollBarListener.hovering = true }
+            override fun popupMenuWillBecomeVisible(e: PopupMenuEvent) { isVisible = true }
 
             override fun popupMenuWillBecomeInvisible(e: PopupMenuEvent) = hideRequest()
 
             override fun popupMenuCanceled(e: PopupMenuEvent) = hideRequest()
 
             private fun hideRequest() {
-                glancePanel.hideScrollBarListener.hovering = false
+                isVisible = false
                 glancePanel.hideScrollBarListener.hideGlanceRequest()
             }
         })
