@@ -104,9 +104,9 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 					{
 						textField().label(message("settings.viewport.color"))
 							.accessibleName(message("settings.viewport.color"))
-							.bindText(config::viewportColor)
+							.bindText({config.viewportColor?:""},{ if(!viewPortIsNotMatch(it)) config.viewportColor = it})
 							.validationOnInput {
-								if (it.text.length != 6 || !"[a-fA-F\\d]{6}".toRegex().matches(it.text)) error(message("settings.viewport.error"))
+								if (viewPortIsNotMatch(it.text)) error(message("settings.viewport.error"))
 								else null
 							}
 					},
@@ -121,6 +121,8 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 			}
 		}
 	}
+
+	private fun viewPortIsNotMatch(it: String?) = it == null || it.length != 6 || !"[a-fA-F\\d]{6}".toRegex().matches(it)
 
 	override fun apply() {
 		super.apply()

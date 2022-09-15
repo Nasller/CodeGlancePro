@@ -74,7 +74,6 @@
 
 	<extensions defaultExtensionNs="com.intellij">
 		<applicationConfigurable instance="com.nasller.codeglance.config.CodeGlanceConfigurable" />
-		<applicationService serviceImplementation="com.nasller.codeglance.config.CodeGlanceConfigService" />
 		<iw.actionProvider implementation="com.nasller.codeglance.extensions.GlanceVisibleActionProvider"/>
 <!--		<statusBarWidgetFactory implementation="com.nasller.codeglance.extensions.widget.GlanceVisibleWidgetFactory"/>-->
 	</extensions>
