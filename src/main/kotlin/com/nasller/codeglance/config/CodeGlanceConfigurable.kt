@@ -2,6 +2,7 @@ package com.nasller.codeglance.config
 
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.options.BoundSearchableConfigurable
+import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.dsl.builder.*
 import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
@@ -104,7 +105,10 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 					{
 						textField().label(message("settings.viewport.color"))
 							.accessibleName(message("settings.viewport.color"))
-							.bindText({config.viewportColor?:""},{ if(!viewPortIsNotMatch(it)) config.viewportColor = it})
+							.bindText({config.viewportColor?:""},{
+								if(viewPortIsNotMatch(it)) throw ConfigurationException(message("exception.settings.viewport"))
+								else config.viewportColor = it
+							})
 							.validationOnInput {
 								if (viewPortIsNotMatch(it.text)) error(message("settings.viewport.error"))
 								else null
