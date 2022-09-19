@@ -10,6 +10,7 @@ import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.ui.HintHint
 import com.intellij.util.Alarm
 import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.MouseEventAdapter
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
@@ -149,7 +150,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 				myWheelAccumulator += units
 			}
 			showToolTipByMouseMove(e)
-		}
+		} else MouseEventAdapter.redispatch(e,editor.contentComponent)
 	}
 
 	private fun dragMove(y: Int) {
@@ -160,16 +161,15 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	private fun showMyEditorPreviewHint(e: MouseEvent): Boolean {
-		if (config.showEditorToolTip && e.x > 10 && e.y < scrollState.drawHeight) {
+		return if(config.showEditorToolTip && e.x > 10 && e.y < scrollState.drawHeight) {
 			if (myEditorFragmentRenderer.getEditorPreviewHint() == null) {
 				alarm.cancelAllRequests()
 				alarm.addRequest({
 					if (myEditorFragmentRenderer.getEditorPreviewHint() == null) showToolTipByMouseMove(e)
 				}, 400)
 			} else showToolTipByMouseMove(e)
-			return true
-		}
-		return false
+			true
+		}else false
 	}
 
 	private fun showToolTipByMouseMove(e: MouseEvent) {
