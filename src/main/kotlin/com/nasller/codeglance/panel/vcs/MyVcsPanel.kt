@@ -3,6 +3,7 @@ package com.nasller.codeglance.panel.vcs
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.util.Disposer
+import com.intellij.util.ui.MouseEventAdapter
 import com.nasller.codeglance.listener.MyVcsListener
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
@@ -12,6 +13,7 @@ import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.awt.event.MouseWheelEvent
 import javax.swing.JPanel
 
 class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
@@ -66,5 +68,7 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 			cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
 			hoverVcsLine = null
 		}
+
+		override fun mouseWheelMoved(e: MouseWheelEvent) = MouseEventAdapter.redispatch(e,glancePanel.editor.contentComponent)
 	}
 }
