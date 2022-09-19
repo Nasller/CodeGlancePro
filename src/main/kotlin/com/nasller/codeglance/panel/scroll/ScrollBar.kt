@@ -143,14 +143,18 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	override fun mouseWheelMoved(e: MouseWheelEvent) {
-		if (config.mouseWheelMoveEditorToolTip && myEditorFragmentRenderer.getEditorPreviewHint() != null){
+		val hasEditorPreviewHint = myEditorFragmentRenderer.getEditorPreviewHint() != null
+		if (config.mouseWheelMoveEditorToolTip && hasEditorPreviewHint){
 			val units = e.unitsToScroll
 			if (units == 0) return
 			if (myLastVisualLine < editor.visibleLineCount - 1 && units > 0 || myLastVisualLine > 0 && units < 0) {
 				myWheelAccumulator += units
 			}
 			showToolTipByMouseMove(e)
-		} else MouseEventAdapter.redispatch(e,editor.contentComponent)
+		} else {
+			if(hasEditorPreviewHint) hideMyEditorPreviewHint()
+			MouseEventAdapter.redispatch(e,editor.contentComponent)
+		}
 	}
 
 	private fun dragMove(y: Int) {
