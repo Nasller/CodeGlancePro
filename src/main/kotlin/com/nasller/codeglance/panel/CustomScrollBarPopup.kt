@@ -77,6 +77,12 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
             })
             if (!UIUtil.uiParents(glancePanel.editor.component, false).filter(EditorWindowHolder::class.java).isEmpty) {
                 actionGroup.addSeparator()
+                actionGroup.add(object : DumbAwareToggleAction(message("glance.mouse.wheel.editor.preview")) {
+                    override fun isSelected(e: AnActionEvent): Boolean = config.mouseWheelMoveEditorToolTip
+                    override fun setSelected(e: AnActionEvent, state: Boolean) {
+                        config.mouseWheelMoveEditorToolTip = state
+                    }
+                })
                 actionGroup.add(object : ToggleAction(message("glance.show.editor.preview.popup")) {
                     override fun isSelected(e: AnActionEvent): Boolean = config.showEditorToolTip
                     override fun setSelected(e: AnActionEvent, state: Boolean) {
