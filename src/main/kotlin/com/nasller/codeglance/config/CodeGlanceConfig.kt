@@ -16,7 +16,7 @@ class CodeGlanceConfig : BaseState() {
 	var showFullLineHighlight by property(true)
 	var autoCalWidthInSplitterMode by property(true)
 	var showEditorToolTip by property(true)
-	var mouseWheelMoveEditorToolTip by property(true)
+	var mouseWheelMoveEditorToolTip by property(false)
 	var isRightAligned by property(true)
 	var hoveringToShowScrollBar by Delegates.observable(false) { _, oldValue, newValue ->
 		if (oldValue != newValue) {
