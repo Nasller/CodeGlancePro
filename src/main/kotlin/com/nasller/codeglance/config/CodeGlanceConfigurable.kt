@@ -132,7 +132,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 							}, MutableProperty({ config.viewportBorderColor!! }, { config.viewportBorderColor = it }))
 					},
 					{
-						comboBox(DefaultComboBoxModel(arrayOf(0, 1, 2, 3, 4, 5)))
+						comboBox(DefaultComboBoxModel(arrayOf(0, 1, 2, 3, 4)))
 							.label(message("settings.viewport.border.thickness"))
 							.bindItem(config::viewportBorderThickness.toNullableProperty())
 							.accessibleName(message("settings.viewport.border.thickness"))
