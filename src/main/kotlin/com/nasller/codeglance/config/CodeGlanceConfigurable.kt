@@ -2,13 +2,15 @@ package com.nasller.codeglance.config
 
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.options.BoundSearchableConfigurable
-import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.dsl.builder.*
+import com.intellij.ui.tabs.ColorButtonBase
 import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
+import com.nasller.codeglance.ui.ColorButton
 import com.nasller.codeglance.util.message
+import java.awt.Color
 import java.awt.event.InputEvent
 import java.awt.event.MouseWheelEvent
 import javax.swing.DefaultComboBoxModel
@@ -103,16 +105,13 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 				).bottomGap(BottomGap.SMALL)
 				twoColumnsRow(
 					{
-						textField().label(message("settings.viewport.color"))
+						cell(ColorButton(config.viewportColor!!, Color.WHITE))
+							.label(message("settings.viewport.color"))
 							.accessibleName(message("settings.viewport.color"))
-							.bindText({config.viewportColor?:""},{
-								if(viewPortIsNotMatch(it)) throw ConfigurationException(message("exception.settings.viewport"))
-								else config.viewportColor = it
-							})
-							.validationOnInput {
-								if (viewPortIsNotMatch(it.text)) error(message("settings.viewport.error"))
-								else null
-							}
+							.bind({ it.text }, { p: ColorButtonBase, v: String ->
+								p.setColor(Color.decode("#$v"))
+								p.text = v
+							}, MutableProperty({ config.viewportColor!! }, { config.viewportColor = it }))
 					},
 					{
 						spinner(2000..Int.MAX_VALUE, 100)
@@ -122,11 +121,27 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 							.applyToComponent { addMouseWheelListener(numberScrollListener) }
 					}
 				)
+				twoColumnsRow(
+					{
+						cell(ColorButton(config.viewportBorderColor!!, Color.WHITE))
+							.label(message("settings.viewport.border.color"))
+							.accessibleName(message("settings.viewport.border.color"))
+							.bind({ it.text }, { p: ColorButtonBase, v: String ->
+								p.setColor(Color.decode("#$v"))
+								p.text = v
+							}, MutableProperty({ config.viewportBorderColor!! }, { config.viewportBorderColor = it }))
+					},
+					{
+						comboBox(DefaultComboBoxModel(arrayOf(0, 1, 2, 3, 4, 5)))
+							.label(message("settings.viewport.border.thickness"))
+							.bindItem(config::viewportBorderThickness.toNullableProperty())
+							.accessibleName(message("settings.viewport.border.thickness"))
+							.applyToComponent { addMouseWheelListener(scrollListener) }
+					}
+				)
 			}
 		}
 	}
-
-	private fun viewPortIsNotMatch(it: String?) = it == null || it.length != 6 || !"[a-fA-F\\d]{6}".toRegex().matches(it)
 
 	override fun apply() {
 		super.apply()

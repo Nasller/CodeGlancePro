@@ -27,6 +27,8 @@
 		<h3>1.5.2</h3>
 		<ul>
 			<li>Scroll editor in the minimap support.</li>
+			<li>Viewport border color and thickness support.</li>
+			<li>Use choose color button.</li>
 		</ul>
 		<h3>1.5.1</h3>
 		<ul>

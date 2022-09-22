@@ -14,13 +14,13 @@ import com.intellij.util.ui.MouseEventAdapter
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
-import java.awt.AlphaComposite
-import java.awt.Color
-import java.awt.Cursor
-import java.awt.Graphics2D
+import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
+import java.awt.geom.Path2D
+import java.awt.geom.Rectangle2D
+import java.awt.geom.RoundRectangle2D
 import javax.swing.SwingUtilities
 import kotlin.math.max
 import kotlin.math.min
@@ -33,7 +33,6 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	private val scrollState = glancePanel.scrollState
 	private val alarm = Alarm(glancePanel)
 	private val myEditorFragmentRenderer = CustomEditorFragmentRenderer(editor)
-	private var visibleRectColor: Color = Color.decode("#" + config.viewportColor)
 	private var visibleRectAlpha = DEFAULT_ALPHA
 		set(value) {
 			if (field != value) {
@@ -64,9 +63,15 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	fun paint(gfx: Graphics2D) {
-		gfx.color = visibleRectColor
+		gfx.color = Color.decode("#${config.viewportColor}")
 		gfx.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, visibleRectAlpha)
-		gfx.fillRect(0, vOffset, glancePanel.width, scrollState.viewportHeight)
+		gfx.fillRoundRect(0, vOffset, glancePanel.width, scrollState.viewportHeight,2, 2)
+		getBorderShape(vOffset, glancePanel.width, scrollState.viewportHeight, config.viewportBorderThickness)?.let {
+			gfx.composite = GlancePanel.srcOver
+			gfx.color = Color.decode("#${config.viewportBorderColor}")
+			gfx.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+			gfx.fill(it)
+		}
 	}
 
 	fun clear() {
@@ -262,5 +267,18 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			.setBorderInsets(JBUI.insets(CustomEditorFragmentRenderer.EDITOR_FRAGMENT_POPUP_BORDER))
 			.setShowImmediately(true)
 			.setAnimationEnabled(false)
+
+		@JvmStatic
+		private fun getBorderShape(y: Int, width: Int, height: Int, thickness: Int): Shape? {
+			if (width <= 0 || height <= 0 || thickness <= 0) return null
+			val outer = RoundRectangle2D.Float(0f, y.toFloat(), width.toFloat(), height.toFloat(), 2f, 2f)
+			val doubleThickness = 2 * thickness.toFloat()
+			if (width <= doubleThickness || height <= doubleThickness) return outer
+			val inner = Rectangle2D.Float(0f + thickness.toFloat(), y + thickness.toFloat(), width - doubleThickness, height - doubleThickness)
+			val path = Path2D.Float(Path2D.WIND_EVEN_ODD)
+			path.append(outer, false)
+			path.append(inner, false)
+			return path
+		}
 	}
 }

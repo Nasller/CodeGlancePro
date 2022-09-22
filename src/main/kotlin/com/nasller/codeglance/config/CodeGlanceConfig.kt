@@ -26,6 +26,8 @@ class CodeGlanceConfig : BaseState() {
 	var jumpOnMouseDown by enum(MouseJumpEnum.MOUSE_DOWN)
 	var width by property(110)
 	var viewportColor by string("A0A0A0")
+	var viewportBorderColor by string("00FF00")
+	var viewportBorderThickness by property(0)
 	var clean by property(true)
 	var locked by property(false)
 
