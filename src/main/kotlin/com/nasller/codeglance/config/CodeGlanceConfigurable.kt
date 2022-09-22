@@ -120,7 +120,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 							.accessibleName(message("settings.more.than.line.delay"))
 							.applyToComponent { addMouseWheelListener(numberScrollListener) }
 					}
-				)
+				).bottomGap(BottomGap.SMALL)
 				twoColumnsRow(
 					{
 						cell(ColorButton(config.viewportBorderColor!!, Color.WHITE))
