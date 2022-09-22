@@ -69,8 +69,10 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		getBorderShape(vOffset, glancePanel.width, scrollState.viewportHeight, config.viewportBorderThickness)?.let {
 			gfx.composite = GlancePanel.srcOver
 			gfx.color = Color.decode("#${config.viewportBorderColor}")
+			val old = gfx.getRenderingHint(RenderingHints.KEY_ANTIALIASING)
 			gfx.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
 			gfx.fill(it)
+			gfx.setRenderingHint(RenderingHints.KEY_ANTIALIASING, old)
 		}
 	}
 
