@@ -195,6 +195,19 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		}
 	}
 
+	private fun Graphics2D.paintEditorFilterMarkupModel(rangeOffset: Range<Int>) {
+		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
+			if (!it.isThinErrorStripeMark && it.layer >= HighlighterLayer.CARET_ROW && it.layer <= HighlighterLayer.LAST) {
+				it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
+					val highlightColor = RangeHighlightColor(it, this,
+						config.showFullLineHighlight && (config.hideOriginalScrollBar || HighlightInfo.fromRangeHighlighter(it) == null))
+					drawMarkupLine(highlightColor)
+				}
+			}
+			return@processRangeHighlightersOverlappingWith true
+		}
+	}
+
 	private fun Graphics2D.paintEditorMarkupModel(rangeOffset: Range<Int>) {
 		val map by lazy { hashMapOf<String, Int>() }
 		editor.markupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
@@ -206,19 +219,6 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 						return@compute it.layer
 					}
 					return@compute layer
-				}
-			}
-			return@processRangeHighlightersOverlappingWith true
-		}
-	}
-
-	private fun Graphics2D.paintEditorFilterMarkupModel(rangeOffset: Range<Int>) {
-		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
-			if (!it.isThinErrorStripeMark && it.layer >= HighlighterLayer.CARET_ROW && it.layer <= HighlighterLayer.SELECTION) {
-				it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-					val highlightColor = RangeHighlightColor(it, this,
-                        config.showFullLineHighlight && (config.hideOriginalScrollBar || HighlightInfo.fromRangeHighlighter(it) == null))
-					drawMarkupLine(highlightColor)
 				}
 			}
 			return@processRangeHighlightersOverlappingWith true
