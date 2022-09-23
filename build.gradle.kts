@@ -64,7 +64,7 @@ tasks{
 	patchPluginXml {
 		version.set(properties("pluginVersion"))
 		sinceBuild.set(properties("pluginSinceBuild"))
-		untilBuild.set(properties("pluginUntilBuild"))
+		//untilBuild.set(properties("pluginUntilBuild"))
 	}
 
 	wrapper {
