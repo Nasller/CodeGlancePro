@@ -3,6 +3,7 @@ package com.nasller.codeglance.config
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.ui.DialogPanel
+import com.intellij.ui.ColorUtil
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.tabs.ColorButtonBase
 import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
@@ -38,15 +39,15 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 				}
 				twoColumnsRow(
 					{
-						comboBox(DefaultComboBoxModel(arrayOf(1, 2, 3, 4)))
+						comboBox(listOf(1, 2, 3, 4))
 							.label(message("settings.pixels"))
 							.bindItem(config::pixelsPerLine.toNullableProperty())
 							.accessibleName(message("settings.pixels"))
 							.applyToComponent { addMouseWheelListener(scrollListener) }
 					},
 					{
-						val items = arrayOf(message("settings.alignment.right"), message("settings.alignment.left"))
-						comboBox(DefaultComboBoxModel(items))
+						val items = listOf(message("settings.alignment.right"), message("settings.alignment.left"))
+						comboBox(items)
 							.label(message("settings.alignment"))
 							.bindItem({ if (config.isRightAligned) items[0] else items[1] },
 								{ config.isRightAligned = it == items[0] })
@@ -56,7 +57,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 				).bottomGap(BottomGap.SMALL)
 				twoColumnsRow(
 					{
-						comboBox(DefaultComboBoxModel(MouseJumpEnum.values().map { it.getMessage() }.toTypedArray()))
+						comboBox(MouseJumpEnum.values().map { it.getMessage() })
 							.label(message("settings.jump"))
 							.bindItem({ config.jumpOnMouseDown.getMessage() },{ config.jumpOnMouseDown = MouseJumpEnum.findMouseJumpEnum(it)})
 							.accessibleName(message("settings.jump"))
@@ -105,13 +106,13 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 				).bottomGap(BottomGap.SMALL)
 				twoColumnsRow(
 					{
-						cell(ColorButton(config.viewportColor!!, Color.WHITE))
+						cell(ColorButton(config.viewportColor, Color.WHITE))
 							.label(message("settings.viewport.color"))
 							.accessibleName(message("settings.viewport.color"))
 							.bind({ it.text }, { p: ColorButtonBase, v: String ->
-								p.setColor(Color.decode("#$v"))
+								p.setColor(ColorUtil.fromHex(v))
 								p.text = v
-							}, MutableProperty({ config.viewportColor!! }, { config.viewportColor = it }))
+							}, config::viewportColor.toMutableProperty())
 					},
 					{
 						spinner(2000..Int.MAX_VALUE, 100)
@@ -123,16 +124,16 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 				).bottomGap(BottomGap.SMALL)
 				twoColumnsRow(
 					{
-						cell(ColorButton(config.viewportBorderColor!!, Color.WHITE))
+						cell(ColorButton(config.viewportBorderColor, Color.WHITE))
 							.label(message("settings.viewport.border.color"))
 							.accessibleName(message("settings.viewport.border.color"))
 							.bind({ it.text }, { p: ColorButtonBase, v: String ->
-								p.setColor(Color.decode("#$v"))
+								p.setColor(ColorUtil.fromHex(v))
 								p.text = v
-							}, MutableProperty({ config.viewportBorderColor!! }, { config.viewportBorderColor = it }))
+							}, config::viewportBorderColor.toMutableProperty())
 					},
 					{
-						comboBox(DefaultComboBoxModel(arrayOf(0, 1, 2, 3, 4)))
+						comboBox(listOf(0, 1, 2, 3, 4))
 							.label(message("settings.viewport.border.thickness"))
 							.bindItem(config::viewportBorderThickness.toNullableProperty())
 							.accessibleName(message("settings.viewport.border.thickness"))

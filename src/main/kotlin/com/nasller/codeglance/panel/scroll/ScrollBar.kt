@@ -7,6 +7,7 @@ import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.ex.MarkupModelEx
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.ui.popup.Balloon
+import com.intellij.ui.ColorUtil
 import com.intellij.ui.HintHint
 import com.intellij.util.Alarm
 import com.intellij.util.ui.JBUI
@@ -63,17 +64,17 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	fun paint(gfx: Graphics2D) {
-		gfx.color = Color.decode("#${config.viewportColor}")
+		gfx.color = ColorUtil.fromHex(config.viewportColor)
 		gfx.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, visibleRectAlpha)
-		gfx.fillRoundRect(0, vOffset, glancePanel.width, scrollState.viewportHeight,2, 2)
+		val old = gfx.getRenderingHint(RenderingHints.KEY_ANTIALIASING)
+		gfx.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+		gfx.fillRoundRect(0, vOffset, glancePanel.width, scrollState.viewportHeight,5, 5)
 		getBorderShape(vOffset, glancePanel.width, scrollState.viewportHeight, config.viewportBorderThickness)?.let {
 			gfx.composite = GlancePanel.srcOver
-			gfx.color = Color.decode("#${config.viewportBorderColor}")
-			val old = gfx.getRenderingHint(RenderingHints.KEY_ANTIALIASING)
-			gfx.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+			gfx.color = ColorUtil.fromHex(config.viewportBorderColor)
 			gfx.fill(it)
-			gfx.setRenderingHint(RenderingHints.KEY_ANTIALIASING, old)
 		}
+		gfx.setRenderingHint(RenderingHints.KEY_ANTIALIASING, old)
 	}
 
 	fun clear() {
@@ -273,7 +274,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		@JvmStatic
 		private fun getBorderShape(y: Int, width: Int, height: Int, thickness: Int): Shape? {
 			if (width <= 0 || height <= 0 || thickness <= 0) return null
-			val outer = RoundRectangle2D.Float(0f, y.toFloat(), width.toFloat(), height.toFloat(), 2f, 2f)
+			val outer = RoundRectangle2D.Float(0f, y.toFloat(), width.toFloat(), height.toFloat(), 5f, 5f)
 			val doubleThickness = 2 * thickness.toFloat()
 			if (width <= doubleThickness || height <= doubleThickness) return outer
 			val inner = Rectangle2D.Float(0f + thickness.toFloat(), y + thickness.toFloat(), width - doubleThickness, height - doubleThickness)

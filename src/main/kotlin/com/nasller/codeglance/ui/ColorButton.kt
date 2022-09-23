@@ -19,7 +19,7 @@ class ColorButton(text: String, color: Color) :ColorButtonBase(text, color){
 	override fun doPerformAction(e: ActionEvent) {
 		ColorChooser.chooseColor(this, IdeBundle.message("dialog.title.choose.color"), myColor)?.let {
 			myColor = it
-			text = ColorUtil.toHex(it).uppercase()
+			text = ColorUtil.toHex(it)
 		}
 	}
 
