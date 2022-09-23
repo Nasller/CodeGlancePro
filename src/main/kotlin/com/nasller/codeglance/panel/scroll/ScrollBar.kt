@@ -145,6 +145,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	override fun mouseExited(e: MouseEvent) {
+		hovering = false
 		if (!dragging) visibleRectAlpha = DEFAULT_ALPHA
 		hideMyEditorPreviewHint()
 		hoveringOverAndHideScrollBar(e)
@@ -243,8 +244,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	private fun hoveringOverAndHideScrollBar(e: MouseEvent) {
-		if (!dragging && !resizing && !e.isPopupTrigger){
-			hovering = false
+		if (!dragging && !resizing && !e.isPopupTrigger && !hovering){
 			glancePanel.hideScrollBarListener.hideGlanceRequest()
 		}
 	}
