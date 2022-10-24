@@ -44,6 +44,7 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 		}
 
 		override fun mouseMoved(e: MouseEvent) {
+			if(glancePanel.config.showVcsHighlight.not()) return
 			val editor = glancePanel.editor
 			val rangeOffset = glancePanel.getVisibleRangeOffset()
 			val process = editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from,rangeOffset.to) {

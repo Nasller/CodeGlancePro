@@ -27,12 +27,6 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 	override fun createPanel(): DialogPanel {
 		return panel {
 			group(message("settings.general")) {
-				twoColumnsRow(
-					{ checkBox(message("settings.disabled"))
-						.bindSelected(config::disabled) { config.disabled = it } },
-					{ checkBox(message("settings.hide.original.scrollbar"))
-						.bindSelected(config::hideOriginalScrollBar) { config.hideOriginalScrollBar = it } }
-				).bottomGap(BottomGap.SMALL)
 				val scrollListener: (e: MouseWheelEvent) -> Unit = {
 					val comboBox = it.source as JComboBox<*>
 					comboBox.setSelectedIndex(max(0, min(comboBox.selectedIndex + it.wheelRotation, comboBox.itemCount - 1)))
@@ -139,6 +133,22 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 							.accessibleName(message("settings.viewport.border.thickness"))
 							.applyToComponent { addMouseWheelListener(scrollListener) }
 					}
+				)
+			}
+			group(message("settings.option")){
+				threeColumnsRow(
+					{ checkBox(message("settings.disabled"))
+						.bindSelected(config::disabled) { config.disabled = it } },
+					{ checkBox(message("settings.hide.original.scrollbar"))
+						.bindSelected(config::hideOriginalScrollBar) { config.hideOriginalScrollBar = it } }
+				)
+				threeColumnsRow(
+					{ checkBox(message("settings.highlight.vcs"))
+						.bindSelected(config::showVcsHighlight) { config.showVcsHighlight = it } },
+					{ checkBox(message("settings.highlight.filter.markup"))
+						.bindSelected(config::showFilterMarkupHighlight) { config.showFilterMarkupHighlight = it } },
+					{ checkBox(message("settings.highlight.markup"))
+						.bindSelected(config::showMarkupHighlight) { config.showMarkupHighlight = it } }
 				)
 			}
 		}

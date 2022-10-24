@@ -132,6 +132,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	}
 
 	fun Graphics2D.paintVcs(rangeOffset: Range<Int>,width:Int) {
+		if(config.showVcsHighlight.not()) return
 		composite = if (config.hideOriginalScrollBar) srcOver else srcOver0_4
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
 			if (it.isThinErrorStripeMark) it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
@@ -145,9 +146,8 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 					if (sY == eY) {
 						fillRect(0, sY, width, config.pixelsPerLine)
 					} else {
-						val notEqual = eY + config.pixelsPerLine != sY
 						fillRect(0, sY, width, config.pixelsPerLine)
-						if (notEqual) fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
+						if (eY + config.pixelsPerLine != sY) fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
 						fillRect(0, eY, width, config.pixelsPerLine)
 					}
 				}
@@ -247,9 +247,8 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 				val endVis = editor.offsetToVisualPosition(collapsed.endOffset)
 				drawMarkOneLine(it, sY, startVis.column, endVis.column)
 			} else {
-				val notEqual = eY + config.pixelsPerLine != sY
 				fillRect(if (it.fullLine) 0 else sX, sY, if (it.fullLine) width else width - sX, config.pixelsPerLine)
-				if (notEqual) fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
+				if (eY + config.pixelsPerLine != sY) fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
 				fillRect(0, eY, if (it.fullLine) width else eX, config.pixelsPerLine)
 			}
 		}
@@ -324,8 +323,8 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		if (!config.hideOriginalScrollBar) paintVcs(rangeOffset,width)
 		if (editor.selectionModel.hasSelection()) paintSelection()
 		else paintCaretPosition()
-		paintEditorFilterMarkupModel(rangeOffset)
-		paintEditorMarkupModel(rangeOffset)
+		if(config.showFilterMarkupHighlight) paintEditorFilterMarkupModel(rangeOffset)
+		if(config.showMarkupHighlight) paintEditorMarkupModel(rangeOffset)
 	}
 
 	override fun dispose() {

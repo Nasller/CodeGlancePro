@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.5.3</h3>
+		<ul>
+			<li>add highlight options.</li>
+		</ul>
 		<h3>1.5.2</h3>
 		<ul>
 			<li>Scroll editor in the minimap support.</li>
@@ -54,14 +58,6 @@
 		<ul>
 			<li>fix the reader mode calculate</li>
 			<li>fix the inlay hits calculate</li>
-		</ul>
-		<h3>1.4.6</h3>
-		<ul>
-			<li>Ctrl shift g now control current editor</li>
-		</ul>
-		<h3>1.4.5</h3>
-		<ul>
-			<li>Support for drag after click: <a href="https://github.com/Nasller/CodeGlancePro/issues/37">#37</a></li>
 		</ul>
 	]]></change-notes>
 
