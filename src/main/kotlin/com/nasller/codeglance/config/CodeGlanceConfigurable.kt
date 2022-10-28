@@ -146,9 +146,13 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 					{ checkBox(message("settings.highlight.vcs"))
 						.bindSelected(config::showVcsHighlight) { config.showVcsHighlight = it } },
 					{ checkBox(message("settings.highlight.filter.markup"))
-						.bindSelected(config::showFilterMarkupHighlight) { config.showFilterMarkupHighlight = it } },
+						.bindSelected(config::showFilterMarkupHighlight) { config.showFilterMarkupHighlight = it }
+						.gap(RightGap.SMALL)
+						contextHelp(message("settings.highlight.filter.markup.desc")) },
 					{ checkBox(message("settings.highlight.markup"))
-						.bindSelected(config::showMarkupHighlight) { config.showMarkupHighlight = it } }
+						.bindSelected(config::showMarkupHighlight) { config.showMarkupHighlight = it }
+						.gap(RightGap.SMALL)
+						contextHelp(message("settings.highlight.markup.desc")) }
 				)
 			}
 		}
