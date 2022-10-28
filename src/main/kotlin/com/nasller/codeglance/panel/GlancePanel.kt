@@ -197,7 +197,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 
 	private fun Graphics2D.paintEditorFilterMarkupModel(rangeOffset: Range<Int>) {
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
-			if (!it.isThinErrorStripeMark && it.layer >= HighlighterLayer.CARET_ROW && it.layer <= HighlighterLayer.LAST) {
+			if (!it.isThinErrorStripeMark && it.layer >= HighlighterLayer.CARET_ROW) {
 				it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
 					val highlightColor = RangeHighlightColor(it, this,
 						config.showFullLineHighlight && (config.hideOriginalScrollBar || HighlightInfo.fromRangeHighlighter(it) == null))
