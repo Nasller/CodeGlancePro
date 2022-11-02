@@ -1,8 +1,8 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-fun properties(key: String) = project.findProperty(key)?.toString() ?: ""
 val env: MutableMap<String, String> = System.getenv()
 val dir: String = projectDir.parentFile.absolutePath
+fun properties(key: String) = project.findProperty(key)?.toString() ?: ""
 
 plugins {
 	// Java support
@@ -14,7 +14,7 @@ plugins {
 }
 
 group = properties("pluginGroup")
-version = properties("pluginVersion")
+version = properties("pluginVersion") + if(env.getOrDefault("snapshots","") == "true") "-SNAPSHOTS" else ""
 
 kotlin {
 	jvmToolchain {
@@ -48,7 +48,7 @@ tasks{
 	}
 
 	jarSearchableOptions {
-		include { it.name.contains(rootProject.name + "-" + properties("pluginVersion")) }
+		include { it.name.contains(rootProject.name + "-" + project.version.toString()) }
 	}
 
 	signPlugin {
@@ -62,7 +62,7 @@ tasks{
 	}
 
 	patchPluginXml {
-		version.set(properties("pluginVersion"))
+		version.set(project.version.toString())
 		sinceBuild.set(properties("pluginSinceBuild"))
 		untilBuild.set(properties("pluginUntilBuild"))
 	}
