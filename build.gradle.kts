@@ -14,7 +14,7 @@ plugins {
 }
 
 group = properties("pluginGroup")
-version = properties("pluginVersion") + if(env.getOrDefault("snapshots","") == "true") "-SNAPSHOTS" else ""
+version = properties("pluginVersion") + if(env.getOrDefault("snapshots","") == "true") "-SNAPSHOT" else ""
 
 kotlin {
 	jvmToolchain {
