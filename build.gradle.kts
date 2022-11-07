@@ -48,7 +48,7 @@ tasks{
 	}
 
 	jarSearchableOptions {
-		include { it.name.contains(rootProject.name + "-" + project.version.toString()) }
+		include { it.name.contains(rootProject.name) }
 	}
 
 	signPlugin {
