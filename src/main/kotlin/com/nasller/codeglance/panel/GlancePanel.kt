@@ -15,7 +15,6 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.util.Range
 import com.intellij.util.SingleAlarm
-import com.intellij.util.containers.ContainerUtil
 import com.nasller.codeglance.EditorPanelInjector
 import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.listener.GlanceListener
@@ -32,7 +31,6 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
 	val config = ConfigInstance.state
 	val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
-	val myRangeList: MutableList<Pair<Int, Range<Int>>> = ContainerUtil.createLockFreeCopyOnWriteList()
 	val scrollState = ScrollState()
 	val isDisabled
 		get() = config.disabled || editor.document.lineCount > config.maxLinesCount
@@ -103,7 +101,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 
 	fun getMyRenderVisualLine(y: Int): Int {
 		var minus = 0
-		for (pair in myRangeList) {
+		for (pair in minimap.rangeList) {
 			if (y in pair.second.from..pair.second.to) {
 				return pair.first
 			} else if (pair.second.to < y) {
@@ -270,7 +268,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	private fun getMyRenderLine(lineStart: Int, lineEnd: Int): Pair<Int, Int> {
 		var startAdd = 0
 		var endAdd = 0
-		for (pair in myRangeList) {
+		for (pair in minimap.rangeList) {
 			if (pair.first in (lineStart + 1) until lineEnd) {
 				endAdd += pair.second.to - pair.second.from
 			} else if (pair.first < lineStart) {
@@ -325,7 +323,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		minimap.img.flush()
 	}
 
-	inner class RangeHighlightColor(val startOffset: Int, val endOffset: Int, val color: Color, val fullLine: Boolean, val fullLineWithActualHighlight: Boolean) {
+	private inner class RangeHighlightColor(val startOffset: Int, val endOffset: Int, val color: Color, val fullLine: Boolean, val fullLineWithActualHighlight: Boolean) {
 		constructor(it: RangeHighlighterEx, color: Color) : this(it.startOffset, it.endOffset, color, false, false)
 		constructor(it: RangeHighlighterEx, color: Color, fullLine: Boolean) : this(it.startOffset, it.endOffset, color, fullLine, it.targetArea == HighlighterTargetArea.EXACT_RANGE)
 

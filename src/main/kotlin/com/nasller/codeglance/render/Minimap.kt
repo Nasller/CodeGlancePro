@@ -5,28 +5,27 @@ import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
+import com.intellij.util.containers.ContainerUtil
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Color
 import java.awt.image.BufferedImage
 import kotlin.math.roundToInt
 
-/**
- * A rendered minimap of a document
- */
-class Minimap(private val glancePanel: GlancePanel){
+class Minimap(glancePanel: GlancePanel){
 	private val editor = glancePanel.editor
 	private val config = glancePanel.config
 	private val scrollState = glancePanel.scrollState
-	var img = BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
+	private var preBuffer : BufferedImage? = null
+	var img = getBufferedImage()
+	var rangeList: MutableList<Pair<Int, Range<Int>>> = ContainerUtil.emptyList()
 
 	fun update() {
 		val lineCount = editor.document.lineCount
 		if(lineCount <= 0) return
 		var curImg = img
-		var preBuffer : BufferedImage? = null
-		if (img.height < scrollState.documentHeight || img.width < config.width) {
-			preBuffer = img
-			curImg = BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
+		if (curImg.height < scrollState.documentHeight || curImg.width < config.width) {
+			preBuffer = curImg
+			curImg = getBufferedImage()
 		}
 		// These are just to reduce allocations. Premature optimization???
 		val scaleBuffer = FloatArray(4)
@@ -131,10 +130,10 @@ class Minimap(private val glancePanel: GlancePanel){
 		g.dispose()
 		preBuffer?.let {
 			img = curImg
+			preBuffer = null
 			it.flush()
 		}
-		if(glancePanel.myRangeList.isNotEmpty()) glancePanel.myRangeList.clear()
-		if(myRangeList.isInitialized()) glancePanel.myRangeList.addAll(myRangeList.value)
+		if(myRangeList.isInitialized()) rangeList = myRangeList.value
 	}
 
 	private fun getHighlightColor(startOffset:Int,endOffset:Int):MutableList<RangeHighlightColor>{
@@ -221,6 +220,8 @@ class Minimap(private val glancePanel: GlancePanel){
 		scaleBuffer[3] = alpha * 0xFF
 		raster.setPixel(x, y, scaleBuffer)
 	}
+
+	private fun getBufferedImage() = BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 
 	private data class RangeHighlightColor(val startOffset: Int,val endOffset: Int,val foregroundColor: Color)
 }
