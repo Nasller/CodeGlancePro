@@ -17,17 +17,15 @@ class Minimap(private val glancePanel: GlancePanel){
 	private val editor = glancePanel.editor
 	private val config = glancePanel.config
 	private val scrollState = glancePanel.scrollState
-	var img = lazy(LazyThreadSafetyMode.NONE){
-		BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
-	}
+	var img = BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 
 	fun update() {
-		var curImg = img.value
 		val lineCount = editor.document.lineCount
 		if(lineCount <= 0) return
+		var curImg = img
 		var preBuffer : BufferedImage? = null
-		if (curImg.height < scrollState.documentHeight || curImg.width < config.width) {
-			preBuffer = curImg
+		if (img.height < scrollState.documentHeight || img.width < config.width) {
+			preBuffer = img
 			curImg = BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 		}
 		// These are just to reduce allocations. Premature optimization???
@@ -132,7 +130,7 @@ class Minimap(private val glancePanel: GlancePanel){
 		}
 		g.dispose()
 		preBuffer?.let {
-			img = lazyOf(curImg)
+			img = curImg
 			it.flush()
 		}
 		if(glancePanel.myRangeList.isNotEmpty()) glancePanel.myRangeList.clear()

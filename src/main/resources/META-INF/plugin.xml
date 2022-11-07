@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.5.4</h3>
+		<ul>
+			<li>remove minimap soft reference.</li>
+		</ul>
 		<h3>1.5.3</h3>
 		<ul>
 			<li>add highlight options.</li>
@@ -53,11 +57,6 @@
 		<ul>
 			<li>Add a None setting to Jump to position on</li>
 			<li>Improve highlight,and support more highlight</li>
-		</ul>
-		<h3>1.4.7</h3>
-		<ul>
-			<li>fix the reader mode calculate</li>
-			<li>fix the inlay hits calculate</li>
 		</ul>
 	]]></change-notes>
 

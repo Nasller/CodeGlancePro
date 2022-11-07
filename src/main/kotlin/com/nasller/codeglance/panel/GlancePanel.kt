@@ -13,8 +13,6 @@ import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
-import com.intellij.reference.SoftReference
-import com.intellij.ui.scale.ScaleContext
 import com.intellij.util.Range
 import com.intellij.util.SingleAlarm
 import com.intellij.util.containers.ContainerUtil
@@ -27,9 +25,7 @@ import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import com.nasller.codeglance.render.Minimap
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
-import java.awt.image.BufferedImage
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.function.Function
 import javax.swing.JPanel
 
 class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disposable {
@@ -45,7 +41,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	val scrollbar = ScrollBar(this)
 	var myVcsPanel: MyVcsPanel? = null
 	private val lock = AtomicBoolean(false)
-	private val mapRef = MinimapCache { MinimapRef(Minimap(this)) }
+	private val minimap = Minimap(this)
 	private val alarm = SingleAlarm({ updateImage(true) }, 500, this)
 
 	init {
@@ -81,7 +77,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		try {
 			if (updateScroll) updateScrollState()
 			alarm.cancelAllRequests()
-			mapRef.get(ScaleContext.create(this)).update()
+			minimap.update()
 		} finally {
 			lock.set(false)
 			repaint()
@@ -297,11 +293,11 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	}
 
 	override fun paintComponent(gfx: Graphics) {
-		val img = getDrawImage() ?: return
 		with(gfx as Graphics2D){
 			paintSomething()
 			if (editor.document.textLength != 0) {
 				composite = srcOver0_8
+				val img = minimap.img
 				drawImage(
 					img, 0, 0, img.width, scrollState.drawHeight,
 					0, scrollState.visibleStart, img.width, scrollState.visibleEnd, null
@@ -309,13 +305,6 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 			}
 			scrollbar.paint(this)
 		}
-	}
-
-	private fun getDrawImage(): BufferedImage? = mapRef.get(ScaleContext.create(this)).let {
-		if (!it.img.isInitialized()) {
-			updateImage()
-			null
-		} else it.img.value
 	}
 
 	private fun Graphics2D.paintSomething() {
@@ -333,7 +322,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		hideScrollBarListener.removeHideScrollBarListener()
 		alarm.cancelAllRequests()
 		scrollbar.clear()
-		mapRef.clear()
+		minimap.img.flush()
 	}
 
 	inner class RangeHighlightColor(val startOffset: Int, val endOffset: Int, val color: Color, val fullLine: Boolean, val fullLineWithActualHighlight: Boolean) {
@@ -364,30 +353,5 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 			}
 			return 0.coerceAtLeast((lineCount - shift).coerceAtMost(visualLine))
 		}
-	}
-}
-
-private class MinimapRef(minimap: Minimap) : SoftReference<Minimap?>(minimap) {
-	private var strongRef: Minimap?
-
-	init {
-		strongRef = minimap
-	}
-
-	override fun get(): Minimap? {
-		val minimap = strongRef ?: super.get()
-		// drop on first request
-		strongRef = null
-		return minimap
-	}
-}
-
-private class MinimapCache(imageProvider: Function<in ScaleContext, MinimapRef>) : ScaleContext.Cache<MinimapRef?>(imageProvider) {
-	fun get(ctx: ScaleContext): Minimap {
-		val ref = getOrProvide(ctx)
-		val image = SoftReference.dereference(ref)
-		if (image != null) return image
-		clear() // clear to recalculate the image
-		return get(ctx) // first recalculated image will be non-null
 	}
 }
