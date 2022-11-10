@@ -24,7 +24,9 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
 
     /** FileEditorManagerListener */
     override fun fileOpened(fem: FileEditorManager, virtualFile: VirtualFile) {
-        val where = if (ConfigInstance.state.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
+        val config = ConfigInstance.state
+        if(config.disableLanguageSuffix.split(",").toSet().contains(virtualFile.fileType.defaultExtension)) return
+        val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
         for (textEditor in fem.getEditors(virtualFile).filterIsInstance<TextEditor>()) {
             val editor = textEditor.editor as? EditorImpl
             val layout = (editor?.component as? JPanel)?.layout
@@ -39,31 +41,36 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
     /** SettingsChangeListener */
     override fun onGlobalChanged() {
         val where = if (ConfigInstance.state.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
-        processAllGlanceEditor{
-            it.component.remove(this)
-            val oldGlancePanel = applyGlancePanel { Disposer.dispose(this) }
-            val myPanel = getMyPanel(it)
-            it.component.add(myPanel, where)
-            myPanel.applyGlancePanel {
-                oldGlancePanel?.let{ glancePanel -> originalScrollbarWidth = glancePanel.originalScrollbarWidth }
-                changeOriginScrollBarWidth()
-                updateImage()
+        val disable = ConfigInstance.state.disableLanguageSuffix.split(",").toSet()
+        processAllGlanceEditor { component, editor->
+            if(component != null) editor.component.remove(component)
+            val oldGlancePanel = component?.applyGlancePanel { Disposer.dispose(this) }
+            if(disable.contains(editor.virtualFile.fileType.defaultExtension)) {
+                oldGlancePanel?.changeOriginScrollBarWidth(false)
+            } else {
+                val myPanel = getMyPanel(editor)
+                editor.component.add(myPanel, where)
+                myPanel.applyGlancePanel {
+                    oldGlancePanel?.let{ glancePanel -> originalScrollbarWidth = glancePanel.originalScrollbarWidth }
+                    changeOriginScrollBarWidth()
+                    updateImage()
+                }
             }
         }
     }
 
     /** LafManagerListener */
     override fun lookAndFeelChanged(source: LafManager) = if(isFirstSetup) isFirstSetup = false else {
-        processAllGlanceEditor{ applyGlancePanel{ refresh() } }
+        processAllGlanceEditor { component, _ -> component?.applyGlancePanel{ refresh() } }
     }
 
-    private fun processAllGlanceEditor(block: Component.(editor: EditorImpl)->Unit){
+    private fun processAllGlanceEditor(action: (component:Component?,editor: EditorImpl)->Unit){
         try {
             for (textEditor in FileEditorManager.getInstance(project).allEditors.filterIsInstance<TextEditor>()) {
                 val editor = textEditor.editor as? EditorImpl
                 val layout = (editor?.component as? JPanel)?.layout
                 if (layout is BorderLayout) {
-                    (layout.getLayoutComponent(BorderLayout.LINE_END) ?: layout.getLayoutComponent(BorderLayout.LINE_START))?.block(editor)
+                    action((layout.getLayoutComponent(BorderLayout.LINE_END) ?: layout.getLayoutComponent(BorderLayout.LINE_START)),editor)
                 }
             }
         }catch (e:Exception){

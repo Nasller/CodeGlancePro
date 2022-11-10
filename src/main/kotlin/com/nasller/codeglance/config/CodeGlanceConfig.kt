@@ -32,6 +32,7 @@ class CodeGlanceConfig : BaseState() {
 	var viewportColor by nonNullString("A0A0A0")
 	var viewportBorderColor by nonNullString("00FF00")
 	var viewportBorderThickness by property(0)
+	var disableLanguageSuffix by nonNullString("ipynb")
 	var clean by property(true)
 	var locked by property(false)
 
