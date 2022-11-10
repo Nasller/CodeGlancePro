@@ -2,7 +2,6 @@ package com.nasller.codeglance
 
 import com.intellij.ide.ui.LafManager
 import com.intellij.ide.ui.LafManagerListener
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -19,20 +18,13 @@ import java.awt.BorderLayout
 import java.awt.Component
 import javax.swing.JPanel
 
-class EditorPanelInjector(private val project: Project) : FileEditorManagerListener,SettingsChangeListener, LafManagerListener {
+class EditorPanelInjector(private val project: Project) : FileEditorManagerListener,SettingsChangeListener,LafManagerListener {
     private val logger = Logger.getInstance(javaClass)
     private var isFirstSetup = true
-    private val config = ConfigInstance.state
-    init{
-        ApplicationManager.getApplication().messageBus.connect(project).let{
-            it.subscribe(SettingsChangeListener.TOPIC, this)
-            it.subscribe(LafManagerListener.TOPIC, this)
-        }
-    }
 
     /** FileEditorManagerListener */
     override fun fileOpened(fem: FileEditorManager, virtualFile: VirtualFile) {
-        val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
+        val where = if (ConfigInstance.state.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
         for (textEditor in fem.getEditors(virtualFile).filterIsInstance<TextEditor>()) {
             val editor = textEditor.editor as? EditorImpl
             val layout = (editor?.component as? JPanel)?.layout
@@ -46,7 +38,7 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
 
     /** SettingsChangeListener */
     override fun onGlobalChanged() {
-        val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
+        val where = if (ConfigInstance.state.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
         processAllGlanceEditor{
             it.component.remove(this)
             val oldGlancePanel = applyGlancePanel { Disposer.dispose(this) }
@@ -81,7 +73,7 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
 
     private fun getMyPanel(editor: EditorImpl): JPanel {
         val glancePanel = GlancePanel(project, editor)
-        val jPanel = if (config.hideOriginalScrollBar) MyPanel(glancePanel).apply {
+        val jPanel = if (ConfigInstance.state.hideOriginalScrollBar) MyPanel(glancePanel).apply {
             glancePanel.myVcsPanel = MyVcsPanel(glancePanel)
             add(glancePanel.myVcsPanel!!, BorderLayout.WEST)
         } else glancePanel

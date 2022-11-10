@@ -26,6 +26,7 @@ class CodeGlanceConfig : BaseState() {
 			SettingsChangePublisher.onHoveringOriginalScrollBarChanged(newValue)
 		}
 	}
+	var delayHoveringToShowScrollBar by property(0)
 	var jumpOnMouseDown by enum(MouseJumpEnum.MOUSE_DOWN)
 	var width by property(110)
 	var viewportColor by nonNullString("A0A0A0")

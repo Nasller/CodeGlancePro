@@ -26,6 +26,7 @@
 	<change-notes><![CDATA[
 		<h3>1.5.4</h3>
 		<ul>
+			<li>Delay show minimap on scrollbar hover options.</li>
 			<li>remove minimap soft reference.</li>
 		</ul>
 		<h3>1.5.3</h3>
@@ -52,11 +53,6 @@
 		<h3>1.4.9</h3>
 		<ul>
 			<li>Fix an error in show code lens on minimap</li>
-		</ul>
-		<h3>1.4.8</h3>
-		<ul>
-			<li>Add a None setting to Jump to position on</li>
-			<li>Improve highlight,and support more highlight</li>
 		</ul>
 	]]></change-notes>
 

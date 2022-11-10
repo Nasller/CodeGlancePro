@@ -1,6 +1,6 @@
 package com.nasller.codeglance.listener
 
-import com.intellij.util.SingleAlarm
+import com.intellij.util.Alarm
 import com.intellij.util.animation.JBAnimator
 import com.intellij.util.animation.animation
 import com.nasller.codeglance.panel.GlancePanel
@@ -15,16 +15,33 @@ class HideScrollBarListener(private val glancePanel: GlancePanel) : MouseAdapter
 		period = 4
 		ignorePowerSaveMode()
 	}
-	private val alarm = SingleAlarm({ if (checkHide) start(glancePanel.width, 0) },500,glancePanel)
+	private val alarm = Alarm(glancePanel)
 	private val checkHide
-		get()= glancePanel.config.hoveringToShowScrollBar && !glancePanel.myPopHandler.isVisible && !glancePanel.scrollbar.hovering
+		get()= glancePanel.config.hoveringToShowScrollBar && glancePanel.width > 0
+				&& !glancePanel.myPopHandler.isVisible && glancePanel.scrollbar.isNotHoverScrollBar()
 
 	override fun mouseEntered(e: MouseEvent) {
-		if(glancePanel.width == 0) start(0,glancePanel.getConfigSize().width)
+		if(glancePanel.width == 0) {
+			val delay = glancePanel.config.delayHoveringToShowScrollBar
+			val action = { start(0, glancePanel.getConfigSize().width) }
+			if(delay > 0 && !alarm.isDisposed) {
+				alarm.cancelAllRequests()
+				alarm.addRequest(action,delay)
+			} else action.invoke()
+		}
 	}
 
-	fun hideGlanceRequest() {
-		if (checkHide) alarm.cancelAndRequest()
+	override fun mouseExited(e: MouseEvent) {
+		if (glancePanel.config.delayHoveringToShowScrollBar > 0 && !animator.isRunning(animationId) && glancePanel.width == 0){
+			alarm.cancelAllRequests()
+		}
+	}
+
+	fun hideGlanceRequest(delay : Int = 500) {
+		if (checkHide && !alarm.isDisposed) {
+			alarm.cancelAllRequests()
+			alarm.addRequest({if (checkHide) start(glancePanel.width, 0) },delay)
+		}
 	}
 
 	private fun start(from: Int, to: Int) {
@@ -39,7 +56,7 @@ class HideScrollBarListener(private val glancePanel: GlancePanel) : MouseAdapter
 				}.apply {
 					duration = 300
 					runWhenScheduled { showHideOriginScrollBar(to == 0) }
-					runWhenExpiredOrCancelled { if(glancePanel.width > 0 && to != 0) hideGlanceRequest() }
+					runWhenExpiredOrCancelled { if(to != 0) hideGlanceRequest(1000) }
 				}
 			)
 		}
@@ -67,7 +84,7 @@ class HideScrollBarListener(private val glancePanel: GlancePanel) : MouseAdapter
 		val scrollBarListener = this@HideScrollBarListener
 		if (!config.hideOriginalScrollBar) editor.scrollPane.verticalScrollBar.removeMouseListener(scrollBarListener)
 		else myVcsPanel?.removeMouseListener(scrollBarListener)
-		alarm.cancel()
+		alarm.cancelAllRequests()
 		animator.stop()
 		showHideOriginScrollBar(true)
 		refreshWithWidth(false)

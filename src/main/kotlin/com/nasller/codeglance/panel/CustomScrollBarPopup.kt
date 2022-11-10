@@ -25,9 +25,9 @@ import javax.swing.event.PopupMenuEvent
 
 class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler() {
     var isVisible = false
-    private val config = glancePanel.config
 
     override fun invokePopup(comp: Component?, x: Int, y: Int) {
+        val config = glancePanel.config
         if (ApplicationManager.getApplication() == null) return
         val file = PsiDocumentManager.getInstance(glancePanel.project).getPsiFile(glancePanel.editor.document) ?: return
         val actionGroup = DefaultActionGroup(

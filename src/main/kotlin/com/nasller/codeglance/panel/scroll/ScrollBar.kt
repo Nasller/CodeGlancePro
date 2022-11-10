@@ -28,7 +28,6 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
-	var hovering = false
 	private val config = glancePanel.config
 	private val editor = glancePanel.editor
 	private val scrollState = glancePanel.scrollState
@@ -41,6 +40,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 				glancePanel.repaint()
 			}
 		}
+	private var hovering = false
 	//矩形y轴
 	private val vOffset: Int
 		get() = scrollState.viewportStart - scrollState.visibleStart
@@ -244,9 +244,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	private fun hoveringOverAndHideScrollBar(e: MouseEvent) {
-		if (!dragging && !resizing && !e.isPopupTrigger && !hovering){
-			glancePanel.hideScrollBarListener.hideGlanceRequest()
-		}
+		if (!e.isPopupTrigger) glancePanel.hideScrollBarListener.hideGlanceRequest()
 	}
 
 	private fun jumpToLineAt(y: Int, action: () -> Unit) {
@@ -256,6 +254,8 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
 		editor.scrollingModel.runActionOnScrollingFinished(action)
 	}
+
+	fun isNotHoverScrollBar() = !hovering && !dragging  && !resizing
 
 	companion object {
 		private const val DEFAULT_ALPHA = 0.15f

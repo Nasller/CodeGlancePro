@@ -22,9 +22,8 @@ import kotlin.math.max
 import kotlin.math.min
 
 class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com.nasller.CodeGlancePro"){
-	private val config = ConfigInstance.state
-
 	override fun createPanel(): DialogPanel {
+		val config = ConfigInstance.state
 		return panel {
 			group(message("settings.general")) {
 				val scrollListener: (e: MouseWheelEvent) -> Unit = {
@@ -134,6 +133,14 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 							.applyToComponent { addMouseWheelListener(scrollListener) }
 					}
 				)
+				row {
+					spinner(0..2000, 50)
+						.label(message("popup.hover.minimap.delay"))
+						.bindIntValue(config::delayHoveringToShowScrollBar)
+						.accessibleName(message("popup.hover.minimap.delay"))
+					@Suppress("DialogTitleCapitalization")
+					label("ms").gap(RightGap.SMALL)
+				}
 			}
 			group(message("settings.option")){
 				threeColumnsRow(
@@ -160,6 +167,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 
 	override fun apply() {
 		super.apply()
+		val config = ConfigInstance.state
 		if((!config.isRightAligned || config.disabled) && config.hoveringToShowScrollBar) config.hoveringToShowScrollBar = false
 		invokeLater{ SettingsChangePublisher.onGlobalChanged() }
 	}
