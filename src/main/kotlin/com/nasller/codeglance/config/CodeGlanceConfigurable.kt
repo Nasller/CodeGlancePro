@@ -73,14 +73,20 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 					spinner(GlancePanel.minWidth..GlancePanel.maxWidth, 5).label(message("settings.width"))
 						.bindIntValue(config::width)
 						.accessibleName(message("settings.width"))
-						.applyToComponent { addMouseWheelListener(numberScrollListener) }
+						.applyToComponent {
+							toolTipText = "50 - 250 pixels"
+							addMouseWheelListener(numberScrollListener)
+						}
 					checkBox(message("settings.width.lock"))
 						.bindSelected(config::locked) { config.locked = it }
 				}, {
 					spinner(1..Int.MAX_VALUE, 10).label(message("settings.max.line"))
 						.bindIntValue(config::maxLinesCount)
 						.accessibleName(message("settings.max.line"))
-						.applyToComponent { addMouseWheelListener(numberScrollListener) }
+						.applyToComponent {
+							toolTipText = "1 - Int.Max lines"
+							addMouseWheelListener(numberScrollListener)
+						}
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
 					cell(ColorButton(config.viewportColor, Color.WHITE)).label(message("settings.viewport.color"))
@@ -93,7 +99,10 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 					spinner(2000..Int.MAX_VALUE, 100).label(message("settings.more.than.line.delay"))
 						.bindIntValue(config::moreThanLineDelay)
 						.accessibleName(message("settings.more.than.line.delay"))
-						.applyToComponent { addMouseWheelListener(numberScrollListener) }
+						.applyToComponent {
+							toolTipText = "2000 - Int.Max lines"
+							addMouseWheelListener(numberScrollListener)
+						}
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
 					cell(ColorButton(config.viewportBorderColor, Color.WHITE)).label(message("settings.viewport.border.color"))
@@ -112,6 +121,10 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 					spinner(0..2000, 50).label(message("popup.hover.minimap.delay"))
 						.bindIntValue(config::delayHoveringToShowScrollBar)
 						.accessibleName(message("popup.hover.minimap.delay"))
+						.applyToComponent {
+							toolTipText = "0 - 2000 ms"
+							addMouseWheelListener(numberScrollListener)
+						}
 					@Suppress("DialogTitleCapitalization")
 					label("ms").gap(RightGap.SMALL)
 				}.bottomGap(BottomGap.SMALL)
