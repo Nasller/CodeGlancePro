@@ -12,7 +12,7 @@ class HideScrollBarListener(private val glancePanel: GlancePanel) : MouseAdapter
 	private var animationId = -1L
 	private val animator = JBAnimator(glancePanel).apply {
 		name = "Minimap Width Animator"
-		period = 4
+		period = 5
 		ignorePowerSaveMode()
 	}
 	private val alarm = Alarm(glancePanel)
@@ -23,7 +23,7 @@ class HideScrollBarListener(private val glancePanel: GlancePanel) : MouseAdapter
 	override fun mouseEntered(e: MouseEvent) {
 		if(glancePanel.width == 0) {
 			val delay = glancePanel.config.delayHoveringToShowScrollBar
-			val action = { start(0, glancePanel.getConfigSize().width) }
+			val action = { start(glancePanel.getConfigSize().width) }
 			if(delay > 0 && !alarm.isDisposed) {
 				alarm.cancelAllRequests()
 				alarm.addRequest(action,delay)
@@ -40,21 +40,19 @@ class HideScrollBarListener(private val glancePanel: GlancePanel) : MouseAdapter
 	fun hideGlanceRequest(delay : Int = 500) {
 		if (checkHide && !alarm.isDisposed) {
 			alarm.cancelAllRequests()
-			alarm.addRequest({if (checkHide) start(glancePanel.width, 0) },delay)
+			alarm.addRequest({if (checkHide) start(0) },delay)
 		}
 	}
 
-	private fun start(from: Int, to: Int) {
-		if (from != to && !animator.isRunning(animationId)){
+	private fun start(to: Int) {
+		if (!animator.isRunning(animationId)){
 			animationId = animator.animate(
-				animation(from, to) {
-					if (glancePanel.width != it) {
-						glancePanel.preferredSize = Dimension(it, 0)
+				animation(glancePanel.preferredSize, Dimension(to, 0),glancePanel::setPreferredSize).apply {
+					duration = 300
+					runWhenUpdated {
 						glancePanel.revalidate()
 						glancePanel.repaint()
 					}
-				}.apply {
-					duration = 300
 					runWhenScheduled { showHideOriginScrollBar(to == 0) }
 					runWhenExpiredOrCancelled { if(to != 0) hideGlanceRequest(1000) }
 				}
