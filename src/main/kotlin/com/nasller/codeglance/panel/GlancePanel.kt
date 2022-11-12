@@ -293,13 +293,11 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	override fun paintComponent(gfx: Graphics) {
 		with(gfx as Graphics2D){
 			paintSomething()
-			if (editor.document.textLength != 0) {
+			val imageLazy = minimap.img
+			if (editor.document.textLength != 0 && imageLazy.isInitialized()) {
 				composite = srcOver0_8
-				val img = minimap.img
-				drawImage(
-					img, 0, 0, img.width, scrollState.drawHeight,
-					0, scrollState.visibleStart, img.width, scrollState.visibleEnd, null
-				)
+				drawImage(imageLazy.value, 0, 0, width, scrollState.drawHeight,
+					0, scrollState.visibleStart, width, scrollState.visibleEnd, null)
 			}
 			scrollbar.paint(this)
 		}
@@ -320,7 +318,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		hideScrollBarListener.removeHideScrollBarListener()
 		alarm.cancelAllRequests()
 		scrollbar.clear()
-		minimap.img.flush()
+		minimap.img.apply { if(isInitialized()) value.flush() }
 	}
 
 	private inner class RangeHighlightColor(val startOffset: Int, val endOffset: Int, val color: Color, val fullLine: Boolean, val fullLineWithActualHighlight: Boolean) {

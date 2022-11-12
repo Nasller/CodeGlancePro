@@ -16,13 +16,13 @@ class Minimap(glancePanel: GlancePanel){
 	private val config = glancePanel.config
 	private val scrollState = glancePanel.scrollState
 	private var preBuffer : BufferedImage? = null
-	var img = getBufferedImage()
+	var img = lazy(LazyThreadSafetyMode.NONE) { getBufferedImage() }
 	var rangeList: MutableList<Pair<Int, Range<Int>>> = ContainerUtil.emptyList()
 
 	fun update() {
 		val lineCount = editor.document.lineCount
 		if(lineCount <= 0) return
-		var curImg = img
+		var curImg = img.value
 		if (curImg.height < scrollState.documentHeight || curImg.width < config.width) {
 			preBuffer = curImg
 			curImg = getBufferedImage()
@@ -129,7 +129,7 @@ class Minimap(glancePanel: GlancePanel){
 		}
 		g.dispose()
 		preBuffer?.let {
-			img = curImg
+			img = lazyOf(curImg)
 			preBuffer = null
 			it.flush()
 		}
