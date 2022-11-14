@@ -2,6 +2,7 @@ package com.nasller.codeglance
 
 import com.intellij.ide.ui.LafManager
 import com.intellij.ide.ui.LafManagerListener
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -18,14 +19,15 @@ import java.awt.BorderLayout
 import java.awt.Component
 import javax.swing.JPanel
 
-class EditorPanelInjector(private val project: Project) : FileEditorManagerListener,SettingsChangeListener,LafManagerListener {
+class EditorPanelInjector(private val project: Project) : FileEditorManagerListener,SettingsChangeListener,LafManagerListener,Disposable {
     private val logger = Logger.getInstance(javaClass)
     private var isFirstSetup = true
 
     /** FileEditorManagerListener */
     override fun fileOpened(fem: FileEditorManager, virtualFile: VirtualFile) {
         val config = ConfigInstance.state
-        if(config.disableLanguageSuffix.split(",").toSet().contains(virtualFile.fileType.defaultExtension)) return
+        val extension = virtualFile.fileType.defaultExtension
+        if(extension.isNotBlank() && config.disableLanguageSuffix.split(",").toSet().contains(extension)) return
         val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
         for (textEditor in fem.getEditors(virtualFile).filterIsInstance<TextEditor>()) {
             val editor = textEditor.editor as? EditorImpl
@@ -45,7 +47,8 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         processAllGlanceEditor { component, editor->
             if(component != null) editor.component.remove(component)
             val oldGlancePanel = component?.applyGlancePanel { Disposer.dispose(this) }
-            if(disable.contains(editor.virtualFile.fileType.defaultExtension)) {
+            val extension = editor.virtualFile.fileType.defaultExtension
+            if(extension.isNotBlank() && disable.contains(extension)) {
                 oldGlancePanel?.changeOriginScrollBarWidth(false)
             } else {
                 val myPanel = getMyPanel(editor)
@@ -100,4 +103,6 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
             isOpaque = false
         }
     }
+
+    override fun dispose() {}
 }

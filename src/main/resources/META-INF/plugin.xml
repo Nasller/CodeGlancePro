@@ -60,8 +60,7 @@
 	<depends>com.intellij.modules.lang</depends>
 
 	<applicationListeners>
-		<listener topic="com.intellij.openapi.project.ProjectManagerListener"
-		          class="com.nasller.codeglance.CodeGlancePlugin"/>
+		<listener topic="com.intellij.openapi.project.ProjectManagerListener" class="com.nasller.codeglance.CodeGlancePlugin"/>
 	</applicationListeners>
 
 	<actions>
