@@ -72,6 +72,10 @@
 	<extensions defaultExtensionNs="com.intellij">
 		<applicationConfigurable instance="com.nasller.codeglance.config.CodeGlanceConfigurable" />
 		<iw.actionProvider implementation="com.nasller.codeglance.extensions.GlanceVisibleActionProvider"/>
+		<colorSettingsPage implementation="com.nasller.codeglance.config.CodeGlanceColorsPage"/>
+		<additionalTextAttributes scheme="Default" file="colorSchemes/color-default.xml"/>
+		<additionalTextAttributes scheme="Darcula" file="colorSchemes/color-default-darcula.xml"/>
+		<highlightVisitor implementation="com.nasller.codeglance.visitor.MarkCommentVisitor"/>
 <!--		<statusBarWidgetFactory implementation="com.nasller.codeglance.extensions.widget.GlanceVisibleWidgetFactory"/>-->
 	</extensions>
 </idea-plugin>

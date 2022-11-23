@@ -38,8 +38,8 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	val hideScrollBarListener = HideScrollBarListener(this)
 	val scrollbar = ScrollBar(this)
 	var myVcsPanel: MyVcsPanel? = null
+	val minimap = Minimap(this)
 	private val lock = AtomicBoolean(false)
-	private val minimap = Minimap(this)
 	private val alarm = SingleAlarm({ updateImage(true) }, 500, this)
 
 	init {

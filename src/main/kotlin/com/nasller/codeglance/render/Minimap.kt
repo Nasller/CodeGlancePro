@@ -1,13 +1,22 @@
 package com.nasller.codeglance.render
 
+import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.editor.Inlay
+import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
+import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.psi.PsiComment
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.containers.ContainerUtil
+import com.intellij.util.ui.UIUtil
+import com.nasller.codeglance.config.CodeGlanceColorsPage
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Color
+import java.awt.Font
+import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import kotlin.math.roundToInt
 
@@ -15,7 +24,9 @@ class Minimap(glancePanel: GlancePanel){
 	private val editor = glancePanel.editor
 	private val config = glancePanel.config
 	private val scrollState = glancePanel.scrollState
+	private val psiDocumentManager = PsiDocumentManager.getInstance(glancePanel.project)
 	private var preBuffer : BufferedImage? = null
+	private val scaleBuffer = FloatArray(4)
 	var img = lazy(LazyThreadSafetyMode.NONE) { getBufferedImage() }
 	var rangeList: MutableList<Pair<Int, Range<Int>>> = ContainerUtil.emptyList()
 
@@ -26,14 +37,6 @@ class Minimap(glancePanel: GlancePanel){
 		if (curImg.height < scrollState.documentHeight || curImg.width < config.width) {
 			preBuffer = curImg
 			curImg = getBufferedImage()
-		}
-		// These are just to reduce allocations. Premature optimization???
-		val scaleBuffer = FloatArray(4)
-		val setColorRgba = { color: Color ->
-			scaleBuffer[0] = color.red.toFloat()
-			scaleBuffer[1] = color.green.toFloat()
-			scaleBuffer[2] = color.blue.toFloat()
-			scaleBuffer[3] = color.alpha.toFloat()
 		}
 
 		val text = editor.document.immutableCharSequence
@@ -64,6 +67,7 @@ class Minimap(glancePanel: GlancePanel){
 		val g = curImg.createGraphics()
 		g.composite = GlancePanel.CLEAR
 		g.fillRect(0, 0, curImg.width, curImg.height)
+		val highlight = makeMarkHighlight(g)
 		loop@ while (!hlIter.atEnd() && !editor.isDisposed) {
 			val start = hlIter.start
 			y = editor.document.getLineNumber(start) * config.pixelsPerLine + skipY
@@ -98,33 +102,44 @@ class Minimap(glancePanel: GlancePanel){
 					}).forEach(moveAndRenderChar)
 				}
 			} else {
-				val end = hlIter.end
-				val highlightList = getHighlightColor(start, end)
-				for(offset in start until end){
-					// Watch out for tokens that extend past the document
-					if (offset >= text.length) break@loop
-					if (softWrapEnable) editor.softWrapModel.getSoftWrap(offset)?.let { softWrap ->
-						softWrap.chars.forEach { moveCharIndex(it.code){ skipY += config.pixelsPerLine } }
+				val commentData = highlight[start]
+				if(commentData != null){
+					val oldFont = g.font
+					if (!SystemInfoRt.isMac && oldFont.canDisplayUpTo(commentData.comment) != -1) {
+						g.font = UIUtil.getFontWithFallback(oldFont).deriveFont(config.pixelsPerLine * 2f)
 					}
-					val charCode = text[offset].code
-					moveCharIndex(charCode){ if (hasBlockInlay) {
-						val startOffset = offset + 1
-						val sumBlock = editor.inlayModel.getBlockElementsInRange(startOffset, DocumentUtil.getLineEndOffset(startOffset,editor.document))
-							.filter { it.placement == Inlay.Placement.ABOVE_LINE }
-							.sumOf { (it.heightInPixels * scrollState.scale).roundToInt() }
-						if (sumBlock > 0) {
-							myRangeList.value.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
-							y += sumBlock
-							skipY += sumBlock
+					g.drawString(commentData.comment,4,y + g.getFontMetrics(g.font).height / 2)
+					g.font = oldFont
+					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < commentData.jumpOffset)
+				}else{
+					val end = hlIter.end
+					val highlightList = getHighlightColor(start, end)
+					for(offset in start until end) {
+						// Watch out for tokens that extend past the document
+						if (offset >= text.length) break@loop
+						if (softWrapEnable) editor.softWrapModel.getSoftWrap(offset)?.let { softWrap ->
+							softWrap.chars.forEach { moveCharIndex(it.code) { skipY += config.pixelsPerLine } }
 						}
-					} }
-					curImg.renderImage(x, y, charCode, scaleBuffer){
-						setColorRgba(highlightList.firstOrNull {
-							offset >= it.startOffset && offset < it.endOffset
-						}?.foregroundColor ?: color ?: defaultColor)
+						val charCode = text[offset].code
+						moveCharIndex(charCode) { if (hasBlockInlay) {
+								val startOffset = offset + 1
+								val sumBlock = editor.inlayModel.getBlockElementsInRange(startOffset, DocumentUtil.getLineEndOffset(startOffset, editor.document))
+									.filter { it.placement == Inlay.Placement.ABOVE_LINE }
+									.sumOf { (it.heightInPixels * scrollState.scale).roundToInt() }
+								if (sumBlock > 0) {
+									myRangeList.value.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
+									y += sumBlock
+									skipY += sumBlock
+								}
+						}}
+						curImg.renderImage(x, y, charCode, scaleBuffer) {
+							setColorRgba(highlightList.firstOrNull {
+								offset >= it.startOffset && offset < it.endOffset
+							}?.foregroundColor ?: color ?: defaultColor)
+						}
 					}
+					hlIter.advance()
 				}
-				hlIter.advance()
 			}
 		}
 		g.dispose()
@@ -134,6 +149,43 @@ class Minimap(glancePanel: GlancePanel){
 			it.flush()
 		}
 		if(myRangeList.isInitialized()) rangeList = myRangeList.value
+	}
+
+	private fun makeMarkHighlight(graphics: Graphics2D):Map<Int,MarkCommentData>{
+		val map = mutableMapOf<Int,MarkCommentData>()
+		val file = psiDocumentManager.getCachedPsiFile(editor.document)
+		val count = editor.document.lineCount
+		val text = editor.document.text
+		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0,editor.document.textLength){
+			if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == it.textAttributesKey){
+				val startOffset = it.startOffset
+				val psiElement = file?.findElementAt(startOffset)
+				(if(psiElement is PsiComment){
+					psiElement
+				}else if(psiElement?.parent is PsiComment){
+					psiElement.parent
+				}else null)?.let{highlighter ->
+					val textRange = highlighter.textRange
+					val jumpOffset = if(highlighter.textContains('\n'))textRange.endOffset else{
+						val lineNumber = editor.document.getLineNumber(startOffset)
+						if(count > lineNumber) editor.document.getLineEndOffset(lineNumber + 1) else textRange.endOffset
+					}
+					map[textRange.startOffset] = MarkCommentData(jumpOffset, text.subSequence(startOffset, it.endOffset).toString())
+				}
+			}
+			return@processRangeHighlightersOverlappingWith true
+		}
+		val attributes = editor.colorsScheme.getAttributes(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES)
+		graphics.font = editor.colorsScheme.getFont(when (attributes.fontType) {
+			Font.ITALIC -> EditorFontType.ITALIC
+			Font.BOLD -> EditorFontType.BOLD
+			Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
+			else -> EditorFontType.PLAIN
+		}).deriveFont(config.pixelsPerLine * 2f)
+		graphics.color = attributes.foregroundColor ?: editor.colorsScheme.defaultForeground
+		graphics.composite = GlancePanel.srcOver
+		UISettings.setupAntialiasing(graphics)
+		return map
 	}
 
 	private fun getHighlightColor(startOffset:Int,endOffset:Int):MutableList<RangeHighlightColor>{
@@ -221,7 +273,16 @@ class Minimap(glancePanel: GlancePanel){
 		raster.setPixel(x, y, scaleBuffer)
 	}
 
+	private fun setColorRgba(color: Color) {
+		scaleBuffer[0] = color.red.toFloat()
+		scaleBuffer[1] = color.green.toFloat()
+		scaleBuffer[2] = color.blue.toFloat()
+		scaleBuffer[3] = color.alpha.toFloat()
+	}
+
 	private fun getBufferedImage() = BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
+
+	private data class MarkCommentData(val jumpOffset: Int,val comment: String)
 
 	private data class RangeHighlightColor(val startOffset: Int,val endOffset: Int,val foregroundColor: Color)
 }
