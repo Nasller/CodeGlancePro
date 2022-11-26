@@ -134,11 +134,11 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		composite = if (config.hideOriginalScrollBar) srcOver else srcOver0_4
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
 			if (it.isThinErrorStripeMark) it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-				val start = editor.offsetToVisualPosition(it.startOffset)
-				val end = editor.offsetToVisualPosition(it.endOffset)
-				val documentLine = getMyRenderLine(start.line, end.line)
-				val sY = start.line * config.pixelsPerLine + documentLine.first - scrollState.visibleStart
-				val eY = end.line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
+				val start = editor.offsetToVisualLine(it.startOffset)
+				val end = editor.offsetToVisualLine(it.endOffset)
+				val documentLine = getMyRenderLine(start, end)
+				val sY = start * config.pixelsPerLine + documentLine.first - scrollState.visibleStart
+				val eY = end * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
 				if (sY >= 0 || eY >= 0) {
 					color = this
 					if (sY == eY) {
