@@ -181,7 +181,7 @@ class Minimap(glancePanel: GlancePanel){
 			Font.BOLD -> EditorFontType.BOLD
 			Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
 			else -> EditorFontType.PLAIN
-		}).deriveFont(config.pixelsPerLine * 2f)
+		}).deriveFont(config.markersScaleFactor*4)
 		graphics.color = attributes.foregroundColor ?: editor.colorsScheme.defaultForeground
 		graphics.composite = GlancePanel.srcOver
 		UISettings.setupAntialiasing(graphics)

@@ -8,6 +8,7 @@ import kotlin.properties.Delegates
 
 class CodeGlanceConfig : BaseState() {
 	var pixelsPerLine by property(4)
+	var markersScaleFactor by property(2.0f)
 	var maxLinesCount by property(100000)
 	var moreThanLineDelay by property(3000)
 	var disabled by property(false)
