@@ -87,13 +87,13 @@ class Minimap(private val glancePanel: GlancePanel){
 						StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach(moveAndRenderChar)
 					}
 					skipY -= foldLine * config.pixelsPerLine
-					do hlIter.advance() while (hlIter.start < endOffset)
+					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 				} else {
 					setColorRgba(color ?: defaultColor)
 					//jump over the fold line
 					val heightLine = (region.heightInPixels * glancePanel.scrollState.scale).roundToInt()
 					skipY -= (foldLine + 1) * config.pixelsPerLine - heightLine
-					do hlIter.advance() while (hlIter.start < endOffset)
+					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 					myRangeList.value.add(Pair(editor.offsetToVisualLine(endOffset),
 						Range(y,editor.document.getLineNumber(hlIter.start) * config.pixelsPerLine + skipY)))
 					//this is render document
@@ -112,7 +112,7 @@ class Minimap(private val glancePanel: GlancePanel){
 						it.chars.forEach {char -> moveCharIndex(char.code) { skipY += config.pixelsPerLine } }
 					}
 					var hasBlock = false
-					while (hlIter.start < if(hasBlock) commentData.jumpStartOffset else commentData.jumpEndOffset) {
+					while (!hlIter.atEnd() && hlIter.start < if(hasBlock) commentData.jumpStartOffset else commentData.jumpEndOffset) {
 						val tempEnd = hlIter.end
 						for(offset in hlIter.start until tempEnd) {
 							moveCharIndex(text[offset].code) { if (hasBlockInlay) {
