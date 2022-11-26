@@ -3,7 +3,9 @@ package com.nasller.codeglance.render
 import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.colors.EditorFontType
+import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
+import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiComment
@@ -23,8 +25,9 @@ import kotlin.math.roundToInt
 class Minimap(private val glancePanel: GlancePanel){
 	private val editor = glancePanel.editor
 	private val config = glancePanel.config
-	private var preBuffer : BufferedImage? = null
 	private val scaleBuffer = FloatArray(4)
+	private var preBuffer : BufferedImage? = null
+	val markCommentMap = hashMapOf<Long,RangeHighlighterEx>()
 	var img = lazy(LazyThreadSafetyMode.NONE) { getBufferedImage() }
 	var rangeList: MutableList<Pair<Int, Range<Int>>> = ContainerUtil.emptyList()
 
@@ -108,6 +111,16 @@ class Minimap(private val glancePanel: GlancePanel){
 					if (softWrapEnable) editor.softWrapModel.getSoftWrapsForRange(start,commentData.jumpOffset).forEach{
 						it.chars.forEach {char -> moveCharIndex(char.code) { skipY += config.pixelsPerLine } }
 					}
+					moveCharIndex(text[commentData.jumpOffset].code) { if (hasBlockInlay) {
+						val startOffset = commentData.jumpOffset + 1
+						val sumBlock = editor.inlayModel.getBlockElementsInRange(startOffset, DocumentUtil.getLineEndOffset(startOffset, editor.document))
+							.filter { it.placement == Inlay.Placement.ABOVE_LINE }
+							.sumOf { (it.heightInPixels * glancePanel.scrollState.scale).roundToInt() }
+						if (sumBlock > 0) {
+							myRangeList.value.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
+							skipY += sumBlock
+						}
+					}}
 				}else{
 					val end = hlIter.end
 					val highlightList = getHighlightColor(start, end)
@@ -149,42 +162,41 @@ class Minimap(private val glancePanel: GlancePanel){
 	}
 
 	private fun makeMarkHighlight(text: CharSequence,lineCount: Int,graphics: Graphics2D):Map<Int,MarkCommentData>{
-		val map = mutableMapOf<Int,MarkCommentData>()
-		val file = glancePanel.psiDocumentManager.getCachedPsiFile(editor.document)
-		val attributes = editor.colorsScheme.getAttributes(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES)
-		val font = editor.colorsScheme.getFont(when (attributes.fontType) {
-			Font.ITALIC -> EditorFontType.ITALIC
-			Font.BOLD -> EditorFontType.BOLD
-			Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
-			else -> EditorFontType.PLAIN
-		}).deriveFont(config.markersScaleFactor * config.pixelsPerLine)
-		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0,editor.document.textLength){
-			if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == it.textAttributesKey){
-				val startOffset = it.startOffset
-				file?.findElementAt(startOffset)?.findParentOfType<PsiComment>(false)?.let{ comment ->
+		if(markCommentMap.isNotEmpty()) {
+			val map = mutableMapOf<Int, MarkCommentData>()
+			val file = glancePanel.psiDocumentManager.getCachedPsiFile(editor.document)
+			val attributes = editor.colorsScheme.getAttributes(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES)
+			val font = editor.colorsScheme.getFont(
+				when (attributes.fontType) {
+					Font.ITALIC -> EditorFontType.ITALIC
+					Font.BOLD -> EditorFontType.BOLD
+					Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
+					else -> EditorFontType.PLAIN
+				}
+			).deriveFont(config.markersScaleFactor * config.pixelsPerLine)
+			for (highlighterEx in markCommentMap.values) {
+				val startOffset = highlighterEx.startOffset
+				file?.findElementAt(startOffset)?.findParentOfType<PsiComment>(false)?.let { comment ->
 					val textRange = comment.textRange
-					val commentText = text.subSequence(startOffset, it.endOffset).toString()
+					val commentText = text.subSequence(startOffset, highlighterEx.endOffset).toString()
 					val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
 						UIUtil.getFontWithFallback(font).deriveFont(attributes.fontType, font.size2D)
 					} else font
-					val fontHeight = graphics.getFontMetrics(textFont).height / 2
-					val jumpOffset = if(comment.textContains('\n')) textRange.endOffset else {
+					val fontHeight = graphics.getFontMetrics(textFont).height / 2f
+					val jumpOffset = if (comment.textContains('\n')) textRange.endOffset else {
 						val lineNumber = editor.document.getLineNumber(startOffset)
-						if(lineCount > lineNumber) {
-							editor.document.getLineEndOffset(lineNumber + (fontHeight / config.pixelsPerLine))
+						if (lineCount > lineNumber) {
+							editor.document.getLineEndOffset(lineNumber + (fontHeight / config.pixelsPerLine).roundToInt())
 						} else textRange.endOffset
 					}
-					map[textRange.startOffset] = MarkCommentData(jumpOffset, commentText, textFont, fontHeight)
+					map[textRange.startOffset] = MarkCommentData(jumpOffset, commentText, textFont, fontHeight.roundToInt())
 				}
 			}
-			return@processRangeHighlightersOverlappingWith true
-		}
-		if(map.isNotEmpty()){
 			graphics.color = attributes.foregroundColor ?: editor.colorsScheme.defaultForeground
 			graphics.composite = GlancePanel.srcOver
 			UISettings.setupAntialiasing(graphics)
-		}
-		return map
+			return map
+		} else return emptyMap()
 	}
 
 	private fun getHighlightColor(startOffset:Int,endOffset:Int):MutableList<RangeHighlightColor>{
@@ -277,6 +289,23 @@ class Minimap(private val glancePanel: GlancePanel){
 		scaleBuffer[1] = color.green.toFloat()
 		scaleBuffer[2] = color.blue.toFloat()
 		scaleBuffer[3] = color.alpha.toFloat()
+	}
+
+	fun markCommentHighlightChange(highlighter: RangeHighlighterEx,remove: Boolean) : Boolean{
+		return if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey){
+			if(remove) markCommentMap.remove(highlighter.id)
+			else markCommentMap[highlighter.id] = highlighter
+			true
+		} else false
+	}
+
+	fun refreshMarkCommentHighlight(editor: EditorImpl){
+		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0,editor.document.textLength){
+			if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == it.textAttributesKey){
+				markCommentMap[it.id] = it
+			}
+			return@processRangeHighlightersOverlappingWith true
+		}
 	}
 
 	private fun getBufferedImage() = BufferedImage(config.width, glancePanel.scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)

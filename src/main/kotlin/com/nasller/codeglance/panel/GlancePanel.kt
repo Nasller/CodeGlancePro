@@ -49,6 +49,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		isOpaque = false
 		editor.component.isOpaque = false
 		isVisible = !isDisabled
+		minimap.refreshMarkCommentHighlight(editor)
 		refreshWithWidth(directUpdate = true)
 		editor.putUserData(CURRENT_GLANCE, this)
 	}
@@ -322,6 +323,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		alarm.cancelAllRequests()
 		scrollbar.clear()
 		minimap.img.apply { if(isInitialized()) value.flush() }
+		minimap.markCommentMap.clear()
 	}
 
 	private inner class RangeHighlightColor(val startOffset: Int, val endOffset: Int, val color: Color, val fullLine: Boolean, val fullLineWithActualHighlight: Boolean) {

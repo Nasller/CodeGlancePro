@@ -11,7 +11,6 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.SoftWrapChangeListener
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
-import com.nasller.codeglance.config.CodeGlanceColorsPage
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.event.*
@@ -92,17 +91,17 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
 	/** MarkupModelListener */
 	override fun afterAdded(highlighter: RangeHighlighterEx) =
-		updateRangeHighlight(highlighter)
+		updateRangeHighlight(highlighter,false)
 
 	override fun beforeRemoved(highlighter: RangeHighlighterEx) =
-		updateRangeHighlight(highlighter)
+		updateRangeHighlight(highlighter,true)
 
-	private fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
+	private fun updateRangeHighlight(highlighter: RangeHighlighterEx,remove: Boolean) {
 		//如果开启隐藏滚动条则忽略Vcs高亮
+		val highlightChange = glancePanel.minimap.markCommentHighlightChange(highlighter, remove)
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode
 			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark)) return
-		if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
-			EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) {
+		if(highlightChange || EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) {
 			repaintOrRequest(true)
 		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
 			repaintOrRequest()
