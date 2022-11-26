@@ -7,6 +7,7 @@ import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiComment
+import com.intellij.psi.util.findParentOfType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.containers.ContainerUtil
@@ -64,7 +65,7 @@ class Minimap(private val glancePanel: GlancePanel){
 		val g = curImg.createGraphics()
 		g.composite = GlancePanel.CLEAR
 		g.fillRect(0, 0, curImg.width, curImg.height)
-		val highlight = makeMarkHighlight(g)
+		val highlight = makeMarkHighlight(text,lineCount,g)
 		loop@ while (!hlIter.atEnd() && !editor.isDisposed) {
 			val start = hlIter.start
 			y = editor.document.getLineNumber(start) * config.pixelsPerLine + skipY
@@ -102,7 +103,7 @@ class Minimap(private val glancePanel: GlancePanel){
 				val commentData = highlight[start]
 				if(commentData != null){
 					g.font = commentData.font
-					g.drawString(commentData.comment,2,y + g.getFontMetrics(g.font).height / 2)
+					g.drawString(commentData.comment,2,y + commentData.fontHeight)
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < commentData.jumpOffset)
 					if (softWrapEnable) editor.softWrapModel.getSoftWrapsForRange(start,commentData.jumpOffset).forEach{
 						it.chars.forEach {char -> moveCharIndex(char.code) { skipY += config.pixelsPerLine } }
@@ -147,11 +148,9 @@ class Minimap(private val glancePanel: GlancePanel){
 		if(myRangeList.isInitialized()) rangeList = myRangeList.value
 	}
 
-	private fun makeMarkHighlight(graphics: Graphics2D):Map<Int,MarkCommentData>{
+	private fun makeMarkHighlight(text: CharSequence,lineCount: Int,graphics: Graphics2D):Map<Int,MarkCommentData>{
 		val map = mutableMapOf<Int,MarkCommentData>()
 		val file = glancePanel.psiDocumentManager.getCachedPsiFile(editor.document)
-		val count = editor.document.lineCount
-		val text = editor.document.text
 		val attributes = editor.colorsScheme.getAttributes(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES)
 		val font = editor.colorsScheme.getFont(when (attributes.fontType) {
 			Font.ITALIC -> EditorFontType.ITALIC
@@ -162,21 +161,20 @@ class Minimap(private val glancePanel: GlancePanel){
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0,editor.document.textLength){
 			if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == it.textAttributesKey){
 				val startOffset = it.startOffset
-				val psiElement = file?.findElementAt(startOffset)
-				(if(psiElement is PsiComment){
-					psiElement
-				}else if(psiElement?.parent is PsiComment){
-					psiElement.parent
-				}else null)?.let{comment ->
+				file?.findElementAt(startOffset)?.findParentOfType<PsiComment>(false)?.let{ comment ->
 					val textRange = comment.textRange
+					val commentText = text.subSequence(startOffset, it.endOffset).toString()
+					val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
+						UIUtil.getFontWithFallback(font).deriveFont(attributes.fontType, font.size2D)
+					} else font
+					val fontHeight = graphics.getFontMetrics(textFont).height / 2
 					val jumpOffset = if(comment.textContains('\n')) textRange.endOffset else {
 						val lineNumber = editor.document.getLineNumber(startOffset)
-						if(count > lineNumber) editor.document.getLineEndOffset(lineNumber + 1) else textRange.endOffset
+						if(lineCount > lineNumber) {
+							editor.document.getLineEndOffset(lineNumber + (fontHeight / config.pixelsPerLine))
+						} else textRange.endOffset
 					}
-					val commentText = text.subSequence(startOffset, it.endOffset).toString()
-					map[textRange.startOffset] = MarkCommentData(jumpOffset, commentText, if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
-							UIUtil.getFontWithFallback(font).deriveFont(attributes.fontType,config.markersScaleFactor * config.pixelsPerLine)
-					} else font)
+					map[textRange.startOffset] = MarkCommentData(jumpOffset, commentText, textFont, fontHeight)
 				}
 			}
 			return@processRangeHighlightersOverlappingWith true
@@ -283,7 +281,7 @@ class Minimap(private val glancePanel: GlancePanel){
 
 	private fun getBufferedImage() = BufferedImage(config.width, glancePanel.scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 
-	private data class MarkCommentData(val jumpOffset: Int,val comment: String,val font: Font)
+	private data class MarkCommentData(val jumpOffset: Int,val comment: String,val font: Font,val fontHeight:Int)
 
 	private data class RangeHighlightColor(val startOffset: Int,val endOffset: Int,val foregroundColor: Color)
 }

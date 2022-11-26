@@ -1,6 +1,7 @@
 package com.nasller.codeglance.visitor
 
 import com.intellij.codeInsight.daemon.impl.HighlightVisitor
+import com.intellij.lang.LanguageCommenters
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
@@ -16,9 +17,14 @@ class MarkCommentVisitor : MyRainbowVisitor() {
 			val text = element.text
 			regex.find(text)?.let {
 				val textRange = element.textRange
-				val end = text.indexOf('\n',it.range.last)
-				addInfo(getInfo(it.range.last + textRange.startOffset + 1,
-					if(end > 0) end + textRange.startOffset else textRange.endOffset,CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES))
+				val index = text.indexOf('\n',it.range.last)
+				val blockCommentSuffix by lazy(LazyThreadSafetyMode.NONE) { LanguageCommenters.INSTANCE.forLanguage(element.language).blockCommentSuffix ?: "" }
+				val end = if (index > 0) index + textRange.startOffset else {
+					textRange.endOffset - if(index < 0 && blockCommentSuffix.isNotBlank() && text.endsWith(blockCommentSuffix)){
+						blockCommentSuffix.length
+					} else 0
+				}
+				addInfo(getInfo(it.range.last + textRange.startOffset + 1, end, CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES))
 			}
 		}
 	}
