@@ -13,9 +13,10 @@ class MarkCommentVisitor : MyRainbowVisitor() {
 
 	override fun visit(element: PsiElement) {
 		if (element is PsiComment) {
-			regex.find(element.text)?.let {
+			val text = element.text
+			regex.find(text)?.let {
 				val textRange = element.textRange
-				val end = element.text.indexOf('\n',it.range.last)
+				val end = text.indexOf('\n',it.range.last)
 				addInfo(getInfo(it.range.last + textRange.startOffset + 1,
 					if(end > 0) end + textRange.startOffset else textRange.endOffset,CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES))
 			}

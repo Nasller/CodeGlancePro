@@ -56,17 +56,6 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 						.accessibleName(message("settings.alignment"))
 						.applyToComponent { addMouseWheelListener(scrollListener) }
 				}).bottomGap(BottomGap.SMALL)
-
-				row {
-					spinner(2.0..10.0, 0.1).label(message("settings.markers.scale"))
-						.bindValue(getter = { config.markersScaleFactor.toDouble() }, setter = { value: Double -> config.markersScaleFactor = value.toFloat() })
-						.accessibleName(message("settings.markers.scale"))
-						.applyToComponent {
-							toolTipText = "Scale factor for font of markers in minimap"
-							addMouseWheelListener(doubleNumberScrollListener)
-						}
-				}.bottomGap(BottomGap.SMALL)
-
 				twoColumnsRow({
 					comboBox(MouseJumpEnum.values().map { it.getMessage() }).label(message("settings.jump"))
 						.bindItem({ config.jumpOnMouseDown.getMessage() }, { config.jumpOnMouseDown = MouseJumpEnum.findMouseJumpEnum(it) })
@@ -141,7 +130,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 						.accessibleName(message("settings.viewport.border.thickness"))
 						.applyToComponent { addMouseWheelListener(scrollListener) }
 				}).bottomGap(BottomGap.SMALL)
-				row {
+				twoColumnsRow({
 					spinner(0..2000, 50).label(message("popup.hover.minimap.delay"))
 						.bindIntValue(config::delayHoveringToShowScrollBar)
 						.accessibleName(message("popup.hover.minimap.delay"))
@@ -151,7 +140,15 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 						}
 					@Suppress("DialogTitleCapitalization")
 					label("ms").gap(RightGap.SMALL)
-				}.bottomGap(BottomGap.SMALL)
+				}, {
+					spinner(2.0..10.0, 0.1).label(message("settings.markers.scale"))
+						.bindValue(getter = { config.markersScaleFactor.toDouble() }, setter = { value: Double -> config.markersScaleFactor = value.toFloat() })
+						.accessibleName(message("settings.markers.scale"))
+						.applyToComponent {
+							toolTipText = "Scale factor for font of markers in minimap[2 - 10]"
+							addMouseWheelListener(doubleNumberScrollListener)
+						}
+				}).bottomGap(BottomGap.SMALL)
 				row {
 					textField().label(message("settings.disabled.language"))
 						.bindText(config::disableLanguageSuffix)

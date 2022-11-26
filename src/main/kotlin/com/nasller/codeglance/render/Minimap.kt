@@ -104,13 +104,12 @@ class Minimap(glancePanel: GlancePanel){
 			} else {
 				val commentData = highlight[start]
 				if(commentData != null){
-					val oldFont = g.font
-					if (!SystemInfoRt.isMac && oldFont.canDisplayUpTo(commentData.comment) != -1) {
-						g.font = UIUtil.getFontWithFallback(oldFont).deriveFont(config.pixelsPerLine * 2f)
-					}
-					g.drawString(commentData.comment,4,y + g.getFontMetrics(g.font).height / 2)
-					g.font = oldFont
+					g.font = commentData.font
+					g.drawString(commentData.comment,2,y + g.getFontMetrics(g.font).height / 2)
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < commentData.jumpOffset)
+					if (softWrapEnable) editor.softWrapModel.getSoftWrapsForRange(start,commentData.jumpOffset).forEach{
+						it.chars.forEach {char -> moveCharIndex(char.code) { skipY += config.pixelsPerLine } }
+					}
 				}else{
 					val end = hlIter.end
 					val highlightList = getHighlightColor(start, end)
@@ -156,6 +155,13 @@ class Minimap(glancePanel: GlancePanel){
 		val file = psiDocumentManager.getCachedPsiFile(editor.document)
 		val count = editor.document.lineCount
 		val text = editor.document.text
+		val attributes = editor.colorsScheme.getAttributes(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES)
+		val font = editor.colorsScheme.getFont(when (attributes.fontType) {
+			Font.ITALIC -> EditorFontType.ITALIC
+			Font.BOLD -> EditorFontType.BOLD
+			Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
+			else -> EditorFontType.PLAIN
+		}).deriveFont(config.markersScaleFactor * config.pixelsPerLine)
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0,editor.document.textLength){
 			if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == it.textAttributesKey){
 				val startOffset = it.startOffset
@@ -164,27 +170,25 @@ class Minimap(glancePanel: GlancePanel){
 					psiElement
 				}else if(psiElement?.parent is PsiComment){
 					psiElement.parent
-				}else null)?.let{highlighter ->
-					val textRange = highlighter.textRange
-					val jumpOffset = if(highlighter.textContains('\n'))textRange.endOffset else{
+				}else null)?.let{comment ->
+					val textRange = comment.textRange
+					val jumpOffset = if(comment.textContains('\n')) textRange.endOffset else {
 						val lineNumber = editor.document.getLineNumber(startOffset)
 						if(count > lineNumber) editor.document.getLineEndOffset(lineNumber + 1) else textRange.endOffset
 					}
-					map[textRange.startOffset] = MarkCommentData(jumpOffset, text.subSequence(startOffset, it.endOffset).toString())
+					val commentText = text.subSequence(startOffset, it.endOffset).toString()
+					map[textRange.startOffset] = MarkCommentData(jumpOffset, commentText, if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
+							UIUtil.getFontWithFallback(font).deriveFont(attributes.fontType,config.markersScaleFactor * config.pixelsPerLine)
+					} else font)
 				}
 			}
 			return@processRangeHighlightersOverlappingWith true
 		}
-		val attributes = editor.colorsScheme.getAttributes(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES)
-		graphics.font = editor.colorsScheme.getFont(when (attributes.fontType) {
-			Font.ITALIC -> EditorFontType.ITALIC
-			Font.BOLD -> EditorFontType.BOLD
-			Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
-			else -> EditorFontType.PLAIN
-		}).deriveFont(config.markersScaleFactor*4)
-		graphics.color = attributes.foregroundColor ?: editor.colorsScheme.defaultForeground
-		graphics.composite = GlancePanel.srcOver
-		UISettings.setupAntialiasing(graphics)
+		if(map.isNotEmpty()){
+			graphics.color = attributes.foregroundColor ?: editor.colorsScheme.defaultForeground
+			graphics.composite = GlancePanel.srcOver
+			UISettings.setupAntialiasing(graphics)
+		}
 		return map
 	}
 
@@ -282,7 +286,7 @@ class Minimap(glancePanel: GlancePanel){
 
 	private fun getBufferedImage() = BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 
-	private data class MarkCommentData(val jumpOffset: Int,val comment: String)
+	private data class MarkCommentData(val jumpOffset: Int,val comment: String,val font: Font)
 
 	private data class RangeHighlightColor(val startOffset: Int,val endOffset: Int,val foregroundColor: Color)
 }

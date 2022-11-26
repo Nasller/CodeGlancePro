@@ -129,16 +129,16 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	/** PrioritizedDocumentListener */
 	override fun documentChanged(event: DocumentEvent) {
 		if (event.document.isInBulkUpdate) return
-		if (event.document.lineCount > glancePanel.config.moreThanLineDelay) {
-			repaintOrRequest(true)
-		} else PsiDocumentManager.getInstance(glancePanel.project).performForCommittedDocument(editor.document){
+		PsiDocumentManager.getInstance(glancePanel.project).performForCommittedDocument(editor.document) {
 			if (event.document.lineCount > glancePanel.config.moreThanLineDelay) {
 				repaintOrRequest(true)
 			} else  glancePanel.updateImage()
 		}
 	}
 
-	override fun bulkUpdateFinished(document: Document) = glancePanel.updateImage()
+	override fun bulkUpdateFinished(document: Document) = PsiDocumentManager.getInstance(glancePanel.project).performForCommittedDocument(editor.document) {
+		glancePanel.updateImage()
+	}
 
 	override fun getPriority(): Int = 170 //EditorDocumentPriorities
 
