@@ -11,6 +11,7 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.SoftWrapChangeListener
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
+import com.intellij.psi.PsiDocumentManager
 import com.nasller.codeglance.config.CodeGlanceColorsPage
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.GlancePanel
@@ -130,7 +131,11 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 		if (event.document.isInBulkUpdate) return
 		if (event.document.lineCount > glancePanel.config.moreThanLineDelay) {
 			repaintOrRequest(true)
-		} else glancePanel.updateImage()
+		} else PsiDocumentManager.getInstance(glancePanel.project).performForCommittedDocument(editor.document){
+			if (event.document.lineCount > glancePanel.config.moreThanLineDelay) {
+				repaintOrRequest(true)
+			} else  glancePanel.updateImage()
+		}
 	}
 
 	override fun bulkUpdateFinished(document: Document) = glancePanel.updateImage()

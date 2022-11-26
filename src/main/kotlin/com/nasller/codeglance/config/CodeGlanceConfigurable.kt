@@ -30,6 +30,19 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 					val comboBox = it.source as JComboBox<*>
 					comboBox.setSelectedIndex(max(0, min(comboBox.selectedIndex + it.wheelRotation, comboBox.itemCount - 1)))
 				}
+				val doubleNumberScrollListener: (e: MouseWheelEvent) -> Unit = {
+					val spinner = it.source as JSpinner
+					val model = spinner.model as SpinnerNumberModel
+					var step = model.stepSize.toDouble()
+					when (it.modifiersEx and (InputEvent.CTRL_DOWN_MASK or InputEvent.SHIFT_DOWN_MASK)) {
+						InputEvent.CTRL_DOWN_MASK -> step *= 2
+						InputEvent.SHIFT_DOWN_MASK -> step /= 2
+						InputEvent.CTRL_DOWN_MASK or InputEvent.SHIFT_DOWN_MASK -> step = 0.5
+					}
+					var newValue: Double = spinner.value as Double + step * -it.wheelRotation
+					newValue = min(max(newValue, (model.minimum as Double)), (model.maximum as Double))
+					spinner.value = newValue
+				}
 				twoColumnsRow({
 					comboBox(listOf(1, 2, 3, 4)).label(message("settings.pixels"))
 						.bindItem(config::pixelsPerLine.toNullableProperty())
@@ -43,6 +56,17 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 						.accessibleName(message("settings.alignment"))
 						.applyToComponent { addMouseWheelListener(scrollListener) }
 				}).bottomGap(BottomGap.SMALL)
+
+				row {
+					spinner(2.0..10.0, 0.1).label(message("settings.markers.scale"))
+						.bindValue(getter = { config.markersScaleFactor.toDouble() }, setter = { value: Double -> config.markersScaleFactor = value.toFloat() })
+						.accessibleName(message("settings.markers.scale"))
+						.applyToComponent {
+							toolTipText = "Scale factor for font of markers in minimap"
+							addMouseWheelListener(doubleNumberScrollListener)
+						}
+				}.bottomGap(BottomGap.SMALL)
+
 				twoColumnsRow({
 					comboBox(MouseJumpEnum.values().map { it.getMessage() }).label(message("settings.jump"))
 						.bindItem({ config.jumpOnMouseDown.getMessage() }, { config.jumpOnMouseDown = MouseJumpEnum.findMouseJumpEnum(it) })
