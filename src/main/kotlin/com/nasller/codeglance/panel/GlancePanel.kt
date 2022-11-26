@@ -13,6 +13,7 @@ import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.util.Range
 import com.intellij.util.SingleAlarm
 import com.nasller.codeglance.EditorPanelInjector
@@ -29,8 +30,8 @@ import javax.swing.JPanel
 
 class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disposable {
 	var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
+	val psiDocumentManager: PsiDocumentManager = PsiDocumentManager.getInstance(project)
 	val config = ConfigInstance.state
-	val fileEditorManagerEx: FileEditorManagerEx = FileEditorManagerEx.getInstanceEx(project)
 	val scrollState = ScrollState()
 	val isDisabled
 		get() = config.disabled || editor.document.lineCount > config.maxLinesCount
@@ -40,7 +41,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	var myVcsPanel: MyVcsPanel? = null
 	val minimap = Minimap(this)
 	private val lock = AtomicBoolean(false)
-	private val alarm = SingleAlarm({ updateImage(true) }, 500, this)
+	private val alarm = SingleAlarm({ updateImage(directUpdate = true) }, 500, this)
 
 	init {
 		Disposer.register(editor.disposable, this)
@@ -65,8 +66,10 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 
 	fun updateImage(directUpdate: Boolean = false, updateScroll: Boolean = false) =
 		if (checkVisible() && lock.compareAndSet(false,true)) {
-			if (directUpdate) updateImgTask(updateScroll)
-			else invokeLater { updateImgTask(updateScroll) }
+			psiDocumentManager.performForCommittedDocument(editor.document) {
+				if (directUpdate) updateImgTask(updateScroll)
+				else invokeLater { updateImgTask(updateScroll) }
+			}
 		} else Unit
 
 	fun delayUpdateImage() = alarm.cancelAndRequest()
@@ -281,7 +284,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	}
 
 	fun getConfigSize(): Dimension{
-		val calWidth = if (config.autoCalWidthInSplitterMode && fileEditorManagerEx.isInSplitter) {
+		val calWidth = if (config.autoCalWidthInSplitterMode && FileEditorManagerEx.getInstanceEx(project).isInSplitter) {
 			val calWidth = editor.component.width / 12
 			if (calWidth < config.width) {
 				if (calWidth < 20) 20 else calWidth

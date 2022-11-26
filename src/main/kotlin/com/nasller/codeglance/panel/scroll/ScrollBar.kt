@@ -6,6 +6,7 @@ import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.ex.MarkupModelEx
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
+import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.HintHint
@@ -223,7 +224,8 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	private fun isInResizeGutter(x: Int): Boolean =
-		if (config.locked || config.hoveringToShowScrollBar || glancePanel.fileEditorManagerEx.isInSplitter) false else x in 0..7
+		if (config.locked || config.hoveringToShowScrollBar ||
+			FileEditorManagerEx.getInstanceEx(glancePanel.project).isInSplitter) false else x in 0..7
 
 	private fun isInRect(y: Int): Boolean = y in vOffset..(vOffset + scrollState.viewportHeight)
 

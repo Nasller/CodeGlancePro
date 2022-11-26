@@ -7,7 +7,6 @@ import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiComment
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.containers.ContainerUtil
@@ -20,11 +19,9 @@ import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import kotlin.math.roundToInt
 
-class Minimap(glancePanel: GlancePanel){
+class Minimap(private val glancePanel: GlancePanel){
 	private val editor = glancePanel.editor
 	private val config = glancePanel.config
-	private val scrollState = glancePanel.scrollState
-	private val psiDocumentManager = PsiDocumentManager.getInstance(glancePanel.project)
 	private var preBuffer : BufferedImage? = null
 	private val scaleBuffer = FloatArray(4)
 	var img = lazy(LazyThreadSafetyMode.NONE) { getBufferedImage() }
@@ -34,7 +31,7 @@ class Minimap(glancePanel: GlancePanel){
 		val lineCount = editor.document.lineCount
 		if(lineCount <= 0) return
 		var curImg = img.value
-		if (curImg.height < scrollState.documentHeight || curImg.width < config.width) {
+		if (curImg.height < glancePanel.scrollState.documentHeight || curImg.width < config.width) {
 			preBuffer = curImg
 			curImg = getBufferedImage()
 		}
@@ -89,7 +86,7 @@ class Minimap(glancePanel: GlancePanel){
 				} else {
 					setColorRgba(color ?: defaultColor)
 					//jump over the fold line
-					val heightLine = (region.heightInPixels * scrollState.scale).roundToInt()
+					val heightLine = (region.heightInPixels * glancePanel.scrollState.scale).roundToInt()
 					skipY -= (foldLine + 1) * config.pixelsPerLine - heightLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 					myRangeList.value.add(Pair(editor.offsetToVisualLine(endOffset),
@@ -124,7 +121,7 @@ class Minimap(glancePanel: GlancePanel){
 								val startOffset = offset + 1
 								val sumBlock = editor.inlayModel.getBlockElementsInRange(startOffset, DocumentUtil.getLineEndOffset(startOffset, editor.document))
 									.filter { it.placement == Inlay.Placement.ABOVE_LINE }
-									.sumOf { (it.heightInPixels * scrollState.scale).roundToInt() }
+									.sumOf { (it.heightInPixels * glancePanel.scrollState.scale).roundToInt() }
 								if (sumBlock > 0) {
 									myRangeList.value.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
 									y += sumBlock
@@ -152,7 +149,7 @@ class Minimap(glancePanel: GlancePanel){
 
 	private fun makeMarkHighlight(graphics: Graphics2D):Map<Int,MarkCommentData>{
 		val map = mutableMapOf<Int,MarkCommentData>()
-		val file = psiDocumentManager.getCachedPsiFile(editor.document)
+		val file = glancePanel.psiDocumentManager.getCachedPsiFile(editor.document)
 		val count = editor.document.lineCount
 		val text = editor.document.text
 		val attributes = editor.colorsScheme.getAttributes(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES)
@@ -284,7 +281,7 @@ class Minimap(glancePanel: GlancePanel){
 		scaleBuffer[3] = color.alpha.toFloat()
 	}
 
-	private fun getBufferedImage() = BufferedImage(config.width, scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
+	private fun getBufferedImage() = BufferedImage(config.width, glancePanel.scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 
 	private data class MarkCommentData(val jumpOffset: Int,val comment: String,val font: Font)
 

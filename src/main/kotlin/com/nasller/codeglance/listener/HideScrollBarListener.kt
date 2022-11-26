@@ -74,7 +74,7 @@ class HideScrollBarListener(private val glancePanel: GlancePanel) : MouseAdapter
 		if (config.hoveringToShowScrollBar && !isDisabled) {
 			if (!config.hideOriginalScrollBar) editor.scrollPane.verticalScrollBar.addMouseListener(hideScrollBarListener)
 			else myVcsPanel?.addMouseListener(hideScrollBarListener)
-			refreshWithWidth(false)
+			refreshWithWidth(refreshImage = false)
 		}
 	}
 
@@ -85,6 +85,6 @@ class HideScrollBarListener(private val glancePanel: GlancePanel) : MouseAdapter
 		alarm.cancelAllRequests()
 		animator.stop()
 		showHideOriginScrollBar(true)
-		refreshWithWidth(false)
+		refreshWithWidth(refreshImage = false)
 	}
 }

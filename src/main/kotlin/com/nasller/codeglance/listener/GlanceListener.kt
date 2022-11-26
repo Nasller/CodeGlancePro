@@ -11,7 +11,6 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.SoftWrapChangeListener
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
-import com.intellij.psi.PsiDocumentManager
 import com.nasller.codeglance.config.CodeGlanceColorsPage
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.GlancePanel
@@ -129,16 +128,12 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	/** PrioritizedDocumentListener */
 	override fun documentChanged(event: DocumentEvent) {
 		if (event.document.isInBulkUpdate) return
-		PsiDocumentManager.getInstance(glancePanel.project).performForCommittedDocument(editor.document) {
-			if (event.document.lineCount > glancePanel.config.moreThanLineDelay) {
-				repaintOrRequest(true)
-			} else  glancePanel.updateImage()
-		}
+		if (event.document.lineCount > glancePanel.config.moreThanLineDelay) {
+			repaintOrRequest(true)
+		} else  glancePanel.updateImage()
 	}
 
-	override fun bulkUpdateFinished(document: Document) = PsiDocumentManager.getInstance(glancePanel.project).performForCommittedDocument(editor.document) {
-		glancePanel.updateImage()
-	}
+	override fun bulkUpdateFinished(document: Document) = glancePanel.updateImage()
 
 	override fun getPriority(): Int = 170 //EditorDocumentPriorities
 
@@ -158,13 +153,13 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	override fun ancestorMoved(e: HierarchyEvent) {}
 
 	override fun ancestorResized(e: HierarchyEvent) {
-		if (checkWithGlance {config.autoCalWidthInSplitterMode && !config.hoveringToShowScrollBar}) glancePanel.refreshWithWidth(false)
+		if (checkWithGlance {config.autoCalWidthInSplitterMode && !config.hoveringToShowScrollBar}) glancePanel.refreshWithWidth(refreshImage = false)
 	}
 
 	/** HierarchyListener */
 	override fun hierarchyChanged(e: HierarchyEvent) {
 		if (checkWithGlance {config.autoCalWidthInSplitterMode && !config.hoveringToShowScrollBar} &&
-			e.changeFlags and HierarchyEvent.PARENT_CHANGED.toLong() != 0L) glancePanel.refreshWithWidth(false)
+			e.changeFlags and HierarchyEvent.PARENT_CHANGED.toLong() != 0L) glancePanel.refreshWithWidth(refreshImage = false)
 	}
 
 	private fun repaintOrRequest(request: Boolean = false) {
