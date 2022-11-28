@@ -4,7 +4,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.BaseState
 import com.intellij.util.messages.Topic
 import com.nasller.codeglance.config.enums.MouseJumpEnum
-import kotlin.properties.Delegates
 
 class CodeGlanceConfig : BaseState() {
 	var pixelsPerLine by property(4)
@@ -22,11 +21,7 @@ class CodeGlanceConfig : BaseState() {
 	var showEditorToolTip by property(true)
 	var mouseWheelMoveEditorToolTip by property(false)
 	var isRightAligned by property(true)
-	var hoveringToShowScrollBar by Delegates.observable(false) { _, oldValue, newValue ->
-		if (oldValue != newValue) {
-			SettingsChangePublisher.onHoveringOriginalScrollBarChanged(newValue)
-		}
-	}
+	var hoveringToShowScrollBar by property(false)
 	var delayHoveringToShowScrollBar by property(0)
 	var jumpOnMouseDown by enum(MouseJumpEnum.MOUSE_DOWN)
 	var width by property(110)

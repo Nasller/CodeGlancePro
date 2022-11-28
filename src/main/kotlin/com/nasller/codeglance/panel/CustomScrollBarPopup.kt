@@ -38,6 +38,7 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
                 override fun isSelected(): Boolean = config.hoveringToShowScrollBar
                 override fun setSelected(selected: Boolean) {
                     config.hoveringToShowScrollBar = selected
+                    SettingsChangePublisher.onHoveringOriginalScrollBarChanged(selected)
                 }
             }),
             object : DumbAwareToggleAction(message("popup.showFullLineHighlight")){
@@ -52,7 +53,9 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
 
                 override fun setSelected(e: AnActionEvent, state: Boolean) {
                     config.autoCalWidthInSplitterMode = state
-                    SettingsChangePublisher.refresh(directUpdate = false)
+                    if(!config.hoveringToShowScrollBar) {
+                        SettingsChangePublisher.refresh(directUpdate = false)
+                    }
                 }
             },
             DumbAwareToggleOptionAction(object : ToggleOptionAction.Option {
