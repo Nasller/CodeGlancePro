@@ -198,9 +198,8 @@ class Minimap(private val glancePanel: GlancePanel){
 						jumpEndOffset = textRange.endOffset
 						jumpStartOffset = DocumentUtil.getLineStartOffset(jumpEndOffset,editor.document)
 					} else {
-						val lineNumber = editor.document.getLineNumber(startOffset)
-						if (lineCount > lineNumber) {
-							val line = lineNumber + (fontHeight / config.pixelsPerLine).roundToInt()
+						val line = editor.document.getLineNumber(startOffset) + (fontHeight / config.pixelsPerLine).roundToInt()
+						if (lineCount > line) {
 							jumpEndOffset = editor.document.getLineEndOffset(line)
 							jumpStartOffset = editor.document.getLineStartOffset(line)
 						} else {

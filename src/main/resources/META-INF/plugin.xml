@@ -27,6 +27,8 @@
 		<h3>1.5.5</h3>
 		<ul>
 			<li>MARK labels support(like xcode).</li>
+			<li>fix <a href="https://github.com/Nasller/CodeGlancePro/issues/56">#56</a></li>
+			<li>fix <a href="https://github.com/Nasller/CodeGlancePro/issues/57">#57</a></li>
 		</ul>
 		<h3>1.5.4</h3>
 		<ul>
