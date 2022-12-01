@@ -22,7 +22,7 @@ import java.awt.event.MouseEvent
 import javax.swing.Icon
 
 class GlanceToggleVisibleWidgetPanel(private val project: Project) : StatusBarWidget, StatusBarWidget.IconPresentation {
-	private val toggleAction: AnAction = ActionManagerEx.getInstance().getAction("CodeGlance.toggle")
+	private val toggleAction: AnAction = ActionManagerEx.getInstanceEx().getAction("CodeGlance.toggle")
 	private var myStatusBar: StatusBar? = null
 
 	override fun getIcon(): Icon? {

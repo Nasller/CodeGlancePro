@@ -1,5 +1,6 @@
 package com.nasller.codeglance.actions
 
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.Presentation
@@ -46,6 +47,10 @@ class ToggleVisibleAction : DumbAwareToggleAction(), CustomComponentAction {
             presentation.text = message("glance.visible.hide")
             presentation.icon = CodeGlanceIcons.GlanceHide
         }
+    }
+
+    override fun getActionUpdateThread(): ActionUpdateThread {
+        return ActionUpdateThread.BGT
     }
 
     private fun <T>AnActionEvent.applyToGlance(action: GlancePanel.()->T) =
