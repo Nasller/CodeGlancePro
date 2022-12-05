@@ -30,7 +30,7 @@ intellij {
 	downloadSources.set(true)
 	// Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
 	plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
-	// languagePlugins=com.intellij.zh:221.224
+	// languagePlugins=com.intellij.zh:222.202
 	env["languagePlugins"]?.let { plugins.add(it) }
 }
 

@@ -4,7 +4,7 @@
       <option name="env">
         <map>
           <entry key="buildSearchableOptions.enabled" value="true" />
-          <entry key="languagePlugins" value="com.intellij.zh:221.224" />
+          <entry key="languagePlugins" value="com.intellij.zh:222.202" />
         </map>
       </option>
       <option name="executionName" />
