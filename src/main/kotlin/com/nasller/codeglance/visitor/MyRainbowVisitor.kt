@@ -14,6 +14,7 @@ abstract class MyRainbowVisitor : HighlightVisitor {
 		myHolder = holder
 		try {
 			action.run()
+		} catch (_:Throwable) {
 		} finally {
 			myHolder = null
 		}
