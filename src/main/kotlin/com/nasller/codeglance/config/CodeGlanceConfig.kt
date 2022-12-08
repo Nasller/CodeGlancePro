@@ -13,6 +13,7 @@ class CodeGlanceConfig : BaseState() {
 	var disabled by property(false)
 	var singleFileVisibleButton by property(true)
 	var hideOriginalScrollBar by property(false)
+	var enableMarker by property(true)
 	var showFilterMarkupHighlight by property(true)
 	var showMarkupHighlight by property(true)
 	var showVcsHighlight by property(true)

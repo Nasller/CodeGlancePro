@@ -4,6 +4,7 @@ import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.ColorUtil
+import com.intellij.ui.JBColor
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.tabs.ColorButtonBase
 import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
@@ -11,7 +12,6 @@ import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.ui.ColorButton
 import com.nasller.codeglance.util.message
-import java.awt.Color
 import java.awt.event.InputEvent
 import java.awt.event.MouseWheelEvent
 import javax.swing.DefaultComboBoxModel
@@ -102,7 +102,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 						}
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
-					cell(ColorButton(config.viewportColor, Color.WHITE)).label(message("settings.viewport.color"))
+					cell(ColorButton(config.viewportColor, JBColor.WHITE)).label(message("settings.viewport.color"))
 						.accessibleName(message("settings.viewport.color"))
 						.bind({ it.text }, { p: ColorButtonBase, v: String ->
 							p.setColor(ColorUtil.fromHex(v))
@@ -118,7 +118,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 						}
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
-					cell(ColorButton(config.viewportBorderColor, Color.WHITE)).label(message("settings.viewport.border.color"))
+					cell(ColorButton(config.viewportBorderColor, JBColor.WHITE)).label(message("settings.viewport.border.color"))
 						.accessibleName(message("settings.viewport.border.color"))
 						.bind({ it.text }, { p: ColorButtonBase, v: String ->
 							p.setColor(ColorUtil.fromHex(v))
@@ -158,22 +158,25 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 			group(message("settings.option")) {
 				threeColumnsRow({
 					checkBox(message("settings.disabled"))
-						.bindSelected(config::disabled) { config.disabled = it }
+						.bindSelected(config::disabled)
+				}, {
+					checkBox(message("settings.markers.enable"))
+						.bindSelected(config::enableMarker)
 				}, {
 					checkBox(message("settings.hide.original.scrollbar"))
-						.bindSelected(config::hideOriginalScrollBar) { config.hideOriginalScrollBar = it }
+						.bindSelected(config::hideOriginalScrollBar)
 				})
 				threeColumnsRow({
 					checkBox(message("settings.highlight.vcs"))
-						.bindSelected(config::showVcsHighlight) { config.showVcsHighlight = it }
+						.bindSelected(config::showVcsHighlight)
 				}, {
 					checkBox(message("settings.highlight.filter.markup"))
-						.bindSelected(config::showFilterMarkupHighlight) { config.showFilterMarkupHighlight = it }
+						.bindSelected(config::showFilterMarkupHighlight)
 						.gap(RightGap.SMALL)
 					contextHelp(message("settings.highlight.filter.markup.desc"))
 				}, {
 					checkBox(message("settings.highlight.markup"))
-						.bindSelected(config::showMarkupHighlight) { config.showMarkupHighlight = it }
+						.bindSelected(config::showMarkupHighlight)
 						.gap(RightGap.SMALL)
 					contextHelp(message("settings.highlight.markup.desc"))
 				})

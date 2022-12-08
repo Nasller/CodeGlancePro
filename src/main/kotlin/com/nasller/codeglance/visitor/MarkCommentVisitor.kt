@@ -4,13 +4,9 @@ import com.intellij.codeInsight.daemon.impl.HighlightVisitor
 import com.intellij.lang.LanguageCommenters
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
 import com.nasller.codeglance.config.CodeGlanceColorsPage
-import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
 
 class MarkCommentVisitor : MyRainbowVisitor() {
-	override fun suitableForFile(file: PsiFile): Boolean = file.fileType.defaultExtension.isBlank() || ConfigInstance.state.disableLanguageSuffix
-		.split(",").toSet().contains(file.fileType.defaultExtension).not()
 
 	override fun visit(element: PsiElement) {
 		if (element is PsiComment) {
