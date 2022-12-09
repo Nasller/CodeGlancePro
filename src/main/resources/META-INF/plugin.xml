@@ -27,6 +27,7 @@
 		<h3>1.5.7</h3>
 		<ul>
 			<li>Enable Marker option</li>
+			<li>add a Toggle all CodeGlance action</li>
 		</ul>
 		<h3>1.5.6</h3>
 		<ul>
@@ -69,8 +70,11 @@
 	</applicationListeners>
 
 	<actions>
-		<action id="CodeGlance.toggle" text="Toggle CodeGlance" class="com.nasller.codeglance.actions.ToggleVisibleAction" description="Toggles CodeGlance on and off">
+		<action id="CodeGlance.toggle" text="Toggle Current CodeGlance" class="com.nasller.codeglance.actions.ToggleVisibleAction" description="Toggles current CodeGlance on and off">
 			<keyboard-shortcut first-keystroke="control shift G" keymap="$default" />
+		</action>
+		<action id="CodeGlance.disable" text="Toggle All CodeGlance" class="com.nasller.codeglance.actions.DisableByDefaultAction" description="Toggles all CodeGlance on and off">
+			<keyboard-shortcut first-keystroke="control alt shift G" keymap="$default" />
 		</action>
 	</actions>
 
