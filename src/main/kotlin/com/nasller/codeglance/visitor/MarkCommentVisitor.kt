@@ -1,6 +1,7 @@
 package com.nasller.codeglance.visitor
 
 import com.intellij.codeInsight.daemon.impl.HighlightVisitor
+import com.intellij.lang.Language
 import com.intellij.lang.LanguageCommenters
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
@@ -14,7 +15,8 @@ class MarkCommentVisitor : MyRainbowVisitor() {
 			regex.find(text)?.let {
 				val textRange = element.textRange
 				val index = text.indexOf('\n',it.range.last)
-				val blockCommentSuffix by lazy(LazyThreadSafetyMode.NONE) { LanguageCommenters.INSTANCE.forLanguage(element.language).blockCommentSuffix ?: "" }
+				val blockCommentSuffix by lazy(LazyThreadSafetyMode.NONE) { getLanguageBlockCommentSuffix(element.language) ?:
+				LanguageCommenters.INSTANCE.forLanguage(element.language)?.blockCommentSuffix ?: "" }
 				val end = if (index > 0) index + textRange.startOffset else {
 					textRange.endOffset - if(index < 0 && blockCommentSuffix.isNotBlank() && text.endsWith(blockCommentSuffix)){
 						blockCommentSuffix.length
@@ -29,5 +31,13 @@ class MarkCommentVisitor : MyRainbowVisitor() {
 
 	private companion object{
 		private val regex = Regex("\\b(MARK: - )\\b*")
+
+		@JvmStatic
+		private fun getLanguageBlockCommentSuffix(language: Language) : String?{
+			return when(language.displayName){
+				"C#" -> "*/"
+				else -> null
+			}
+		}
 	}
 }
