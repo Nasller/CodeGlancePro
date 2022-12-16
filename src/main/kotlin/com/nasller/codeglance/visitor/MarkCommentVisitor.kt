@@ -15,8 +15,7 @@ class MarkCommentVisitor : MyRainbowVisitor() {
 			regex.find(text)?.let {
 				val textRange = element.textRange
 				val index = text.indexOf('\n',it.range.last)
-				val blockCommentSuffix by lazy(LazyThreadSafetyMode.NONE) { getLanguageBlockCommentSuffix(element.language) ?:
-				LanguageCommenters.INSTANCE.forLanguage(element.language)?.blockCommentSuffix ?: "" }
+				val blockCommentSuffix by lazy(LazyThreadSafetyMode.NONE) { getLanguageBlockCommentSuffix(element.language) ?: "" }
 				val end = if (index > 0) index + textRange.startOffset else {
 					textRange.endOffset - if(index < 0 && blockCommentSuffix.isNotBlank() && text.endsWith(blockCommentSuffix)){
 						blockCommentSuffix.length
@@ -36,7 +35,7 @@ class MarkCommentVisitor : MyRainbowVisitor() {
 		private fun getLanguageBlockCommentSuffix(language: Language) : String?{
 			return when(language.displayName){
 				"C#" -> "*/"
-				else -> null
+				else -> LanguageCommenters.INSTANCE.forLanguage(language)?.blockCommentSuffix
 			}
 		}
 	}
