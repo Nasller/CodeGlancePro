@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.5.8</h3>
+		<ul>
+			<li>fix <a href="https://github.com/Nasller/CodeGlancePro/issues/65">#65</a></li>
+		</ul>
 		<h3>1.5.7</h3>
 		<ul>
 			<li>Enable Marker option</li>
@@ -54,12 +58,6 @@
 			<li>Scroll editor in the minimap support.</li>
 			<li>Viewport border color and thickness support.</li>
 			<li>Use choose color button.</li>
-		</ul>
-		<h3>1.5.1</h3>
-		<ul>
-			<li>Remove dirty lock</li>
-			<li>Provide a configuration that turns off automatic width calculation</li>
-			<li>Hover to show minimap support animation</li>
 		</ul>
 	]]></change-notes>
 
