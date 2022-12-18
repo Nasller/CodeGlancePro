@@ -1,5 +1,3 @@
-package com.nasller.codeglance.extensions.visitor
-
 import com.intellij.codeHighlighting.RainbowHighlighter
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightVisitor
@@ -8,6 +6,10 @@ import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.psi.PsiFile
 import com.nasller.codeglance.config.CodeGlanceConfigService
 
+/**
+ * Avoid report errors.
+ * This isn't the error made by this plugin. It's the error of SDK.
+ */
 abstract class MyRainbowVisitor : HighlightVisitor {
 	private var myHolder: HighlightInfoHolder? = null
 
