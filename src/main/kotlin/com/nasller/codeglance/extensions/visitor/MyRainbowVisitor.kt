@@ -1,4 +1,4 @@
-package com.nasller.codeglance.visitor
+package com.nasller.codeglance.extensions.visitor
 
 import com.intellij.codeHighlighting.RainbowHighlighter
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
@@ -21,7 +21,6 @@ abstract class MyRainbowVisitor : HighlightVisitor {
 		myHolder = holder
 		try {
 			action.run()
-		} catch (_:Throwable) {
 		} finally {
 			myHolder = null
 		}

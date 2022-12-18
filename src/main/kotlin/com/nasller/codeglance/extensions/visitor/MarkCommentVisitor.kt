@@ -1,4 +1,4 @@
-package com.nasller.codeglance.visitor
+package com.nasller.codeglance.extensions.visitor
 
 import com.intellij.codeInsight.daemon.impl.HighlightVisitor
 import com.intellij.lang.Language
