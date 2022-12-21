@@ -13,6 +13,7 @@ import com.intellij.ui.HintHint
 import com.intellij.util.Alarm
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.MouseEventAdapter
+import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
@@ -251,8 +252,16 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 
 	private fun jumpToLineAt(y: Int, action: () -> Unit) {
 		hideMyEditorPreviewHint()
-		val line = fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(y + scrollState.visibleStart))
-		editor.caretModel.moveToVisualPosition(VisualPosition(line, 0))
+		val visualLine = if(config.clickType == ClickTypeEnum.CODE_POSITION){
+			fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(y + scrollState.visibleStart))
+		}else{
+			if(scrollState.drawHeight == scrollState.visibleHeight){
+				editor.yToVisualLine((y / scrollState.visibleHeight.toFloat() * editor.contentComponent.height).roundToInt())
+			}else{
+				fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(y + scrollState.visibleStart))
+			}
+		}
+		editor.caretModel.moveToVisualPosition(VisualPosition(visualLine, 0))
 		editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
 		editor.scrollingModel.runActionOnScrollingFinished(action)
 	}

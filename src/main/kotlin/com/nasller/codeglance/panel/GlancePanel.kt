@@ -345,6 +345,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		val srcOver: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
 		val CURRENT_GLANCE = Key<GlancePanel>("CURRENT_GLANCE")
 
+		@JvmStatic
 		fun fitLineToEditor(editor: EditorImpl, visualLine: Int): Int {
 			val lineCount = editor.visibleLineCount
 			var shift = 0

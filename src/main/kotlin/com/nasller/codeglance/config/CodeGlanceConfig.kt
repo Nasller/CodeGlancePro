@@ -3,6 +3,7 @@ package com.nasller.codeglance.config
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.BaseState
 import com.intellij.util.messages.Topic
+import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 
 class CodeGlanceConfig : BaseState() {
@@ -24,6 +25,7 @@ class CodeGlanceConfig : BaseState() {
 	var isRightAligned by property(true)
 	var hoveringToShowScrollBar by property(false)
 	var delayHoveringToShowScrollBar by property(0)
+	var clickType by enum(ClickTypeEnum.CODE_POSITION)
 	var jumpOnMouseDown by enum(MouseJumpEnum.MOUSE_DOWN)
 	var width by property(110)
 	var viewportColor by nonNullString("A0A0A0")

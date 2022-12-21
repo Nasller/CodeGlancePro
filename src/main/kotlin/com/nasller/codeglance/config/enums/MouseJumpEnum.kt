@@ -13,8 +13,7 @@ enum class MouseJumpEnum(private val messageCode:String){
 	}
 
 	companion object{
-		@JvmStatic
-		fun findMouseJumpEnum(message:String?):MouseJumpEnum{
+		fun findEnum(message:String?):MouseJumpEnum{
 			return MouseJumpEnum.values().find { it.getMessage() == message }!!
 		}
 	}

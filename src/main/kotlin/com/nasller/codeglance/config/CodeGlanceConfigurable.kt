@@ -8,6 +8,7 @@ import com.intellij.ui.JBColor
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.tabs.ColorButtonBase
 import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
+import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.ui.ColorButton
@@ -15,7 +16,6 @@ import com.nasller.codeglance.util.message
 import java.awt.event.InputEvent
 import java.awt.event.MouseWheelEvent
 import javax.swing.DefaultComboBoxModel
-import javax.swing.JComboBox
 import javax.swing.JSpinner
 import javax.swing.SpinnerNumberModel
 import kotlin.math.max
@@ -26,10 +26,6 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 		val config = ConfigInstance.state
 		return panel {
 			group(message("settings.general")) {
-				val scrollListener: (e: MouseWheelEvent) -> Unit = {
-					val comboBox = it.source as JComboBox<*>
-					comboBox.setSelectedIndex(max(0, min(comboBox.selectedIndex + it.wheelRotation, comboBox.itemCount - 1)))
-				}
 				val doubleNumberScrollListener: (e: MouseWheelEvent) -> Unit = {
 					val spinner = it.source as JSpinner
 					val model = spinner.model as SpinnerNumberModel
@@ -47,27 +43,23 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 					comboBox(listOf(1, 2, 3, 4)).label(message("settings.pixels"))
 						.bindItem(config::pixelsPerLine.toNullableProperty())
 						.accessibleName(message("settings.pixels"))
-						.applyToComponent { addMouseWheelListener(scrollListener) }
 				}, {
 					val items = listOf(message("settings.alignment.right"), message("settings.alignment.left"))
 					comboBox(items).label(message("settings.alignment"))
 						.bindItem({ if (config.isRightAligned) items[0] else items[1] },
 							{ config.isRightAligned = it == items[0] })
 						.accessibleName(message("settings.alignment"))
-						.applyToComponent { addMouseWheelListener(scrollListener) }
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
 					comboBox(MouseJumpEnum.values().map { it.getMessage() }).label(message("settings.jump"))
-						.bindItem({ config.jumpOnMouseDown.getMessage() }, { config.jumpOnMouseDown = MouseJumpEnum.findMouseJumpEnum(it) })
+						.bindItem({ config.jumpOnMouseDown.getMessage() }, { config.jumpOnMouseDown = MouseJumpEnum.findEnum(it) })
 						.accessibleName(message("settings.jump"))
-						.applyToComponent { addMouseWheelListener(scrollListener) }
 				}, {
 					val items = arrayOf("Clean", "Accurate")
 					comboBox(DefaultComboBoxModel(items)).label(message("settings.render"))
 						.bindItem({ if (config.clean) items[0] else items[1] },
 							{ config.clean = it == items[0] })
 						.accessibleName(message("settings.render"))
-						.applyToComponent { addMouseWheelListener(scrollListener) }
 				}).bottomGap(BottomGap.SMALL)
 				val numberScrollListener: (e: MouseWheelEvent) -> Unit = {
 					val spinner = it.source as JSpinner
@@ -128,7 +120,6 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 					comboBox(listOf(0, 1, 2, 3, 4)).label(message("settings.viewport.border.thickness"))
 						.bindItem(config::viewportBorderThickness.toNullableProperty())
 						.accessibleName(message("settings.viewport.border.thickness"))
-						.applyToComponent { addMouseWheelListener(scrollListener) }
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
 					spinner(0..2000, 50).label(message("popup.hover.minimap.delay"))
@@ -148,6 +139,11 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 							toolTipText = "Scale factor for font of markers in minimap[2 - 10]"
 							addMouseWheelListener(doubleNumberScrollListener)
 						}
+				}).bottomGap(BottomGap.SMALL)
+				twoColumnsRow({
+					comboBox(ClickTypeEnum.values().map { it.getMessage() }).label(message("settings.click"))
+						.bindItem({ config.clickType.getMessage() }, { config.clickType = ClickTypeEnum.findEnum(it) })
+						.accessibleName(message("settings.click"))
 				}).bottomGap(BottomGap.SMALL)
 				row {
 					textField().label(message("settings.disabled.language"))
