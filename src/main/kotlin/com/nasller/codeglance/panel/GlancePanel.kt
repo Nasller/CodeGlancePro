@@ -78,7 +78,6 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	private fun updateImgTask(updateScroll: Boolean = false) {
 		try {
 			if (updateScroll) updateScrollState()
-			alarm.cancelAllRequests()
 			minimap.update()
 		} finally {
 			lock.set(false)

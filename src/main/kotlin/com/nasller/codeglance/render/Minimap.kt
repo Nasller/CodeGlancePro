@@ -113,8 +113,7 @@ class Minimap(private val glancePanel: GlancePanel){
 					}
 					var hasBlock = false
 					while (!hlIter.atEnd() && hlIter.start < if(hasBlock) commentData.jumpStartOffset else commentData.jumpEndOffset) {
-						val tempEnd = hlIter.end
-						for(offset in hlIter.start until tempEnd) {
+						for(offset in hlIter.start until  hlIter.end) {
 							moveCharIndex(text[offset].code) { if (hasBlockInlay) {
 								val startOffset = offset + 1
 								val sumBlock = editor.inlayModel.getBlockElementsInRange(startOffset, DocumentUtil.getLineEndOffset(startOffset, editor.document))
