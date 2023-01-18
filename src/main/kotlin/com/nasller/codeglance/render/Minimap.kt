@@ -50,6 +50,7 @@ class Minimap(private val glancePanel: GlancePanel){
 		var x = 0
 		var y = 0
 		var skipY = 0
+		var lineNumber = 0
 		val myRangeList = lazy(LazyThreadSafetyMode.NONE){ mutableListOf<Pair<Int,Range<Int>>>() }
 		val moveCharIndex = { code: Int,enterAction: (()->Unit)? ->
 			when (code) {
@@ -72,7 +73,12 @@ class Minimap(private val glancePanel: GlancePanel){
 		val highlight = makeMarkHighlight(text,lineCount,g)
 		loop@ while (!hlIter.atEnd() && !editor.isDisposed) {
 			val start = hlIter.start
-			y = editor.document.getLineNumber(start) * config.pixelsPerLine + skipY
+			//#69 fix log file of the ideolog plugin
+			editor.document.getLineNumber(start).let {
+				if(it != lineNumber && x > 0) x = 0
+				lineNumber = it
+				y = it * config.pixelsPerLine + skipY
+			}
 			val color by lazy(LazyThreadSafetyMode.NONE){ try {
 				hlIter.textAttributes.foregroundColor
 			} catch (_: ConcurrentModificationException){ null } }
