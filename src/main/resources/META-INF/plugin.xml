@@ -62,7 +62,7 @@
 	<depends>com.intellij.modules.lang</depends>
 
 	<applicationListeners>
-		<listener topic="com.intellij.openapi.project.ProjectManagerListener" class="com.nasller.codeglance.CodeGlancePlugin"/>
+		<listener topic="com.intellij.openapi.project.ProjectCloseListener" class="com.nasller.codeglance.CodeGlancePlugin"/>
 	</applicationListeners>
 
 	<actions>
@@ -75,6 +75,7 @@
 	</actions>
 
 	<extensions defaultExtensionNs="com.intellij">
+		<postStartupActivity implementation="com.nasller.codeglance.CodeGlancePlugin" order="last"/>
 		<applicationConfigurable instance="com.nasller.codeglance.config.CodeGlanceConfigurable" />
 		<iw.actionProvider implementation="com.nasller.codeglance.extensions.GlanceVisibleActionProvider"/>
 		<colorSettingsPage implementation="com.nasller.codeglance.config.CodeGlanceColorsPage"/>

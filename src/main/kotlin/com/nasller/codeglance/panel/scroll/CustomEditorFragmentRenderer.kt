@@ -99,7 +99,7 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 
 		@DirtyUI
 		override fun getPreferredSize(): Dimension {
-			var width = ((myEditor.gutterComponentEx as EditorGutterComponentEx).width + myEditor.scrollingModel.visibleArea.width
+			var width = (myEditor.gutterComponentEx.width + myEditor.scrollingModel.visibleArea.width
 					- myEditor.scrollPane.verticalScrollBar.width)
 			width -= JBUIScale.scale(EDITOR_FRAGMENT_POPUP_BORDER) * 2 + myContentInsets
 			return Dimension(width - BalloonImpl.POINTER_LENGTH.get(),
