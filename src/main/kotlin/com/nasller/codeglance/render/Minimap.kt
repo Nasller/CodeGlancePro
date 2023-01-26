@@ -12,7 +12,6 @@ import com.intellij.psi.PsiComment
 import com.intellij.psi.util.findParentOfType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
-import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.lateinitVal
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.config.CodeGlanceColorsPage
@@ -27,20 +26,21 @@ class Minimap(private val glancePanel: GlancePanel){
 	private val editor = glancePanel.editor
 	private val config = glancePanel.config
 	private val scaleBuffer = FloatArray(4)
-	private var preBuffer : BufferedImage? = null
+	private val isLogFile = editor.virtualFile.fileType::class.qualifiedName?.contains("ideolog") ?: false
 	val markCommentMap = hashMapOf<Long,RangeHighlighterEx>()
 	var img = lazy(LazyThreadSafetyMode.NONE) { getBufferedImage() }
-	var rangeList: MutableList<Pair<Int, Range<Int>>> = ContainerUtil.emptyList()
+	val rangeList = mutableListOf<Pair<Int,Range<Int>>>()
 
 	fun update() {
 		val lineCount = editor.document.lineCount
 		if(lineCount <= 0) return
 		var curImg = img.value
 		if (curImg.height < glancePanel.scrollState.documentHeight || curImg.width < config.width) {
-			preBuffer = curImg
+			curImg.flush()
 			curImg = getBufferedImage()
+			img = lazyOf(curImg)
 		}
-
+		if(rangeList.size > 0) rangeList.clear()
 		val text = editor.document.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val hlIter = editor.highlighter.createIterator(0)
@@ -51,7 +51,6 @@ class Minimap(private val glancePanel: GlancePanel){
 		var y = 0
 		var skipY = 0
 		var lineNumber = 0
-		val myRangeList = lazy(LazyThreadSafetyMode.NONE){ mutableListOf<Pair<Int,Range<Int>>>() }
 		val moveCharIndex = { code: Int,enterAction: (()->Unit)? ->
 			when (code) {
 				9 -> x += 4//TAB
@@ -75,8 +74,10 @@ class Minimap(private val glancePanel: GlancePanel){
 			val start = hlIter.start
 			//#69 fix log file of the ideolog plugin
 			editor.document.getLineNumber(start).let {
-				if(it != lineNumber && x > 0) x = 0
-				lineNumber = it
+				if(isLogFile && it != lineNumber && x > 0) {
+					x = 0
+					lineNumber = it
+				}
 				y = it * config.pixelsPerLine + skipY
 			}
 			val color by lazy(LazyThreadSafetyMode.NONE){ try {
@@ -100,7 +101,7 @@ class Minimap(private val glancePanel: GlancePanel){
 					val heightLine = (region.heightInPixels * glancePanel.scrollState.scale).roundToInt()
 					skipY -= (foldLine + 1) * config.pixelsPerLine - heightLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
-					myRangeList.value.add(Pair(editor.offsetToVisualLine(endOffset),
+					rangeList.add(Pair(editor.offsetToVisualLine(endOffset),
 						Range(y,editor.document.getLineNumber(hlIter.start) * config.pixelsPerLine + skipY)))
 					//this is render document
 					val line = startLineNumber - 1 + (heightLine / config.pixelsPerLine)
@@ -126,7 +127,7 @@ class Minimap(private val glancePanel: GlancePanel){
 									.filter { it.placement == Inlay.Placement.ABOVE_LINE }
 									.sumOf { (it.heightInPixels * glancePanel.scrollState.scale).roundToInt() }
 								if (sumBlock > 0) {
-									myRangeList.value.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
+									rangeList.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
 									y += sumBlock
 									skipY += sumBlock
 									hasBlock = true
@@ -151,7 +152,7 @@ class Minimap(private val glancePanel: GlancePanel){
 									.filter { it.placement == Inlay.Placement.ABOVE_LINE }
 									.sumOf { (it.heightInPixels * glancePanel.scrollState.scale).roundToInt() }
 								if (sumBlock > 0) {
-									myRangeList.value.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
+									rangeList.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
 									y += sumBlock
 									skipY += sumBlock
 								}
@@ -167,12 +168,6 @@ class Minimap(private val glancePanel: GlancePanel){
 			}
 		}
 		g.dispose()
-		preBuffer?.let {
-			img = lazyOf(curImg)
-			preBuffer = null
-			it.flush()
-		}
-		if(myRangeList.isInitialized()) rangeList = myRangeList.value
 	}
 
 	private fun makeMarkHighlight(text: CharSequence,lineCount: Int,graphics: Graphics2D):Map<Int,MarkCommentData>{

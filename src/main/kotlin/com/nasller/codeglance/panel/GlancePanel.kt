@@ -210,7 +210,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		editor.markupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
 			it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
 				val highlightColor = RangeHighlightColor(it, this)
-				map.compute(highlightColor.startOffset.toString() + highlightColor.endOffset) { _, layer ->
+				map.compute("${highlightColor.startOffset}-${highlightColor.endOffset}") { _, layer ->
 					if (layer == null || layer < it.layer) {
 						drawMarkupLine(highlightColor)
 						return@compute it.layer
