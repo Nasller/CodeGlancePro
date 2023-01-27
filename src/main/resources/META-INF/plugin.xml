@@ -65,6 +65,10 @@
 		<listener topic="com.intellij.openapi.project.ProjectCloseListener" class="com.nasller.codeglance.CodeGlancePlugin"/>
 	</applicationListeners>
 
+	<projectListeners>
+		<listener class="com.nasller.codeglance.EditorPanelInjector" topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+	</projectListeners>
+
 	<actions>
 		<action id="CodeGlance.toggle" text="Toggle Current CodeGlance" class="com.nasller.codeglance.actions.ToggleVisibleAction" description="Toggles current CodeGlance on and off">
 			<keyboard-shortcut first-keystroke="control shift G" keymap="$default" />
@@ -75,7 +79,6 @@
 	</actions>
 
 	<extensions defaultExtensionNs="com.intellij">
-		<postStartupActivity implementation="com.nasller.codeglance.CodeGlancePlugin" order="last"/>
 		<applicationConfigurable instance="com.nasller.codeglance.config.CodeGlanceConfigurable" />
 		<iw.actionProvider implementation="com.nasller.codeglance.extensions.GlanceVisibleActionProvider"/>
 		<colorSettingsPage implementation="com.nasller.codeglance.config.CodeGlanceColorsPage"/>
