@@ -10,7 +10,7 @@ plugins {
 	// Kotlin support
 	id("org.jetbrains.kotlin.jvm") version "1.8.0"
 	// Gradle IntelliJ Plugin
-	id("org.jetbrains.intellij") version "1.13.0"
+	id("org.jetbrains.intellij") version "1.13.1"
 }
 
 group = properties("pluginGroup")
