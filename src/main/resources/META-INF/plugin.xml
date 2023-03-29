@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.6.1</h3>
+		<ul>
+			<li>support IDE 2023.1</li>
+		</ul>
 		<h3>1.6.0</h3>
 		<ul>
 			<li>fix log file of the ideolog plugin</li>
@@ -50,12 +54,6 @@
 			<li>MARK labels support(like xcode).</li>
 			<li>fix <a href="https://github.com/Nasller/CodeGlancePro/issues/56">#56</a></li>
 			<li>fix <a href="https://github.com/Nasller/CodeGlancePro/issues/57">#57</a></li>
-		</ul>
-		<h3>1.5.4</h3>
-		<ul>
-			<li>Delay show minimap on scrollbar hover config.</li>
-			<li>Disable language extension name config.</li>
-			<li>remove minimap soft reference.</li>
 		</ul>
 	]]></change-notes>
 
