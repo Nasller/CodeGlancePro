@@ -3,6 +3,7 @@ package com.nasller.codeglance
 import com.intellij.ide.ui.LafManager
 import com.intellij.ide.ui.LafManagerListener
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -22,6 +23,13 @@ import javax.swing.JPanel
 class EditorPanelInjector(private val project: Project) : FileEditorManagerListener,SettingsChangeListener,LafManagerListener,Disposable {
     private val logger = Logger.getInstance(javaClass)
     private var isFirstSetup = true
+    init {
+        CodeGlancePlugin.projectMap[project] = this
+        ApplicationManager.getApplication().messageBus.connect(this).apply {
+            subscribe(LafManagerListener.TOPIC, this@EditorPanelInjector)
+            subscribe(SettingsChangeListener.TOPIC, this@EditorPanelInjector)
+        }
+    }
 
     /** FileEditorManagerListener */
     override fun fileOpened(fem: FileEditorManager, virtualFile: VirtualFile) {
