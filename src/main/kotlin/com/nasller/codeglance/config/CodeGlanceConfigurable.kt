@@ -176,6 +176,11 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 						.gap(RightGap.SMALL)
 					contextHelp(message("settings.highlight.markup.desc"))
 				})
+				threeColumnsRow({
+					checkBox(message("settings.highlight.syntax"))
+						.bindSelected(config::syntaxHighlight)
+						.gap(RightGap.SMALL)
+				})
 			}
 		}
 	}

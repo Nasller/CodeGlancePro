@@ -138,7 +138,7 @@ class Minimap(private val glancePanel: GlancePanel){
 					}
 				} else {
 					val end = hlIter.end
-					val highlightList = getHighlightColor(start, end)
+					val highlightList = if(config.syntaxHighlight) getHighlightColor(start, end) else emptyList()
 					for(offset in start until end) {
 						// Watch out for tokens that extend past the document
 						if (offset >= text.length) break@loop

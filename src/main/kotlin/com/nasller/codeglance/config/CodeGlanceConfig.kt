@@ -34,13 +34,14 @@ class CodeGlanceConfig : BaseState() {
 	var disableLanguageSuffix by nonNullString("ipynb")
 	var clean by property(true)
 	var locked by property(false)
+	var syntaxHighlight by property(true)
 
 	fun singleFileVisibleButton() = !hoveringToShowScrollBar && singleFileVisibleButton
 
 	private fun nonNullString(initialValue: String = "") = property(initialValue) { it == initialValue }
 }
 
-val SettingsChangePublisher = ApplicationManager.getApplication().messageBus.syncPublisher(SettingsChangeListener.TOPIC)
+val SettingsChangePublisher: SettingsChangeListener = ApplicationManager.getApplication().messageBus.syncPublisher(SettingsChangeListener.TOPIC)
 
 interface SettingsChangeListener {
 	fun onHoveringOriginalScrollBarChanged(value: Boolean) {}
