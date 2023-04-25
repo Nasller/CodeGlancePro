@@ -153,7 +153,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		}
 	}
 
-	private fun Graphics2D.paintSelection() {
+	private fun Graphics2D.paintSelection(existLine: MutableSet<Int>) {
 		for ((index, startByte) in editor.selectionModel.blockSelectionStarts.withIndex()) {
 			val endByte = editor.selectionModel.blockSelectionEnds[index]
 			val start = editor.offsetToVisualPosition(startByte)
@@ -179,25 +179,31 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 						fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
 					}
 				}
+				existLine.addAll(start.line..end.line)
 			}
 		}
 	}
 
-	private fun Graphics2D.paintCaretPosition() {
+	private fun Graphics2D.paintCaretPosition(existLine: MutableSet<Int>) {
 		setGraphics2DInfo(srcOver, editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR))
 		editor.caretModel.allCarets.forEach {
-			val documentLine = getMyRenderLine(it.visualPosition.line, it.visualPosition.line)
-			val start = it.visualPosition.line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
-			if (start >= 0) fillRect(0, start, width, config.pixelsPerLine)
+			val line = it.visualPosition.line
+			val documentLine = getMyRenderLine(line, line)
+			val start = line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
+			if (start >= 0) {
+				fillRect(0, start, width, config.pixelsPerLine)
+				existLine.add(line)
+			}
 		}
 	}
 
-	private fun Graphics2D.paintEditorFilterMarkupModel(rangeOffset: Range<Int>) {
+	private fun Graphics2D.paintEditorFilterMarkupModel(rangeOffset: Range<Int>,existLine: MutableSet<Int>) {
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
 			if (!it.isThinErrorStripeMark && it.layer >= HighlighterLayer.CARET_ROW) {
 				it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-					val highlightColor = RangeHighlightColor(it, this,
-						config.showFullLineHighlight && (config.hideOriginalScrollBar || HighlightInfo.fromRangeHighlighter(it) == null))
+					val highlightColor = RangeHighlightColor(it, this, config.showErrorStripesFullLineHighlight &&
+							(config.hideOriginalScrollBar || HighlightInfo.fromRangeHighlighter(it) == null),
+						it.targetArea == HighlighterTargetArea.EXACT_RANGE, existLine)
 					drawMarkupLine(highlightColor)
 				}
 			}
@@ -205,11 +211,11 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		}
 	}
 
-	private fun Graphics2D.paintEditorMarkupModel(rangeOffset: Range<Int>) {
+	private fun Graphics2D.paintEditorMarkupModel(rangeOffset: Range<Int>,existLine: MutableSet<Int>) {
 		val map by lazy { hashMapOf<String, Int>() }
 		editor.markupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
 			it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-				val highlightColor = RangeHighlightColor(it, this)
+				val highlightColor = RangeHighlightColor(it, this, config.showOtherFullLineHighlight,false, existLine)
 				map.compute("${highlightColor.startOffset}-${highlightColor.endOffset}") { _, layer ->
 					if (layer == null || layer < it.layer) {
 						drawMarkupLine(highlightColor)
@@ -309,10 +315,11 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	private fun Graphics2D.paintSomething() {
 		val rangeOffset = getVisibleRangeOffset()
 		if (!config.hideOriginalScrollBar) paintVcs(rangeOffset,width)
-		if (editor.selectionModel.hasSelection()) paintSelection()
-		else paintCaretPosition()
-		if(config.showFilterMarkupHighlight) paintEditorFilterMarkupModel(rangeOffset)
-		if(config.showMarkupHighlight) paintEditorMarkupModel(rangeOffset)
+		val existLine by lazy { mutableSetOf<Int>() }
+		if (editor.selectionModel.hasSelection()) paintSelection(existLine)
+		else paintCaretPosition(existLine)
+		if(config.showMarkupHighlight) paintEditorMarkupModel(rangeOffset,existLine)
+		if(config.showFilterMarkupHighlight) paintEditorFilterMarkupModel(rangeOffset,existLine)
 	}
 
 	override fun dispose() {
@@ -325,9 +332,15 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		minimap.markCommentMap.clear()
 	}
 
-	private inner class RangeHighlightColor(val startOffset: Int, val endOffset: Int, val color: Color, val fullLine: Boolean, val fullLineWithActualHighlight: Boolean) {
-		constructor(it: RangeHighlighterEx, color: Color) : this(it.startOffset, it.endOffset, color, false, false)
-		constructor(it: RangeHighlighterEx, color: Color, fullLine: Boolean) : this(it.startOffset, it.endOffset, color, fullLine, it.targetArea == HighlighterTargetArea.EXACT_RANGE)
+	private inner class RangeHighlightColor(val startOffset: Int, val endOffset: Int, val color: Color, var fullLine: Boolean, val fullLineWithActualHighlight: Boolean) {
+		constructor(it: RangeHighlighterEx, color: Color, fullLine: Boolean,fullLineWithActualHighlight: Boolean,existLine: MutableSet<Int>) :
+				this(it.startOffset, it.endOffset, color, fullLine, fullLineWithActualHighlight) {
+			if (fullLine) {
+				val elements = startVis.line..startVis.line
+				if (elements.any { existLine.contains(it) }) this@RangeHighlightColor.fullLine = false
+				else existLine.addAll(elements)
+			}
+		}
 
 		val startVis by lazy { editor.offsetToVisualPosition(startOffset) }
 		val endVis by lazy { editor.offsetToVisualPosition(endOffset) }

@@ -41,22 +41,29 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
                     SettingsChangePublisher.onHoveringOriginalScrollBarChanged(selected)
                 }
             }),
-            object : DumbAwareToggleAction(message("popup.showFullLineHighlight")){
-                override fun isSelected(e: AnActionEvent): Boolean = config.showFullLineHighlight
-
+            object : DumbAwareToggleAction(message("popup.showErrorStripesFullLineHighlight")){
+                override fun isSelected(e: AnActionEvent): Boolean = config.showErrorStripesFullLineHighlight
                 override fun setSelected(e: AnActionEvent, state: Boolean) {
-                    config.showFullLineHighlight = state
+                    config.showErrorStripesFullLineHighlight = state
                 }
+                override fun getActionUpdateThread() = ActionUpdateThread.BGT
+            },
+            object : DumbAwareToggleAction(message("popup.showOtherFullLineHighlight")){
+                override fun isSelected(e: AnActionEvent): Boolean = config.showOtherFullLineHighlight
+                override fun setSelected(e: AnActionEvent, state: Boolean) {
+                    config.showOtherFullLineHighlight = state
+                }
+                override fun getActionUpdateThread() = ActionUpdateThread.BGT
             },
             object : DumbAwareToggleAction(message("popup.autoCalculateWidth")){
                 override fun isSelected(e: AnActionEvent): Boolean = config.autoCalWidthInSplitterMode
-
                 override fun setSelected(e: AnActionEvent, state: Boolean) {
                     config.autoCalWidthInSplitterMode = state
                     if(!config.hoveringToShowScrollBar) {
                         SettingsChangePublisher.refresh(directUpdate = false)
                     }
                 }
+                override fun getActionUpdateThread() = ActionUpdateThread.BGT
             },
             DumbAwareToggleOptionAction(object : ToggleOptionAction.Option {
                 override fun getName(): String = message("popup.singleFileVisibleButton")

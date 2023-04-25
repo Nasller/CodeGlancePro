@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.6.2</h3>
+		<ul>
+			<li>Show other full line highlight</li>
+		</ul>
 		<h3>1.6.1</h3>
 		<ul>
 			<li>support IDE 2023.1</li>
@@ -45,16 +49,6 @@
 		<ul>
 			<li>Enable Marker option</li>
 			<li>add a Toggle all CodeGlance action</li>
-		</ul>
-		<h3>1.5.6</h3>
-		<ul>
-			<li>fix <a href="https://github.com/Nasller/CodeGlancePro/issues/58">#58</a></li>
-		</ul>
-		<h3>1.5.5</h3>
-		<ul>
-			<li>MARK labels support(like xcode).</li>
-			<li>fix <a href="https://github.com/Nasller/CodeGlancePro/issues/56">#56</a></li>
-			<li>fix <a href="https://github.com/Nasller/CodeGlancePro/issues/57">#57</a></li>
 		</ul>
 	]]></change-notes>
 
