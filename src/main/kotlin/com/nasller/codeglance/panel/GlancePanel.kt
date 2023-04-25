@@ -194,6 +194,19 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		}
 	}
 
+	private fun Graphics2D.paintEditorFilterMarkupModel(rangeOffset: Range<Int>,existLine: MutableSet<Int>) {
+		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
+			if (!it.isThinErrorStripeMark && it.layer >= HighlighterLayer.CARET_ROW) {
+				it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
+					val highlightColor = RangeHighlightColor(it, this, config.showErrorStripesFullLineHighlight &&
+							(config.hideOriginalScrollBar || HighlightInfo.fromRangeHighlighter(it) == null), existLine)
+					drawMarkupLine(highlightColor)
+				}
+			}
+			return@processRangeHighlightersOverlappingWith true
+		}
+	}
+
 	private fun Graphics2D.paintEditorMarkupModel(rangeOffset: Range<Int>,existLine: MutableSet<Int>) {
 		val map by lazy { hashMapOf<String, Int>() }
 		editor.markupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
@@ -205,19 +218,6 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 						return@compute it.layer
 					}
 					return@compute layer
-				}
-			}
-			return@processRangeHighlightersOverlappingWith true
-		}
-	}
-
-	private fun Graphics2D.paintEditorFilterMarkupModel(rangeOffset: Range<Int>,existLine: MutableSet<Int>) {
-		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
-			if (!it.isThinErrorStripeMark && it.layer >= HighlighterLayer.CARET_ROW) {
-				it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-					val highlightColor = RangeHighlightColor(it, this, config.showErrorStripesFullLineHighlight &&
-							(config.hideOriginalScrollBar || HighlightInfo.fromRangeHighlighter(it) == null), existLine)
-					drawMarkupLine(highlightColor)
 				}
 			}
 			return@processRangeHighlightersOverlappingWith true
@@ -314,8 +314,8 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		val existLine by lazy { mutableSetOf<Int>() }
 		if (editor.selectionModel.hasSelection()) paintSelection(existLine)
 		else paintCaretPosition()
-		if(config.showMarkupHighlight) paintEditorMarkupModel(rangeOffset,existLine)
 		if(config.showFilterMarkupHighlight) paintEditorFilterMarkupModel(rangeOffset,existLine)
+		if(config.showMarkupHighlight) paintEditorMarkupModel(rangeOffset,existLine)
 	}
 
 	override fun dispose() {
