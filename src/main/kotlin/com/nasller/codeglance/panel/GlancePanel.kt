@@ -184,16 +184,13 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		}
 	}
 
-	private fun Graphics2D.paintCaretPosition(existLine: MutableSet<Int>) {
+	private fun Graphics2D.paintCaretPosition() {
 		setGraphics2DInfo(srcOver, editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR))
 		editor.caretModel.allCarets.forEach {
 			val line = it.visualPosition.line
 			val documentLine = getMyRenderLine(line, line)
 			val start = line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
-			if (start >= 0) {
-				fillRect(0, start, width, config.pixelsPerLine)
-				existLine.add(line)
-			}
+			if (start >= 0) fillRect(0, start, width, config.pixelsPerLine)
 		}
 	}
 
@@ -215,7 +212,8 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		val map by lazy { hashMapOf<String, Int>() }
 		editor.markupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
 			it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-				val highlightColor = RangeHighlightColor(it, this, config.showOtherFullLineHighlight,false, existLine)
+				val highlightColor = RangeHighlightColor(it, this, config.showOtherFullLineHighlight,
+					config.showOtherFullLineHighlight && it.targetArea == HighlighterTargetArea.EXACT_RANGE, existLine)
 				map.compute("${highlightColor.startOffset}-${highlightColor.endOffset}") { _, layer ->
 					if (layer == null || layer < it.layer) {
 						drawMarkupLine(highlightColor)
@@ -317,7 +315,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		if (!config.hideOriginalScrollBar) paintVcs(rangeOffset,width)
 		val existLine by lazy { mutableSetOf<Int>() }
 		if (editor.selectionModel.hasSelection()) paintSelection(existLine)
-		else paintCaretPosition(existLine)
+		else paintCaretPosition()
 		if(config.showMarkupHighlight) paintEditorMarkupModel(rangeOffset,existLine)
 		if(config.showFilterMarkupHighlight) paintEditorFilterMarkupModel(rangeOffset,existLine)
 	}
