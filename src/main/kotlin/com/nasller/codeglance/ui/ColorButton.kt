@@ -1,7 +1,7 @@
 package com.nasller.codeglance.ui
 
 import com.intellij.ide.IdeBundle
-import com.intellij.ui.ColorChooser
+import com.intellij.ui.ColorPicker
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.ui.tabs.ColorButtonBase
@@ -17,7 +17,8 @@ class ColorButton(text: String, color: Color) :ColorButtonBase(text, color){
 		border = BorderFactory.createEmptyBorder()
 	}
 	override fun doPerformAction(e: ActionEvent) {
-		ColorChooser.chooseColor(this, IdeBundle.message("dialog.title.choose.color"), myColor)?.let {
+		ColorPicker.showDialog(this, IdeBundle.message("dialog.title.choose.color"), myColor,
+			false, emptyList(), false)?.let {
 			myColor = it
 			text = ColorUtil.toHex(it)
 		}

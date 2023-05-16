@@ -5,7 +5,7 @@ import com.intellij.ui.scale.ScaleContext
 import com.nasller.codeglance.render.Minimap
 import java.util.function.Function
 
-internal class MinimapRef(minimap: Minimap) : SoftReference<Minimap?>(minimap) {
+internal class MinimapRef(minimap: Minimap) : java.lang.ref.SoftReference<Minimap?>(minimap) {
 	private var strongRef: Minimap?
 
 	init {
