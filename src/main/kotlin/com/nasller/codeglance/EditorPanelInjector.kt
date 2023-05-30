@@ -37,7 +37,7 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         val extension = virtualFile.fileType.defaultExtension
         if(extension.isNotBlank() && config.disableLanguageSuffix.split(",").toSet().contains(extension)) return
         val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
-        for (textEditor in fem.getEditors(virtualFile).filterIsInstance<TextEditor>()) {
+        for (textEditor in fem.getAllEditors(virtualFile).filterIsInstance<TextEditor>()) {
             val editor = textEditor.editor as? EditorImpl
             val layout = (editor?.component as? JPanel)?.layout
             if (layout is BorderLayout && layout.getLayoutComponent(where) == null) {
