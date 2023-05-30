@@ -58,7 +58,7 @@
 	</applicationListeners>
 
 	<projectListeners>
-		<listener class="com.nasller.codeglance.EditorPanelInjector" topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+		<listener class="com.nasller.codeglance.EditorPanelInjector" topic="com.intellij.openapi.fileEditor.FileOpenedSyncListener"/>
 	</projectListeners>
 
 	<actions>

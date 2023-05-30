@@ -7,8 +7,9 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.FileEditorManager
-import com.intellij.openapi.fileEditor.FileEditorManagerListener
+import com.intellij.openapi.fileEditor.FileOpenedSyncListener
 import com.intellij.openapi.fileEditor.TextEditor
+import com.intellij.openapi.fileEditor.ex.FileEditorWithProvider
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
@@ -20,7 +21,7 @@ import java.awt.BorderLayout
 import java.awt.Component
 import javax.swing.JPanel
 
-class EditorPanelInjector(private val project: Project) : FileEditorManagerListener,SettingsChangeListener,LafManagerListener,Disposable {
+class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener,SettingsChangeListener,LafManagerListener,Disposable {
     private val logger = Logger.getInstance(javaClass)
     private var isFirstSetup = true
     init {
@@ -31,13 +32,13 @@ class EditorPanelInjector(private val project: Project) : FileEditorManagerListe
         }
     }
 
-    /** FileEditorManagerListener */
-    override fun fileOpened(fem: FileEditorManager, virtualFile: VirtualFile) {
+    /** FileOpenedSyncListener */
+    override fun fileOpenedSync(source: FileEditorManager, file: VirtualFile, editorsWithProviders: List<FileEditorWithProvider>) {
         val config = ConfigInstance.state
-        val extension = virtualFile.fileType.defaultExtension
+        val extension = file.fileType.defaultExtension
         if(extension.isNotBlank() && config.disableLanguageSuffix.split(",").toSet().contains(extension)) return
         val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
-        for (textEditor in fem.getAllEditors(virtualFile).filterIsInstance<TextEditor>()) {
+        for (textEditor in source.getAllEditors(file).filterIsInstance<TextEditor>()) {
             val editor = textEditor.editor as? EditorImpl
             val layout = (editor?.component as? JPanel)?.layout
             if (layout is BorderLayout && layout.getLayoutComponent(where) == null) {
