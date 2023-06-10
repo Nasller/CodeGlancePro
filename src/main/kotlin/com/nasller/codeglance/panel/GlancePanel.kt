@@ -17,7 +17,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.util.Range
 import com.intellij.util.SingleAlarm
 import com.nasller.codeglance.EditorPanelInjector
-import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
+import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.listener.GlanceListener
 import com.nasller.codeglance.listener.HideScrollBarListener
 import com.nasller.codeglance.panel.scroll.ScrollBar
@@ -31,7 +31,7 @@ import javax.swing.JPanel
 class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disposable {
 	var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
 	val psiDocumentManager: PsiDocumentManager = PsiDocumentManager.getInstance(project)
-	val config = ConfigInstance.state
+	val config = CodeGlanceConfigService.getConfig()
 	val scrollState = ScrollState()
 	val isDisabled
 		get() = config.disabled || editor.document.lineCount > config.maxLinesCount

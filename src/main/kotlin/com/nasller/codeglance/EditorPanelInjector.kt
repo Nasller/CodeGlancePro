@@ -13,7 +13,7 @@ import com.intellij.openapi.fileEditor.ex.FileEditorWithProvider
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
-import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
+import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
@@ -34,7 +34,7 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
 
     /** FileOpenedSyncListener */
     override fun fileOpenedSync(source: FileEditorManager, file: VirtualFile, editorsWithProviders: List<FileEditorWithProvider>) {
-        val config = ConfigInstance.state
+        val config = CodeGlanceConfigService.getConfig()
         val extension = file.fileType.defaultExtension
         if(extension.isNotBlank() && config.disableLanguageSuffix.split(",").toSet().contains(extension)) return
         val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
@@ -51,8 +51,9 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
 
     /** SettingsChangeListener */
     override fun onGlobalChanged() {
-        val where = if (ConfigInstance.state.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
-        val disable = ConfigInstance.state.disableLanguageSuffix.split(",").toSet()
+        val config = CodeGlanceConfigService.getConfig()
+        val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
+        val disable = config.disableLanguageSuffix.split(",").toSet()
         processAllGlanceEditor { component, editor->
             if(component != null) editor.component.remove(component)
             val oldGlancePanel = component?.applyGlancePanel { Disposer.dispose(this) }
@@ -92,7 +93,7 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
 
     private fun getMyPanel(editor: EditorImpl): JPanel {
         val glancePanel = GlancePanel(project, editor)
-        val jPanel = if (ConfigInstance.state.hideOriginalScrollBar) MyPanel(glancePanel).apply {
+        val jPanel = if (CodeGlanceConfigService.getConfig().hideOriginalScrollBar) MyPanel(glancePanel).apply {
             glancePanel.myVcsPanel = MyVcsPanel(glancePanel)
             add(glancePanel.myVcsPanel!!, BorderLayout.WEST)
         } else glancePanel

@@ -26,7 +26,7 @@
 	<change-notes><![CDATA[
 		<h3>1.6.5</h3>
 		<ul>
-			<li></li>
+			<li>Support custom markers regex.</li>
 		</ul>
 		<h3>1.6.4</h3>
 		<ul>

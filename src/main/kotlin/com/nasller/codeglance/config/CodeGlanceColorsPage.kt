@@ -23,7 +23,7 @@ class CodeGlanceColorsPage : ColorSettingsPage, DisplayPrioritySortable {
 
 	override fun getHighlighter(): SyntaxHighlighter = PlainSyntaxHighlighter()
 
-	override fun getDemoText(): String = "//MARK: - <mark_comment>This is a comment</mark_comment>"
+	override fun getDemoText(): String = "//${CodeGlanceConfigService.getConfig().markRegex} <mark_comment>This is a comment</mark_comment>"
 
 	override fun getAdditionalHighlightingTagToDescriptorMap(): MutableMap<String, TextAttributesKey> = ADDITIONAL_HIGHLIGHT_DESCRIPTORS
 

@@ -8,18 +8,11 @@ import com.nasller.codeglance.config.enums.MouseJumpEnum
 
 class CodeGlanceConfig : BaseState() {
 	var pixelsPerLine by property(4)
-	var markersScaleFactor by property(3.0f)
 	var maxLinesCount by property(100000)
 	var moreThanLineDelay by property(3000)
 	var disabled by property(false)
 	var singleFileVisibleButton by property(true)
 	var hideOriginalScrollBar by property(false)
-	var enableMarker by property(true)
-	var showFilterMarkupHighlight by property(true)
-	var showMarkupHighlight by property(true)
-	var showVcsHighlight by property(true)
-	var showErrorStripesFullLineHighlight by property(true)
-	var showOtherFullLineHighlight by property(false)
 	var autoCalWidthInSplitterMode by property(true)
 	var showEditorToolTip by property(true)
 	var mouseWheelMoveEditorToolTip by property(false)
@@ -35,7 +28,17 @@ class CodeGlanceConfig : BaseState() {
 	var disableLanguageSuffix by nonNullString("ipynb")
 	var clean by property(true)
 	var locked by property(false)
+
+	var showFilterMarkupHighlight by property(true)
+	var showMarkupHighlight by property(true)
+	var showVcsHighlight by property(true)
+	var showErrorStripesFullLineHighlight by property(true)
+	var showOtherFullLineHighlight by property(false)
 	var syntaxHighlight by property(true)
+
+	var enableMarker by property(true)
+	var markRegex by nonNullString("\\b(MARK: - )\\b*")
+	var markersScaleFactor by property(3.0f)
 
 	fun singleFileVisibleButton() = !hoveringToShowScrollBar && singleFileVisibleButton
 

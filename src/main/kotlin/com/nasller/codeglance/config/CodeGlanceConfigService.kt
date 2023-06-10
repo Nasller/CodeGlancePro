@@ -11,6 +11,8 @@ import com.intellij.openapi.components.Storage
 class CodeGlanceConfigService : SimplePersistentStateComponent<CodeGlanceConfig>(CodeGlanceConfig()) {
 	companion object {
 		@JvmStatic
-		val ConfigInstance: CodeGlanceConfigService = ApplicationManager.getApplication().getService(CodeGlanceConfigService::class.java)
+		private val ConfigInstance = ApplicationManager.getApplication().getService(CodeGlanceConfigService::class.java)
+		@JvmStatic
+		fun getConfig(): CodeGlanceConfig = ConfigInstance.state
 	}
 }

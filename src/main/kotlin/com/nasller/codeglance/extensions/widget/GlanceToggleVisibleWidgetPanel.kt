@@ -13,7 +13,7 @@ import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.openapi.wm.StatusBarWidget.WidgetPresentation
 import com.intellij.openapi.wm.impl.status.StatusBarUtil
 import com.intellij.util.Consumer
-import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
+import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.CodeGlanceIcons
@@ -26,7 +26,7 @@ class GlanceToggleVisibleWidgetPanel(private val project: Project) : StatusBarWi
 	private var myStatusBar: StatusBar? = null
 
 	override fun getIcon(): Icon? {
-		if(ConfigInstance.state.hoveringToShowScrollBar) return null
+		if(CodeGlanceConfigService.getConfig().hoveringToShowScrollBar) return null
 		return CodeGlanceIcons.Widget
 	}
 

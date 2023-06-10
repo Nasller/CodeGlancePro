@@ -14,7 +14,7 @@ abstract class MyRainbowVisitor : HighlightVisitor {
 	private var myHolder: HighlightInfoHolder? = null
 
 	override fun suitableForFile(file: PsiFile): Boolean {
-		val config = CodeGlanceConfigService.ConfigInstance.state
+		val config = CodeGlanceConfigService.getConfig()
 		return config.enableMarker && (file.fileType.defaultExtension.isBlank() || config.disableLanguageSuffix
 			.split(",").toSet().contains(file.fileType.defaultExtension).not())
 	}

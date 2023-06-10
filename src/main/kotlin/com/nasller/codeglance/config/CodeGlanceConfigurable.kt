@@ -7,9 +7,9 @@ import com.intellij.ui.ColorUtil
 import com.intellij.ui.JBColor
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.tabs.ColorButtonBase
-import com.nasller.codeglance.config.CodeGlanceConfigService.Companion.ConfigInstance
 import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
+import com.nasller.codeglance.extensions.visitor.MarkCommentVisitor
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.ui.ColorButton
 import com.nasller.codeglance.util.message
@@ -23,7 +23,7 @@ import kotlin.math.min
 
 class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com.nasller.CodeGlancePro"){
 	override fun createPanel(): DialogPanel {
-		val config = ConfigInstance.state
+		val config = CodeGlanceConfigService.getConfig()
 		return panel {
 			group(message("settings.general")) {
 				val doubleNumberScrollListener: (e: MouseWheelEvent) -> Unit = {
@@ -141,13 +141,14 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 						}
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
+					textField().label(message("settings.markers.regex")).bindText(config::markRegex).accessibleName(message("settings.markers.regex"))
+				},{
 					comboBox(ClickTypeEnum.values().map { it.getMessage() }).label(message("settings.click"))
 						.bindItem({ config.clickType.getMessage() }, { config.clickType = ClickTypeEnum.findEnum(it) })
 						.accessibleName(message("settings.click"))
 				}).bottomGap(BottomGap.SMALL)
 				row {
-					textField().label(message("settings.disabled.language"))
-						.bindText(config::disableLanguageSuffix)
+					textField().label(message("settings.disabled.language")).bindText(config::disableLanguageSuffix)
 						.accessibleName(message("settings.disabled.language"))
 				}
 			}
@@ -187,8 +188,9 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 
 	override fun apply() {
 		super.apply()
-		val config = ConfigInstance.state
+		val config = CodeGlanceConfigService.getConfig()
 		if((!config.isRightAligned || config.disabled) && config.hoveringToShowScrollBar) config.hoveringToShowScrollBar = false
+		MarkCommentVisitor.markRegex.set(Regex(config.markRegex))
 		invokeLater{ SettingsChangePublisher.onGlobalChanged() }
 	}
 }

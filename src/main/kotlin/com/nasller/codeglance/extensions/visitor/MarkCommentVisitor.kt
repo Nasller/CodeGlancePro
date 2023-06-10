@@ -7,13 +7,15 @@ import com.intellij.lang.LanguageCommenters
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.nasller.codeglance.config.CodeGlanceColorsPage
+import com.nasller.codeglance.config.CodeGlanceConfigService
+import java.util.concurrent.atomic.AtomicReference
 
 class MarkCommentVisitor : MyRainbowVisitor() {
 
 	override fun visit(element: PsiElement) {
 		if (element is PsiComment) {
 			val text = element.text
-			regex.find(text)?.let {
+			markRegex.get().find(text)?.let {
 				val textRange = element.textRange
 				val index = text.indexOf('\n',it.range.last)
 				val blockCommentSuffix by lazy(LazyThreadSafetyMode.NONE) { getLanguageBlockCommentSuffix(element.language) ?: "" }
@@ -29,8 +31,9 @@ class MarkCommentVisitor : MyRainbowVisitor() {
 
 	override fun clone(): HighlightVisitor = MarkCommentVisitor()
 
-	private companion object{
-		private val regex = Regex("\\b(MARK: - )\\b*")
+	companion object{
+		@JvmStatic
+		val markRegex = AtomicReference(Regex(CodeGlanceConfigService.getConfig().markRegex))
 
 		@JvmStatic
 		private fun getLanguageBlockCommentSuffix(language: Language) : String?{
