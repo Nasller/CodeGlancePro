@@ -190,7 +190,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 		super.apply()
 		val config = CodeGlanceConfigService.getConfig()
 		if((!config.isRightAligned || config.disabled) && config.hoveringToShowScrollBar) config.hoveringToShowScrollBar = false
-		MarkCommentVisitor.markRegex.set(Regex(config.markRegex))
+		MarkCommentVisitor.markRegex.set(if(config.markRegex.isNotBlank()) Regex(config.markRegex) else null)
 		invokeLater{ SettingsChangePublisher.onGlobalChanged() }
 	}
 }

@@ -15,7 +15,7 @@ class MarkCommentVisitor : MyRainbowVisitor() {
 	override fun visit(element: PsiElement) {
 		if (element is PsiComment) {
 			val text = element.text
-			markRegex.get().find(text)?.let {
+			markRegex.get()?.find(text)?.let {
 				val textRange = element.textRange
 				val index = text.indexOf('\n',it.range.last)
 				val blockCommentSuffix by lazy(LazyThreadSafetyMode.NONE) { getLanguageBlockCommentSuffix(element.language) ?: "" }
@@ -33,7 +33,9 @@ class MarkCommentVisitor : MyRainbowVisitor() {
 
 	companion object{
 		@JvmStatic
-		val markRegex = AtomicReference(Regex(CodeGlanceConfigService.getConfig().markRegex))
+		val markRegex = AtomicReference(CodeGlanceConfigService.getConfig().markRegex.run {
+			if(isNotBlank()) Regex(this) else null
+		})
 
 		@JvmStatic
 		private fun getLanguageBlockCommentSuffix(language: Language) : String?{
