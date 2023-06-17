@@ -228,17 +228,17 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		val start = it.startVis
 		val end = it.endVis
 		val documentLine = getMyRenderLine(start.line, end.line)
-		var sX = if (start.column > (width - minGap)) width - minGap else start.column
+		var sX = if (start.column > width - minGap) width - minGap else start.column
 		val sY = start.line * config.pixelsPerLine + documentLine.first - scrollState.visibleStart
-		var eX = if (start.column < (width - minGap)) end.column + 1 else width
+		var eX = if (end.column > width - minGap) width else end.column
 		val eY = end.line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
 		if (sY >= 0 || eY >= 0) {
 			setGraphics2DInfo(if (it.fullLine && it.fullLineWithActualHighlight) srcOver0_6 else srcOver, it.color)
 			val collapsed = editor.foldingModel.getCollapsedRegionAtOffset(it.startOffset)
 			if (sY == eY && collapsed == null) {
 				if (it.fullLineWithActualHighlight && eX - sX < minGap) {
-					eX += minGap - (eX - sX)
-					if (eX > width) sX -= eX - width
+					if(eX == width) sX = width - minGap
+					else eX += minGap - (eX - sX)
 				}
 				drawMarkOneLine(it, sY, sX, eX)
 			} else if (collapsed != null) {

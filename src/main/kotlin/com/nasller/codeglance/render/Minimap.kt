@@ -12,7 +12,6 @@ import com.intellij.psi.PsiComment
 import com.intellij.psi.util.findParentOfType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
-import com.intellij.util.lateinitVal
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.config.CodeGlanceColorsPage
 import com.nasller.codeglance.panel.GlancePanel
@@ -115,24 +114,30 @@ class Minimap(private val glancePanel: GlancePanel){
 				if(commentData != null){
 					g.font = commentData.font
 					g.drawString(commentData.comment,2,y + commentData.fontHeight)
-					if (softWrapEnable) editor.softWrapModel.getSoftWrapsForRange(start,commentData.jumpEndOffset).forEach{
-						it.chars.forEach {char -> moveCharIndex(char.code) { skipY += config.pixelsPerLine } }
+					if (softWrapEnable) {
+						val softWraps = editor.softWrapModel.getSoftWrapsForRange(start, commentData.jumpEndOffset)
+						softWraps.forEachIndexed { index, softWrap ->
+							softWrap.chars.forEach {char -> moveCharIndex(char.code) { skipY += config.pixelsPerLine } }
+							if (index == softWraps.size - 1){
+								commentData.jumpEndOffset = DocumentUtil.getLineEndOffset(softWrap.end, editor.document)
+							}
+						}
 					}
-					var hasBlock = false
-					while (!hlIter.atEnd() && hlIter.start < if(hasBlock) commentData.jumpStartOffset else commentData.jumpEndOffset) {
+					while (!hlIter.atEnd() && hlIter.start < commentData.jumpEndOffset) {
 						for(offset in hlIter.start until  hlIter.end) {
 							moveCharIndex(text[offset].code) { if (hasBlockInlay) {
 								val startOffset = offset + 1
-								val sumBlock = editor.inlayModel.getBlockElementsInRange(startOffset, DocumentUtil.getLineEndOffset(startOffset, editor.document))
+								val lineEndOffset = DocumentUtil.getLineEndOffset(startOffset, editor.document)
+								val sumBlock = editor.inlayModel.getBlockElementsInRange(startOffset, lineEndOffset)
 									.filter { it.placement == Inlay.Placement.ABOVE_LINE }
 									.sumOf { (it.heightInPixels * glancePanel.scrollState.scale).roundToInt() }
 								if (sumBlock > 0) {
 									rangeList.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
 									y += sumBlock
 									skipY += sumBlock
-									hasBlock = true
+									commentData.jumpEndOffset = lineEndOffset
 								}
-							}}
+							} }
 						}
 						hlIter.advance()
 					}
@@ -191,24 +196,13 @@ class Minimap(private val glancePanel: GlancePanel){
 					val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
 						UIUtil.getFontWithFallback(font).deriveFont(attributes.fontType, font.size2D)
 					} else font
-					val fontHeight = graphics.getFontMetrics(textFont).height / 2f
-					var jumpStartOffset by lateinitVal<Int>()
-					var jumpEndOffset by lateinitVal<Int>()
-					if (comment.textContains('\n')) {
-						jumpEndOffset = textRange.endOffset
-						jumpStartOffset = DocumentUtil.getLineStartOffset(jumpEndOffset,editor.document)
+					val line = editor.document.getLineNumber(textRange.startOffset) + (config.markersScaleFactor.toInt() - 1)
+					val jumpEndOffset = if (lineCount <= line) {
+						editor.document.getLineEndOffset(lineCount - 1)
 					} else {
-						var line = editor.document.getLineNumber(startOffset) + (fontHeight / config.pixelsPerLine).roundToInt()
-						if(lineCount == line) line -= 1
-						if (lineCount > line) {
-							jumpEndOffset = editor.document.getLineEndOffset(line)
-							jumpStartOffset = editor.document.getLineStartOffset(line)
-						} else {
-							jumpEndOffset = textRange.endOffset
-							jumpStartOffset = DocumentUtil.getLineStartOffset(jumpEndOffset,editor.document)
-						}
+						editor.document.getLineEndOffset(line)
 					}
-					map[textRange.startOffset] = MarkCommentData(jumpStartOffset, jumpEndOffset, commentText, textFont, fontHeight.roundToInt())
+					map[textRange.startOffset] = MarkCommentData(jumpEndOffset, commentText, textFont, (graphics.getFontMetrics(textFont).height / 1.5).roundToInt())
 				}
 			}
 			graphics.color = attributes.foregroundColor ?: editor.colorsScheme.defaultForeground
@@ -329,7 +323,7 @@ class Minimap(private val glancePanel: GlancePanel){
 
 	private fun getBufferedImage() = BufferedImage(config.width, glancePanel.scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 
-	private data class MarkCommentData(val jumpStartOffset: Int,val jumpEndOffset: Int,val comment: String,val font: Font,val fontHeight:Int)
+	private data class MarkCommentData(var jumpEndOffset: Int,val comment: String,val font: Font,val fontHeight:Int)
 
 	private data class RangeHighlightColor(val startOffset: Int,val endOffset: Int,val foregroundColor: Color)
 }
