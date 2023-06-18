@@ -63,7 +63,7 @@ class Minimap(private val glancePanel: GlancePanel){
 		}
 		val moveAndRenderChar = { it: Char ->
 			moveCharIndex(it.code,null)
-			curImg.renderImage(x, y, it.code, scaleBuffer)
+			curImg.renderImage(x, y, it.code)
 		}
 		val g = curImg.createGraphics()
 		g.composite = GlancePanel.CLEAR
@@ -89,13 +89,13 @@ class Minimap(private val glancePanel: GlancePanel){
 				val foldLine = editor.document.getLineNumber(endOffset) - startLineNumber
 				if(region !is CustomFoldRegionImpl){
 					if(region.placeholderText.isNotBlank()) {
-						setColorRgba(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor)
+						(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor).setColorRgba()
 						StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach(moveAndRenderChar)
 					}
 					skipY -= foldLine * config.pixelsPerLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 				} else {
-					setColorRgba(color ?: defaultColor)
+					(color ?: defaultColor).setColorRgba()
 					//jump over the fold line
 					val heightLine = (region.heightInPixels * glancePanel.scrollState.scale).roundToInt()
 					skipY -= (foldLine + 1) * config.pixelsPerLine - heightLine
@@ -162,10 +162,10 @@ class Minimap(private val glancePanel: GlancePanel){
 									skipY += sumBlock
 								}
 						}}
-						curImg.renderImage(x, y, charCode, scaleBuffer) {
-							setColorRgba(highlightList.firstOrNull {
+						curImg.renderImage(x, y, charCode) {
+							(highlightList.firstOrNull {
 								offset >= it.startOffset && offset < it.endOffset
-							}?.foregroundColor ?: color ?: defaultColor)
+							}?.foregroundColor ?: color ?: defaultColor).setColorRgba()
 						}
 					}
 					hlIter.advance()
@@ -222,67 +222,67 @@ class Minimap(private val glancePanel: GlancePanel){
 		return list
 	}
 
-	private fun BufferedImage.renderImage(x: Int, y: Int, char: Int, scaleBuffer: FloatArray,consumer: (()->Unit)? = null) {
+	private fun BufferedImage.renderImage(x: Int, y: Int, char: Int, consumer: (() -> Unit)? = null) {
 		if (char !in 0..32 && x in 0 until width && 0 <= y && y + config.pixelsPerLine < height) {
 			consumer?.invoke()
 			if (config.clean) {
-				renderClean(x, y, char, scaleBuffer)
+				renderClean(x, y, char)
 			} else {
-				renderAccurate(x, y, char, scaleBuffer)
+				renderAccurate(x, y, char)
 			}
 		}
 	}
 
-	private fun BufferedImage.renderClean(x: Int, y: Int, char: Int, buffer: FloatArray) {
+	private fun BufferedImage.renderClean(x: Int, y: Int, char: Int) {
 		val weight = when (char) {
 			in 33..126 -> 0.8f
 			else -> 0.4f
 		}
 		when (config.pixelsPerLine) {
-			1 -> // Can't show whitespace between lines anymore. This looks rather ugly...
-				setPixel(x, y + 1, weight * 0.6f, buffer)
+			// Can't show whitespace between lines anymore. This looks rather ugly...
+			1 -> setPixel(x, y + 1, weight * 0.6f)
+			// Two lines we make the top line a little lighter to give the illusion of whitespace between lines.
 			2 -> {
-				// Two lines we make the top line a little lighter to give the illusion of whitespace between lines.
-				setPixel(x, y, weight * 0.3f, buffer)
-				setPixel(x, y + 1, weight * 0.6f, buffer)
+				setPixel(x, y, weight * 0.3f)
+				setPixel(x, y + 1, weight * 0.6f)
 			}
+			// Three lines we make the top nearly empty, and fade the bottom a little too
 			3 -> {
-				// Three lines we make the top nearly empty, and fade the bottom a little too
-				setPixel(x, y, weight * 0.1f, buffer)
-				setPixel(x, y + 1, weight * 0.6f, buffer)
-				setPixel(x, y + 2, weight * 0.6f, buffer)
+				setPixel(x, y, weight * 0.1f)
+				setPixel(x, y + 1, weight * 0.6f)
+				setPixel(x, y + 2, weight * 0.6f)
 			}
+			// Empty top line, Nice blend for everything else
 			4 -> {
-				// Empty top line, Nice blend for everything else
-				setPixel(x, y + 1, weight * 0.6f, buffer)
-				setPixel(x, y + 2, weight * 0.6f, buffer)
-				setPixel(x, y + 3, weight * 0.6f, buffer)
+				setPixel(x, y + 1, weight * 0.6f)
+				setPixel(x, y + 2, weight * 0.6f)
+				setPixel(x, y + 3, weight * 0.6f)
 			}
 		}
 	}
 
-	private fun BufferedImage.renderAccurate(x: Int, y: Int, char: Int, buffer: FloatArray) {
+	private fun BufferedImage.renderAccurate(x: Int, y: Int, char: Int) {
 		val topWeight = getTopWeight(char)
 		val bottomWeight = getBottomWeight(char)
 		when (config.pixelsPerLine) {
-			1 -> // Can't show whitespace between lines anymore. This looks rather ugly...
-				setPixel(x, y + 1, (topWeight + bottomWeight) / 2, buffer)
+			// Can't show whitespace between lines anymore. This looks rather ugly...
+			1 -> setPixel(x, y + 1, (topWeight + bottomWeight) / 2)
+			// Two lines we make the top line a little lighter to give the illusion of whitespace between lines.
 			2 -> {
-				// Two lines we make the top line a little lighter to give the illusion of whitespace between lines.
-				setPixel(x, y, topWeight * 0.5f, buffer)
-				setPixel(x, y + 1, bottomWeight, buffer)
+				setPixel(x, y, topWeight * 0.5f)
+				setPixel(x, y + 1, bottomWeight)
 			}
+			// Three lines we make the top nearly empty, and fade the bottom a little too
 			3 -> {
-				// Three lines we make the top nearly empty, and fade the bottom a little too
-				setPixel(x, y, topWeight * 0.3f, buffer)
-				setPixel(x, y + 1, (topWeight + bottomWeight) / 2, buffer)
-				setPixel(x, y + 2, bottomWeight * 0.7f, buffer)
+				setPixel(x, y, topWeight * 0.3f)
+				setPixel(x, y + 1, (topWeight + bottomWeight) / 2)
+				setPixel(x, y + 2, bottomWeight * 0.7f)
 			}
+			// Empty top line, Nice blend for everything else
 			4 -> {
-				// Empty top line, Nice blend for everything else
-				setPixel(x, y + 1, topWeight, buffer)
-				setPixel(x, y + 2, (topWeight + bottomWeight) / 2, buffer)
-				setPixel(x, y + 3, bottomWeight, buffer)
+				setPixel(x, y + 1, topWeight)
+				setPixel(x, y + 2, (topWeight + bottomWeight) / 2)
+				setPixel(x, y + 3, bottomWeight)
 			}
 		}
 	}
@@ -292,16 +292,15 @@ class Minimap(private val glancePanel: GlancePanel){
 	 * *
 	 * @param alpha     alpha percent from 0-1.
 	 */
-	private fun BufferedImage.setPixel(x: Int, y: Int, alpha: Float, scaleBuffer: FloatArray) {
+	private fun BufferedImage.setPixel(x: Int, y: Int, alpha: Float) {
 		scaleBuffer[3] = alpha * 0xFF
 		raster.setPixel(x, y, scaleBuffer)
 	}
 
-	private fun setColorRgba(color: Color) {
-		scaleBuffer[0] = color.red.toFloat()
-		scaleBuffer[1] = color.green.toFloat()
-		scaleBuffer[2] = color.blue.toFloat()
-		scaleBuffer[3] = color.alpha.toFloat()
+	private fun Color.setColorRgba() {
+		scaleBuffer[0] = red.toFloat()
+		scaleBuffer[1] = green.toFloat()
+		scaleBuffer[2] = blue.toFloat()
 	}
 
 	fun markCommentHighlightChange(highlighter: RangeHighlighterEx,remove: Boolean) : Boolean{
