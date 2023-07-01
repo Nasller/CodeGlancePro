@@ -43,11 +43,16 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
         val extension = file.fileType.defaultExtension
         if(extension.isNotBlank() && CodeGlanceConfigService.getConfig().disableLanguageSuffix
             .split(",").toSet().contains(extension)) return
-        source.getAllEditors(file).runAllEditors{ info: EditorInfo ->
+        val process = {info: EditorInfo ->
             val layout = (info.editor.component as? JPanel)?.layout
             if (layout is BorderLayout && layout.getLayoutComponent(info.place) == null) {
                 setMyPanel(info).applyGlancePanel { changeOriginScrollBarWidth() }
             }
+        }
+        source.getAllEditors(file).runAllEditors(process) {
+            it.processor.addListener({
+                FileEditorManager.getInstance(project).getAllEditors(it.file).runAllEditors(process)
+            }, it)
         }
     }
 
@@ -77,19 +82,19 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
 
     private fun processAllGlanceEditor(action: (component:Component?,EditorInfo)->Unit){
         try {
-            FileEditorManager.getInstance(project).allEditors.runAllEditors {info: EditorInfo ->
+            FileEditorManager.getInstance(project).allEditors.runAllEditors({info: EditorInfo ->
                 val layout = (info.editor.component as? JPanel)?.layout
                 if (layout is BorderLayout) {
                     action((layout.getLayoutComponent(BorderLayout.LINE_END) ?:
                     layout.getLayoutComponent(BorderLayout.LINE_START)), info)
                 }
-            }
+            })
         }catch (e:Exception){
             logger.error(e)
         }
     }
 
-    private fun Array<FileEditor>.runAllEditors(withTextEditor: (EditorInfo) -> Unit) {
+    private fun Array<FileEditor>.runAllEditors(withTextEditor: (EditorInfo) -> Unit, diffEditorAction: ((DiffRequestProcessorEditor) -> Unit)? = null) {
         val config = CodeGlanceConfigService.getConfig()
         val where = if (CodeGlanceConfigService.getConfig().isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
         for (fileEditor in this) {
@@ -97,15 +102,22 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
                 withTextEditor(EditorInfo(fileEditor.editor as EditorImpl,where))
             } else if (fileEditor is DiffRequestProcessorEditor) {
                 when (val viewer = fileEditor.processor.activeViewer) {
-                    is OnesideTextDiffViewer -> if(viewer.editor is EditorImpl) withTextEditor(EditorInfo(viewer.editor as EditorImpl,where))
-                    is TwosideTextDiffViewer -> if(config.diffTwoSide) viewer.editors.filterIsInstance<EditorImpl>()
-                        .forEachIndexed { index, editor ->
+                    is OnesideTextDiffViewer -> if(viewer.editor is EditorImpl) {
+                        withTextEditor(EditorInfo(viewer.editor as EditorImpl,where))
+                        diffEditorAction?.invoke(fileEditor)
+                    }
+                    is TwosideTextDiffViewer -> if(config.diffTwoSide) {
+                        viewer.editors.filterIsInstance<EditorImpl>().forEachIndexed { index, editor ->
                             withTextEditor(EditorInfo(editor, if (index == 0) BorderLayout.LINE_START else BorderLayout.LINE_END, viewer))
                         }
-                    is ThreesideTextDiffViewer -> if(config.diffThreeSide) viewer.editors.filterIsInstance<EditorImpl>()
-                        .forEachIndexed{ index, editor -> if(index != 1)
+                        diffEditorAction?.invoke(fileEditor)
+                    }
+                    is ThreesideTextDiffViewer -> if(config.diffThreeSide) {
+                        viewer.editors.filterIsInstance<EditorImpl>().forEachIndexed{ index, editor -> if(index != 1)
                             withTextEditor(EditorInfo(editor, if (index == 0) BorderLayout.LINE_START else BorderLayout.LINE_END, viewer))
                         }
+                        diffEditorAction?.invoke(fileEditor)
+                    }
                 }
             }
         }
