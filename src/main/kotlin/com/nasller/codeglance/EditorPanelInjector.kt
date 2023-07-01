@@ -19,12 +19,16 @@ import com.intellij.openapi.fileEditor.ex.FileEditorWithProvider
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.ui.DirtyUI
+import com.intellij.util.ui.JBSwingUtilities
 import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import java.awt.BorderLayout
+import java.awt.Color
 import java.awt.Component
+import java.awt.Graphics
 import javax.swing.JPanel
 
 class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener,SettingsChangeListener,LafManagerListener,Disposable {
@@ -145,13 +149,14 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
         return glancePanel
     }
 
-    internal class MyPanel(val panel: GlancePanel):JPanel(BorderLayout()){
-        init{
-            add(panel)
-            panel.editor.contentComponent.let {
-                foreground = it.foreground
-                background = it.background
-            }
+    internal class MyPanel(val panel: GlancePanel?): JPanel(BorderLayout()){
+        init{ add(panel) }
+
+        override fun getBackground(): Color? = panel?.run { editor.contentComponent.background } ?: super.getBackground()
+
+        @DirtyUI
+        override fun getComponentGraphics(graphics: Graphics): Graphics {
+            return JBSwingUtilities.runGlobalCGTransform(this, super.getComponentGraphics(graphics))
         }
     }
 
