@@ -287,15 +287,13 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	}
 
 	fun getConfigSize(): Dimension{
-		val curWidth = if(editor.getUserData(CURRENT_GLANCE_DIFF_VIEW) != null) config.diffWidth
-		else config.width
+		val curWidth = if(editor.getUserData(CURRENT_GLANCE_DIFF_VIEW) != null) config.diffWidth else config.width
 		val calWidth = if (config.autoCalWidthInSplitterMode && FileEditorManagerEx.getInstanceEx(project).isInSplitter) {
 			val calWidth = editor.component.width / 12
 			if (calWidth < curWidth) {
 				if (calWidth < 15) 15 else calWidth
 			} else curWidth
-		} else if(editor.getUserData(CURRENT_GLANCE_DIFF_VIEW) != null) config.diffWidth
-		else curWidth
+		} else curWidth
 		return Dimension(calWidth, 0)
 	}
 

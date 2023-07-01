@@ -148,7 +148,10 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
     internal class MyPanel(val panel: GlancePanel):JPanel(BorderLayout()){
         init{
             add(panel)
-            isOpaque = false
+            panel.editor.contentComponent.let {
+                foreground = it.foreground
+                background = it.background
+            }
         }
     }
 
