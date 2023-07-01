@@ -320,6 +320,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 
 	override fun dispose() {
 		editor.putUserData(CURRENT_GLANCE, null)
+		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX,null)
 		editor.component.remove(if (this.parent is EditorPanelInjector.MyPanel) this.parent else this)
 		hideScrollBarListener.removeHideScrollBarListener()
 		alarm.cancelAllRequests()
@@ -352,6 +353,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		val srcOver0_8: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.80f)
 		val srcOver: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
 		val CURRENT_GLANCE = Key<GlancePanel>("CURRENT_GLANCE")
+		val CURRENT_GLANCE_PLACE_INDEX = Key<PlaceIndex>("CURRENT_GLANCE_PLACE_INDEX")
 
 		@JvmStatic
 		fun fitLineToEditor(editor: EditorImpl, visualLine: Int): Int {
@@ -363,5 +365,9 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 			}
 			return 0.coerceAtLeast((lineCount - shift).coerceAtMost(visualLine))
 		}
+	}
+
+	enum class PlaceIndex{
+		Left,Right
 	}
 }
