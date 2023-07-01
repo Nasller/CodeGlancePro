@@ -27,7 +27,6 @@ import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import java.awt.BorderLayout
 import java.awt.Color
-import java.awt.Component
 import java.awt.Graphics
 import javax.swing.JPanel
 
@@ -47,10 +46,10 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
         val extension = file.fileType.defaultExtension
         if(extension.isNotBlank() && CodeGlanceConfigService.getConfig().disableLanguageSuffix
             .split(",").toSet().contains(extension)) return
-        val process = {info: EditorInfo ->
+        val process = { info: EditorInfo ->
             val layout = (info.editor.component as? JPanel)?.layout
             if (layout is BorderLayout && layout.getLayoutComponent(info.place) == null) {
-                setMyPanel(info).applyGlancePanel { changeOriginScrollBarWidth() }
+                setMyPanel(info).apply { changeOriginScrollBarWidth() }
             }
         }
         source.getAllEditors(file).runAllEditors(process) {
@@ -64,13 +63,13 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
     override fun onGlobalChanged() {
         val config = CodeGlanceConfigService.getConfig()
         val disable = config.disableLanguageSuffix.split(",").toSet()
-        processAllGlanceEditor { component, info ->
-            val oldGlancePanel = component?.applyGlancePanel { Disposer.dispose(this) }
+        processAllGlanceEditor { oldGlance, info ->
+            val oldGlancePanel = oldGlance?.apply { Disposer.dispose(this) }
             val extension = info.editor.virtualFile.fileType.defaultExtension
             if(extension.isNotBlank() && disable.contains(extension)) {
                 oldGlancePanel?.changeOriginScrollBarWidth(false)
             } else {
-                setMyPanel(info).applyGlancePanel {
+                setMyPanel(info).apply {
                     oldGlancePanel?.let{ glancePanel -> originalScrollbarWidth = glancePanel.originalScrollbarWidth }
                     changeOriginScrollBarWidth()
                     updateImage()
@@ -81,16 +80,16 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
 
     /** LafManagerListener */
     override fun lookAndFeelChanged(source: LafManager) = if(isFirstSetup) isFirstSetup = false else {
-        processAllGlanceEditor { component, _ -> component?.applyGlancePanel{ refresh() } }
+        processAllGlanceEditor { oldGlance, _ -> oldGlance?.apply{ refresh() } }
     }
 
-    private fun processAllGlanceEditor(action: (component:Component?,EditorInfo)->Unit){
+    private fun processAllGlanceEditor(action: (oldGlance:GlancePanel?,EditorInfo)->Unit){
         try {
             FileEditorManager.getInstance(project).allEditors.runAllEditors({info: EditorInfo ->
                 val layout = (info.editor.component as? JPanel)?.layout
                 if (layout is BorderLayout) {
-                    action((layout.getLayoutComponent(BorderLayout.LINE_END) ?:
-                    layout.getLayoutComponent(BorderLayout.LINE_START)), info)
+                    action(((layout.getLayoutComponent(BorderLayout.LINE_END) ?:
+                    layout.getLayoutComponent(BorderLayout.LINE_START)) as? MyPanel)?.panel, info)
                 }
             })
         }catch (e:Exception){
@@ -127,30 +126,28 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
         }
     }
 
-    private fun setMyPanel(info: EditorInfo): JPanel {
+    private fun setMyPanel(info: EditorInfo): GlancePanel {
         val glancePanel = GlancePanel(project, info.editor)
         val placeIndex = if (info.place == BorderLayout.LINE_START) GlancePanel.PlaceIndex.Left else GlancePanel.PlaceIndex.Right
         info.editor.apply{
             putUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX, placeIndex)
             putUserData(GlancePanel.CURRENT_GLANCE_DIFF_VIEW, info.diffView)
         }
-        val jPanel = if (CodeGlanceConfigService.getConfig().hideOriginalScrollBar) MyPanel(glancePanel).apply {
-            glancePanel.myVcsPanel = MyVcsPanel(glancePanel)
-            add(glancePanel.myVcsPanel!!, if (placeIndex == GlancePanel.PlaceIndex.Left) BorderLayout.EAST else BorderLayout.WEST)
-        } else glancePanel
+        info.editor.component.add(MyPanel(glancePanel,placeIndex), info.place)
         glancePanel.hideScrollBarListener.addHideScrollBarListener()
-        info.editor.component.add(jPanel, info.place)
-        return jPanel
-    }
-
-    private fun Component.applyGlancePanel(block: GlancePanel.()->Unit): GlancePanel?{
-        val glancePanel = if (this is MyPanel) panel else if (this is GlancePanel) this else null
-        glancePanel?.block()
         return glancePanel
     }
 
-    internal class MyPanel(val panel: GlancePanel?): JPanel(BorderLayout()){
-        init{ add(panel) }
+    internal class MyPanel(val panel: GlancePanel?,placeIndex: GlancePanel.PlaceIndex): JPanel(BorderLayout()){
+        init{
+            panel?.let{
+                add(it)
+                if (CodeGlanceConfigService.getConfig().hideOriginalScrollBar){
+                    panel.myVcsPanel = MyVcsPanel(panel)
+                    add(panel.myVcsPanel!!, if (placeIndex == GlancePanel.PlaceIndex.Left) BorderLayout.EAST else BorderLayout.WEST)
+                }
+            }
+        }
 
         override fun getBackground(): Color? = panel?.run { editor.contentComponent.background } ?: super.getBackground()
 
