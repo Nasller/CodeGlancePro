@@ -34,7 +34,7 @@ class Minimap(private val glancePanel: GlancePanel){
 		val lineCount = editor.document.lineCount
 		if(lineCount <= 0) return
 		var curImg = img.value
-		if (curImg.height < glancePanel.scrollState.documentHeight || curImg.width < config.width) {
+		if (curImg.height < glancePanel.scrollState.documentHeight || curImg.width < glancePanel.width) {
 			curImg.flush()
 			curImg = getBufferedImage()
 			img = lazyOf(curImg)
@@ -320,7 +320,8 @@ class Minimap(private val glancePanel: GlancePanel){
 		}
 	}
 
-	private fun getBufferedImage() = BufferedImage(config.width, glancePanel.scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
+	@Suppress("UndesirableClassUsage")
+	private fun getBufferedImage() = BufferedImage(glancePanel.getConfigSize().width, glancePanel.scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
 
 	private data class MarkCommentData(var jumpEndOffset: Int,val comment: String,val font: Font,val fontHeight:Int)
 

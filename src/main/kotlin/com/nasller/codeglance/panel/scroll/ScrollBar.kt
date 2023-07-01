@@ -2,6 +2,7 @@ package com.nasller.codeglance.panel.scroll
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
+import com.intellij.diff.tools.combined.editors
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.ex.MarkupModelEx
@@ -53,7 +54,6 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	private var resizing = false
 	private var resizeStart: Int = 0
 	private var widthStart: Int = 0
-	private lateinit var placeIndex: GlancePanel.PlaceIndex
 	//拖拽鼠标事件
 	private var dragging = false
 	private var dragStart: Int = 0
@@ -96,7 +96,6 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 				resizing = true
 				resizeStart = e.xOnScreen
 				widthStart = glancePanel.width
-				placeIndex = editor.getUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX) ?: GlancePanel.PlaceIndex.Right
 			}
 			isInRect(e.y) || MouseJumpEnum.NONE == config.jumpOnMouseDown -> dragMove(e.y)
 			MouseJumpEnum.MOUSE_DOWN == config.jumpOnMouseDown -> jumpToLineAt(e.y) {
@@ -109,10 +108,17 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 
 	override fun mouseDragged(e: MouseEvent) {
 		if (resizing) {
-			val newWidth = if(placeIndex == GlancePanel.PlaceIndex.Left) widthStart + e.xOnScreen - resizeStart
-				else widthStart + resizeStart - e.xOnScreen
-			config.width = newWidth.coerceIn(GlancePanel.minWidth, GlancePanel.maxWidth)
-			glancePanel.refreshWithWidth()
+			val newWidth = if(editor.getUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX) == GlancePanel.PlaceIndex.Left)
+				widthStart + e.xOnScreen - resizeStart
+			else widthStart + resizeStart - e.xOnScreen
+			val diffViewer = editor.getUserData(GlancePanel.CURRENT_GLANCE_DIFF_VIEW)
+			if(diffViewer != null){
+				config.diffWidth = newWidth.coerceIn(GlancePanel.minWidth, GlancePanel.maxWidth)
+				diffViewer.editors.mapNotNull { it.getUserData(GlancePanel.CURRENT_GLANCE) }.forEach { it.refreshWithWidth() }
+			}else {
+				config.width = newWidth.coerceIn(GlancePanel.minWidth, GlancePanel.maxWidth)
+				glancePanel.refreshWithWidth()
+			}
 		} else if (dragging) {
 			val delta = (dragStartDelta + (e.y - dragStart)).toFloat()
 			val newPos = if (scrollState.documentHeight < scrollState.visibleHeight)
@@ -230,7 +236,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	private fun isInResizeGutter(x: Int): Boolean =
 		if (config.locked || config.hoveringToShowScrollBar || FileEditorManagerEx.getInstanceEx(glancePanel.project).isInSplitter) false else {
 				if(editor.getUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX) == GlancePanel.PlaceIndex.Left)
-					x in config.width - 7 .. config.width
+					x in glancePanel.width - 7 .. glancePanel.width
 				else x in 0..7
 		}
 

@@ -40,6 +40,10 @@ class CodeGlanceConfig : BaseState() {
 	var markRegex by nonNullString("\\b(MARK: - )\\b*")
 	var markersScaleFactor by property(3.0f)
 
+	var diffTwoSide by property(true)
+	var diffThreeSide by property(true)
+	var diffWidth by property(70)
+
 	fun singleFileVisibleButton() = !hoveringToShowScrollBar && singleFileVisibleButton
 
 	private fun nonNullString(initialValue: String = "") = property(initialValue) { it == initialValue }

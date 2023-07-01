@@ -1,6 +1,7 @@
 package com.nasller.codeglance.panel
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
+import com.intellij.diff.FrameDiffTool
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.editor.colors.EditorColors
@@ -286,13 +287,16 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	}
 
 	fun getConfigSize(): Dimension{
+		val curWidth = if(editor.getUserData(CURRENT_GLANCE_DIFF_VIEW) != null) config.diffWidth
+		else config.width
 		val calWidth = if (config.autoCalWidthInSplitterMode && FileEditorManagerEx.getInstanceEx(project).isInSplitter) {
 			val calWidth = editor.component.width / 12
-			if (calWidth < config.width) {
+			if (calWidth < curWidth) {
 				if (calWidth < 20) 20 else calWidth
-			} else config.width
-		} else config.width
-		return Dimension(calWidth, 0)
+			} else curWidth
+		} else if(editor.getUserData(CURRENT_GLANCE_DIFF_VIEW) != null) config.diffWidth
+		else curWidth
+		return Dimension(calWidth.coerceAtLeast(15), 0)
 	}
 
 	override fun paintComponent(gfx: Graphics) {
@@ -320,7 +324,8 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 
 	override fun dispose() {
 		editor.putUserData(CURRENT_GLANCE, null)
-		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX,null)
+		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, null)
+		editor.putUserData(CURRENT_GLANCE_DIFF_VIEW, null)
 		editor.component.remove(if (this.parent is EditorPanelInjector.MyPanel) this.parent else this)
 		hideScrollBarListener.removeHideScrollBarListener()
 		alarm.cancelAllRequests()
@@ -345,7 +350,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 
 	companion object {
 		const val minGap = 15
-		const val minWidth = 50
+		const val minWidth = 30
 		const val maxWidth = 250
 		val CLEAR: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.CLEAR)
 		val srcOver0_4: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.40f)
@@ -354,6 +359,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		val srcOver: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
 		val CURRENT_GLANCE = Key<GlancePanel>("CURRENT_GLANCE")
 		val CURRENT_GLANCE_PLACE_INDEX = Key<PlaceIndex>("CURRENT_GLANCE_PLACE_INDEX")
+		val CURRENT_GLANCE_DIFF_VIEW = Key<FrameDiffTool.DiffViewer>("CURRENT_GLANCE_DIFF_VIEW")
 
 		@JvmStatic
 		fun fitLineToEditor(editor: EditorImpl, visualLine: Int): Int {

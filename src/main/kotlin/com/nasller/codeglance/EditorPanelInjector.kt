@@ -1,5 +1,6 @@
 package com.nasller.codeglance
 
+import com.intellij.diff.FrameDiffTool
 import com.intellij.diff.editor.DiffRequestProcessorEditor
 import com.intellij.diff.tools.util.side.OnesideTextDiffViewer
 import com.intellij.diff.tools.util.side.ThreesideTextDiffViewer
@@ -43,12 +44,9 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
         if(extension.isNotBlank() && CodeGlanceConfigService.getConfig().disableLanguageSuffix
             .split(",").toSet().contains(extension)) return
         source.getAllEditors(file).runAllEditors{ info: EditorInfo ->
-            val editor = info.editor as? EditorImpl
-            val layout = (editor?.component as? JPanel)?.layout
+            val layout = (info.editor.component as? JPanel)?.layout
             if (layout is BorderLayout && layout.getLayoutComponent(info.place) == null) {
-                val myPanel = getMyPanel(editor,info.place)
-                editor.component.add(myPanel, info.place)
-                myPanel.applyGlancePanel { changeOriginScrollBarWidth() }
+                setMyPanel(info).applyGlancePanel { changeOriginScrollBarWidth() }
             }
         }
     }
@@ -58,15 +56,12 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
         val config = CodeGlanceConfigService.getConfig()
         val disable = config.disableLanguageSuffix.split(",").toSet()
         processAllGlanceEditor { component, info ->
-            if(component != null) info.editor.component.remove(component)
             val oldGlancePanel = component?.applyGlancePanel { Disposer.dispose(this) }
             val extension = info.editor.virtualFile.fileType.defaultExtension
             if(extension.isNotBlank() && disable.contains(extension)) {
                 oldGlancePanel?.changeOriginScrollBarWidth(false)
             } else {
-                val myPanel = getMyPanel(info.editor,info.place)
-                info.editor.component.add(myPanel, info.place)
-                myPanel.applyGlancePanel {
+                setMyPanel(info).applyGlancePanel {
                     oldGlancePanel?.let{ glancePanel -> originalScrollbarWidth = glancePanel.originalScrollbarWidth }
                     changeOriginScrollBarWidth()
                     updateImage()
@@ -95,6 +90,7 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
     }
 
     private fun Array<FileEditor>.runAllEditors(withTextEditor: (EditorInfo) -> Unit) {
+        val config = CodeGlanceConfigService.getConfig()
         val where = if (CodeGlanceConfigService.getConfig().isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
         for (fileEditor in this) {
             if (fileEditor is TextEditor && fileEditor.editor is EditorImpl) {
@@ -102,28 +98,32 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
             } else if (fileEditor is DiffRequestProcessorEditor) {
                 when (val viewer = fileEditor.processor.activeViewer) {
                     is OnesideTextDiffViewer -> if(viewer.editor is EditorImpl) withTextEditor(EditorInfo(viewer.editor as EditorImpl,where))
-                    is TwosideTextDiffViewer -> viewer.editors.filterIsInstance<EditorImpl>()
+                    is TwosideTextDiffViewer -> if(config.diffTwoSide) viewer.editors.filterIsInstance<EditorImpl>()
                         .forEachIndexed { index, editor ->
-                            withTextEditor(EditorInfo(editor, if (index == 0) BorderLayout.LINE_START else BorderLayout.LINE_END))
+                            withTextEditor(EditorInfo(editor, if (index == 0) BorderLayout.LINE_START else BorderLayout.LINE_END, viewer))
                         }
-                    is ThreesideTextDiffViewer -> viewer.editors.filterIsInstance<EditorImpl>()
+                    is ThreesideTextDiffViewer -> if(config.diffThreeSide) viewer.editors.filterIsInstance<EditorImpl>()
                         .forEachIndexed{ index, editor -> if(index != 1)
-                            withTextEditor(EditorInfo(editor, if (index == 0) BorderLayout.LINE_START else BorderLayout.LINE_END))
+                            withTextEditor(EditorInfo(editor, if (index == 0) BorderLayout.LINE_START else BorderLayout.LINE_END, viewer))
                         }
                 }
             }
         }
     }
 
-    private fun getMyPanel(editor: EditorImpl,placeStr: String): JPanel {
-        val glancePanel = GlancePanel(project, editor)
-        val placeIndex = if (placeStr == BorderLayout.LINE_START) GlancePanel.PlaceIndex.Left else GlancePanel.PlaceIndex.Right
-        editor.putUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX, placeIndex)
+    private fun setMyPanel(info: EditorInfo): JPanel {
+        val glancePanel = GlancePanel(project, info.editor)
+        val placeIndex = if (info.place == BorderLayout.LINE_START) GlancePanel.PlaceIndex.Left else GlancePanel.PlaceIndex.Right
+        info.editor.apply{
+            putUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX, placeIndex)
+            putUserData(GlancePanel.CURRENT_GLANCE_DIFF_VIEW, info.diffView)
+        }
         val jPanel = if (CodeGlanceConfigService.getConfig().hideOriginalScrollBar) MyPanel(glancePanel).apply {
             glancePanel.myVcsPanel = MyVcsPanel(glancePanel)
             add(glancePanel.myVcsPanel!!, if (placeIndex == GlancePanel.PlaceIndex.Left) BorderLayout.EAST else BorderLayout.WEST)
         } else glancePanel
         glancePanel.hideScrollBarListener.addHideScrollBarListener()
+        info.editor.component.add(jPanel, info.place)
         return jPanel
     }
 
@@ -142,5 +142,5 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
 
     override fun dispose() {}
 
-    private data class EditorInfo(val editor: EditorImpl, val place: String)
+    private data class EditorInfo(val editor: EditorImpl, val place: String, val diffView: FrameDiffTool.DiffViewer? = null)
 }

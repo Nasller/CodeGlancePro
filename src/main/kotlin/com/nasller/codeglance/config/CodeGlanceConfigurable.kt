@@ -79,7 +79,14 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 						.bindIntValue(config::width)
 						.accessibleName(message("settings.width"))
 						.applyToComponent {
-							toolTipText = "50 - 250 pixels"
+							toolTipText = "30 - 250 pixels"
+							addMouseWheelListener(numberScrollListener)
+						}
+					spinner(GlancePanel.minWidth..GlancePanel.maxWidth, 5).label(message("settings.diff.width"))
+						.bindIntValue(config::diffWidth)
+						.accessibleName(message("settings.diff.width"))
+						.applyToComponent {
+							toolTipText = "30 - 250 pixels"
 							addMouseWheelListener(numberScrollListener)
 						}
 					checkBox(message("settings.width.lock"))
@@ -180,6 +187,14 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 				threeColumnsRow({
 					checkBox(message("settings.highlight.syntax"))
 						.bindSelected(config::syntaxHighlight)
+						.gap(RightGap.SMALL)
+				},{
+					checkBox(message("settings.two.sides.diff"))
+						.bindSelected(config::diffTwoSide)
+						.gap(RightGap.SMALL)
+				},{
+					checkBox(message("settings.three.sides.diff"))
+						.bindSelected(config::diffThreeSide)
 						.gap(RightGap.SMALL)
 				})
 			}
