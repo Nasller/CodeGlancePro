@@ -292,11 +292,11 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		val calWidth = if (config.autoCalWidthInSplitterMode && FileEditorManagerEx.getInstanceEx(project).isInSplitter) {
 			val calWidth = editor.component.width / 12
 			if (calWidth < curWidth) {
-				if (calWidth < 20) 20 else calWidth
+				if (calWidth < 15) 15 else calWidth
 			} else curWidth
 		} else if(editor.getUserData(CURRENT_GLANCE_DIFF_VIEW) != null) config.diffWidth
 		else curWidth
-		return Dimension(calWidth.coerceAtLeast(15), 0)
+		return Dimension(calWidth, 0)
 	}
 
 	override fun paintComponent(gfx: Graphics) {
