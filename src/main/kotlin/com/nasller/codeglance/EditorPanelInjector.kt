@@ -116,7 +116,7 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
                         diffEditorAction?.invoke(fileEditor)
                     }
                     is ThreesideTextDiffViewer -> if(config.diffThreeSide) {
-                        viewer.editors.filterIsInstance<EditorImpl>().forEachIndexed{ index, editor -> if(index != 1)
+                        viewer.editors.filterIsInstance<EditorImpl>().forEachIndexed{ index, editor -> if(index != 1 || config.diffThreeSideMiddle)
                             withTextEditor(EditorInfo(editor, if (index == 0) BorderLayout.LINE_START else BorderLayout.LINE_END, viewer))
                         }
                         diffEditorAction?.invoke(fileEditor)

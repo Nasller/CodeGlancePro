@@ -197,6 +197,11 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 						.bindSelected(config::diffThreeSide)
 						.gap(RightGap.SMALL)
 				})
+				threeColumnsRow({
+					checkBox(message("settings.three.sides.middle.diff"))
+						.bindSelected(config::diffThreeSideMiddle)
+						.gap(RightGap.SMALL)
+				})
 			}
 		}
 	}
