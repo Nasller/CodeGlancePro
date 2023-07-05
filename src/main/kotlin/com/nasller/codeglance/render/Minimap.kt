@@ -25,7 +25,7 @@ class Minimap(private val glancePanel: GlancePanel){
 	private val editor = glancePanel.editor
 	private val config = glancePanel.config
 	private val scaleBuffer = FloatArray(4)
-	private val isLogFile = editor.virtualFile.fileType::class.qualifiedName?.contains("ideolog") ?: false
+	private val isLogFile = editor.virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
 	val markCommentMap = hashMapOf<Long,RangeHighlighterEx>()
 	var img = lazy(LazyThreadSafetyMode.NONE) { getBufferedImage() }
 	val rangeList = mutableListOf<Pair<Int,Range<Int>>>()

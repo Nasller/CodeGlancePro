@@ -2,6 +2,7 @@ package com.nasller.codeglance
 
 import com.intellij.diff.FrameDiffTool
 import com.intellij.diff.editor.DiffRequestProcessorEditor
+import com.intellij.diff.tools.fragmented.UnifiedDiffViewer
 import com.intellij.diff.tools.util.side.OnesideTextDiffViewer
 import com.intellij.diff.tools.util.side.ThreesideTextDiffViewer
 import com.intellij.diff.tools.util.side.TwosideTextDiffViewer
@@ -102,26 +103,27 @@ class EditorPanelInjector(private val project: Project) : FileOpenedSyncListener
         val where = if (CodeGlanceConfigService.getConfig().isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
         for (fileEditor in this) {
             if (fileEditor is TextEditor && fileEditor.editor is EditorImpl) {
-                withTextEditor(EditorInfo(fileEditor.editor as EditorImpl,where))
+                withTextEditor(EditorInfo(fileEditor.editor as EditorImpl, where))
             } else if (fileEditor is DiffRequestProcessorEditor) {
                 when (val viewer = fileEditor.processor.activeViewer) {
+                    is UnifiedDiffViewer -> if(viewer.editor is EditorImpl) {
+                        withTextEditor(EditorInfo(viewer.editor as EditorImpl, where, viewer))
+                    }
                     is OnesideTextDiffViewer -> if(viewer.editor is EditorImpl) {
-                        withTextEditor(EditorInfo(viewer.editor as EditorImpl,where))
-                        diffEditorAction?.invoke(fileEditor)
+                        withTextEditor(EditorInfo(viewer.editor as EditorImpl, where, viewer))
                     }
                     is TwosideTextDiffViewer -> if(config.diffTwoSide) {
                         viewer.editors.filterIsInstance<EditorImpl>().forEachIndexed { index, editor ->
                             withTextEditor(EditorInfo(editor, if (index == 0) BorderLayout.LINE_START else BorderLayout.LINE_END, viewer))
                         }
-                        diffEditorAction?.invoke(fileEditor)
                     }
                     is ThreesideTextDiffViewer -> if(config.diffThreeSide) {
                         viewer.editors.filterIsInstance<EditorImpl>().forEachIndexed{ index, editor -> if(index != 1 || config.diffThreeSideMiddle)
                             withTextEditor(EditorInfo(editor, if (index == 0) BorderLayout.LINE_START else BorderLayout.LINE_END, viewer))
                         }
-                        diffEditorAction?.invoke(fileEditor)
                     }
                 }
+                diffEditorAction?.invoke(fileEditor)
             }
         }
     }
