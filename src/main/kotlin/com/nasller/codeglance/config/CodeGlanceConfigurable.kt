@@ -1,10 +1,13 @@
 package com.nasller.codeglance.config
 
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.options.BoundSearchableConfigurable
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.JBColor
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.tabs.ColorButtonBase
 import com.nasller.codeglance.config.enums.ClickTypeEnum
@@ -13,17 +16,22 @@ import com.nasller.codeglance.extensions.visitor.MarkCommentVisitor
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.ui.ColorButton
 import com.nasller.codeglance.util.message
+import java.awt.Component
+import java.awt.Dimension
 import java.awt.event.InputEvent
 import java.awt.event.MouseWheelEvent
-import javax.swing.DefaultComboBoxModel
-import javax.swing.JSpinner
-import javax.swing.SpinnerNumberModel
+import javax.swing.*
 import kotlin.math.max
 import kotlin.math.min
 
 class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com.nasller.CodeGlancePro"){
+	private val editorKinds = mutableListOf<EditorKind>()
+	private lateinit var editorKindComboBox: ComboBox<EditorKind>
+
 	override fun createPanel(): DialogPanel {
 		val config = CodeGlanceConfigService.getConfig()
+		editorKinds.clear()
+		editorKinds.addAll(config.editorKinds)
 		return panel {
 			group(message("settings.general")) {
 				val doubleNumberScrollListener: (e: MouseWheelEvent) -> Unit = {
@@ -154,6 +162,16 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 						.bindItem({ config.clickType.getMessage() }, { config.clickType = ClickTypeEnum.findEnum(it) })
 						.accessibleName(message("settings.click"))
 				}).bottomGap(BottomGap.SMALL)
+				twoColumnsRow({
+					editorKindComboBox = comboBox(EditorKind.values().toList(), EditorKindListCellRenderer()).label(message("settings.editor.kind")).applyToComponent {
+							isSwingPopup = false
+							addActionListener {
+								val kind = editorKindComboBox.item ?: return@addActionListener
+								if (!editorKinds.remove(kind)) editorKinds.add(kind)
+								editorKindComboBox.repaint()
+							}
+						}.component
+				})
 				row {
 					textField().label(message("settings.disabled.language")).bindText(config::disableLanguageSuffix)
 						.accessibleName(message("settings.disabled.language"))
@@ -208,9 +226,54 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 
 	override fun apply() {
 		super.apply()
-		val config = CodeGlanceConfigService.getConfig()
-		if((!config.isRightAligned || config.disabled) && config.hoveringToShowScrollBar) config.hoveringToShowScrollBar = false
-		MarkCommentVisitor.markRegex.set(if(config.markRegex.isNotBlank()) Regex(config.markRegex) else null)
+		CodeGlanceConfigService.getConfig().apply {
+			editorKinds = this@CodeGlanceConfigurable.editorKinds
+			if((!isRightAligned || disabled) && hoveringToShowScrollBar) hoveringToShowScrollBar = false
+			MarkCommentVisitor.markRegex.set(if(markRegex.isNotBlank()) Regex(markRegex) else null)
+		}
 		invokeLater{ SettingsChangePublisher.onGlobalChanged() }
+	}
+
+	override fun isModified(): Boolean {
+		return super.isModified() || editorKinds != CodeGlanceConfigService.getConfig().editorKinds
+	}
+
+	override fun reset() {
+		super.reset()
+		editorKinds.clear()
+		editorKinds.addAll(CodeGlanceConfigService.getConfig().editorKinds)
+		editorKindComboBox.repaint()
+	}
+
+	private inner class EditorKindListCellRenderer : DefaultListCellRenderer() {
+		private val container = JPanel(null)
+		private val checkBox = JBCheckBox()
+
+		init {
+			isOpaque = false
+			container.isOpaque = false
+			checkBox.isOpaque = false
+
+			container.layout = BoxLayout(container, BoxLayout.X_AXIS)
+			container.add(checkBox)
+			container.add(this)
+			preferredSize = Dimension(100, 0)
+		}
+
+		override fun getListCellRendererComponent(list: JList<*>?,
+		                                          value: Any?,
+		                                          index: Int,
+		                                          isSelected: Boolean,
+		                                          cellHasFocus: Boolean): Component {
+			super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
+			if (index == -1) {
+				checkBox.isVisible = false
+				text = editorKinds.minOrNull()?.name
+				return container
+			}
+			checkBox.isVisible = true
+			checkBox.isSelected = editorKinds.contains(value)
+			return container
+		}
 	}
 }

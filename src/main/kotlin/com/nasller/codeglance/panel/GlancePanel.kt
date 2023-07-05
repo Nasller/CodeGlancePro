@@ -1,7 +1,6 @@
 package com.nasller.codeglance.panel
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
-import com.intellij.diff.FrameDiffTool
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.editor.colors.EditorColors
@@ -17,7 +16,9 @@ import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.util.Range
 import com.intellij.util.SingleAlarm
-import com.nasller.codeglance.EditorPanelInjector
+import com.nasller.codeglance.CURRENT_EDITOR_DIFF_VIEW
+import com.nasller.codeglance.EditorInfo
+import com.nasller.codeglance.MyPanel
 import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.listener.GlanceListener
 import com.nasller.codeglance.listener.HideScrollBarListener
@@ -29,7 +30,8 @@ import java.awt.*
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.JPanel
 
-class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disposable {
+class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable {
+	val editor = info.editor
 	var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
 	val psiDocumentManager: PsiDocumentManager = PsiDocumentManager.getInstance(project)
 	val config = CodeGlanceConfigService.getConfig()
@@ -53,6 +55,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		minimap.refreshMarkCommentHighlight(editor)
 		refreshWithWidth(directUpdate = true)
 		editor.putUserData(CURRENT_GLANCE, this)
+		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, if (info.place == BorderLayout.LINE_START) PlaceIndex.Left else PlaceIndex.Right)
 	}
 
 	fun refreshWithWidth(refreshImage: Boolean = true, directUpdate: Boolean = false) {
@@ -92,6 +95,8 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	}
 
 	fun checkVisible() = !((!config.hoveringToShowScrollBar && !isVisible) || editor.isDisposed)
+
+	fun getPlaceIndex() = editor.getUserData(CURRENT_GLANCE_PLACE_INDEX) ?: PlaceIndex.Right
 
 	fun changeOriginScrollBarWidth(control: Boolean = true) {
 		if (config.hideOriginalScrollBar && control && (!isDisabled || isVisible)) {
@@ -287,7 +292,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	}
 
 	fun getConfigSize(): Dimension{
-		val curWidth = if(editor.getUserData(CURRENT_GLANCE_DIFF_VIEW) != null) config.diffWidth else config.width
+		val curWidth = if(editor.getUserData(CURRENT_EDITOR_DIFF_VIEW) != null) config.diffWidth else config.width
 		val calWidth = if (config.autoCalWidthInSplitterMode && FileEditorManagerEx.getInstanceEx(project).isInSplitter) {
 			val calWidth = editor.component.width / 12
 			if (calWidth < curWidth) {
@@ -323,8 +328,7 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 	override fun dispose() {
 		editor.putUserData(CURRENT_GLANCE, null)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, null)
-		editor.putUserData(CURRENT_GLANCE_DIFF_VIEW, null)
-		editor.component.remove(if (this.parent is EditorPanelInjector.MyPanel) this.parent else this)
+		editor.component.remove(if (this.parent is MyPanel) this.parent else this)
 		hideScrollBarListener.removeHideScrollBarListener()
 		alarm.cancelAllRequests()
 		scrollbar.clear()
@@ -357,7 +361,6 @@ class GlancePanel(val project: Project, val editor: EditorImpl) : JPanel(), Disp
 		val srcOver: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER)
 		val CURRENT_GLANCE = Key<GlancePanel>("CURRENT_GLANCE")
 		val CURRENT_GLANCE_PLACE_INDEX = Key<PlaceIndex>("CURRENT_GLANCE_PLACE_INDEX")
-		val CURRENT_GLANCE_DIFF_VIEW = Key<FrameDiffTool.DiffViewer>("CURRENT_GLANCE_DIFF_VIEW")
 
 		@JvmStatic
 		fun fitLineToEditor(editor: EditorImpl, visualLine: Int): Int {

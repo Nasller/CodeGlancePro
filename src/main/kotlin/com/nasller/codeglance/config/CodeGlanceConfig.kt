@@ -2,6 +2,7 @@ package com.nasller.codeglance.config
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.BaseState
+import com.intellij.openapi.editor.EditorKind
 import com.intellij.util.messages.Topic
 import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
@@ -44,10 +45,13 @@ class CodeGlanceConfig : BaseState() {
 	var diffThreeSide by property(true)
 	var diffThreeSideMiddle by property(false)
 	var diffWidth by property(50)
+	var editorKinds by listOf(EditorKind.values().toMutableList())
 
 	fun singleFileVisibleButton() = !hoveringToShowScrollBar && singleFileVisibleButton
 
 	private fun nonNullString(initialValue: String = "") = property(initialValue) { it == initialValue }
+
+	private fun <T : Any> listOf(value: MutableList<T>) = property(value) { value.size == it.size && value.containsAll(it) }
 }
 
 val SettingsChangePublisher: SettingsChangeListener = ApplicationManager.getApplication().messageBus.syncPublisher(SettingsChangeListener.TOPIC)
