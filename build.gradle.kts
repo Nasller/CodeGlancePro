@@ -57,6 +57,7 @@ tasks{
 
 	publishPlugin {
 		token.set(env["PUBLISH_TOKEN"])
+		channels.set(listOf(env["PUBLISH_CHANNEL"] ?: "default"))
 	}
 
 	patchPluginXml {
