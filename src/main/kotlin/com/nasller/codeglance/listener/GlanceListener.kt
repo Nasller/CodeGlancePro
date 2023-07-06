@@ -127,7 +127,8 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	/** PrioritizedDocumentListener */
 	override fun documentChanged(event: DocumentEvent) {
 		if (event.document.isInBulkUpdate) return
-		if (event.document.lineCount > glancePanel.config.moreThanLineDelay) {
+		//console delay update
+		if (editor.editorKind == EditorKind.CONSOLE || event.document.lineCount > glancePanel.config.moreThanLineDelay) {
 			repaintOrRequest(true)
 		} else  glancePanel.updateImage()
 	}

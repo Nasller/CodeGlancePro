@@ -10,6 +10,8 @@ import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.tabs.ColorButtonBase
+import com.nasller.codeglance.config.CodeGlanceConfig.Companion.getWidth
+import com.nasller.codeglance.config.CodeGlanceConfig.Companion.setWidth
 import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.extensions.visitor.MarkCommentVisitor
@@ -83,22 +85,9 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 					spinner.value = newValue
 				}
 				twoColumnsRow({
-					spinner(GlancePanel.minWidth..GlancePanel.maxWidth, 5).label(message("settings.width"))
-						.bindIntValue(config::width)
-						.accessibleName(message("settings.width"))
-						.applyToComponent {
-							toolTipText = "30 - 250 pixels"
-							addMouseWheelListener(numberScrollListener)
-						}
-					spinner(GlancePanel.minWidth..GlancePanel.maxWidth, 5).label(message("settings.diff.width"))
-						.bindIntValue(config::diffWidth)
-						.accessibleName(message("settings.diff.width"))
-						.applyToComponent {
-							toolTipText = "30 - 250 pixels"
-							addMouseWheelListener(numberScrollListener)
-						}
-					checkBox(message("settings.width.lock"))
-						.bindSelected(config::locked) { config.locked = it }
+					comboBox(ClickTypeEnum.values().map { it.getMessage() }).label(message("settings.click"))
+						.bindItem({ config.clickType.getMessage() }, { config.clickType = ClickTypeEnum.findEnum(it) })
+						.accessibleName(message("settings.click"))
 				}, {
 					spinner(1..Int.MAX_VALUE, 10).label(message("settings.max.line"))
 						.bindIntValue(config::maxLinesCount)
@@ -158,20 +147,32 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 				twoColumnsRow({
 					textField().label(message("settings.markers.regex")).bindText(config::markRegex).accessibleName(message("settings.markers.regex"))
 				},{
-					comboBox(ClickTypeEnum.values().map { it.getMessage() }).label(message("settings.click"))
-						.bindItem({ config.clickType.getMessage() }, { config.clickType = ClickTypeEnum.findEnum(it) })
-						.accessibleName(message("settings.click"))
-				}).bottomGap(BottomGap.SMALL)
-				twoColumnsRow({
 					editorKindComboBox = comboBox(EditorKind.values().toList(), EditorKindListCellRenderer()).label(message("settings.editor.kind")).applyToComponent {
-							isSwingPopup = false
-							addActionListener {
-								val kind = editorKindComboBox.item ?: return@addActionListener
-								if (!editorKinds.remove(kind)) editorKinds.add(kind)
-								editorKindComboBox.repaint()
-							}
-						}.component
-				})
+						isSwingPopup = false
+						addActionListener {
+							val kind = editorKindComboBox.item ?: return@addActionListener
+							if (!editorKinds.remove(kind)) editorKinds.add(kind)
+							editorKindComboBox.repaint()
+						}
+					}.component
+				}).bottomGap(BottomGap.SMALL)
+				val widthList = EditorKind.values().toList().chunked(3)
+				widthList.forEachIndexed { index, it ->
+					row {
+						for (kind in it) {
+							spinner(GlancePanel.minWidth..GlancePanel.maxWidth, 5).label(kind.getMessageWidth())
+								.bindIntValue({ kind.getWidth() }, { kind.setWidth(it) })
+								.accessibleName(kind.getMessageWidth())
+								.applyToComponent {
+									toolTipText = "30 - 250 pixels"
+									addMouseWheelListener(numberScrollListener)
+								}
+						}
+						if(widthList.lastIndex == index) {
+							checkBox(message("settings.width.lock")).bindSelected(config::locked) { config.locked = it }
+						}
+					}
+				}
 				row {
 					textField().label(message("settings.disabled.language")).bindText(config::disableLanguageSuffix)
 						.accessibleName(message("settings.disabled.language"))
@@ -245,6 +246,14 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 		editorKindComboBox.repaint()
 	}
 
+	private fun EditorKind.getMessageWidth() = when(this){
+		EditorKind.UNTYPED -> message("settings.untyped.width")
+		EditorKind.CONSOLE -> message("settings.console.width")
+		EditorKind.PREVIEW -> message("settings.preview.width")
+		EditorKind.DIFF -> message("settings.diff.width")
+		else -> message("settings.main.width")
+	}
+
 	private inner class EditorKindListCellRenderer : DefaultListCellRenderer() {
 		private val container = JPanel(null)
 		private val checkBox = JBCheckBox()
@@ -268,9 +277,10 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 			super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
 			if (index == -1) {
 				checkBox.isVisible = false
-				text = editorKinds.minOrNull()?.name
+				text = editorKinds.minOrNull()?.name?.lowercase()?.replaceFirstChar { it.titlecase() } ?: ""
 				return container
 			}
+			text = value.toString().lowercase().replaceFirstChar { it.titlecase() }
 			checkBox.isVisible = true
 			checkBox.isSelected = editorKinds.contains(value)
 			return container

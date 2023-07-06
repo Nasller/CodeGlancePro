@@ -27,6 +27,7 @@
 		<h3>1.6.7</h3>
 		<ul>
 			<li>Change the editor injection method to support more editors</li>
+			<li>Support console minimap</li>
 		</ul>
 		<h3>1.6.6</h3>
 		<ul>
@@ -49,17 +50,13 @@
 		<ul>
 			<li>Show other full line highlight</li>
 		</ul>
-		<h3>1.6.1</h3>
-		<ul>
-			<li>support IDE 2023.1</li>
-			<li>Syntax Highlight options</li>
-		</ul>
 	]]></change-notes>
 
 	<depends>com.intellij.modules.lang</depends>
 
 	<applicationListeners>
-		<listener topic="com.intellij.ide.AppLifecycleListener" class="com.nasller.codeglance.GlobalListener"/>
+		<listener topic="com.nasller.codeglance.config.SettingsChangeListener" class="com.nasller.codeglance.GlobalSettingsChangeListener"/>
+		<listener topic="com.intellij.ide.ui.LafManagerListener" class="com.nasller.codeglance.GlobalLafManagerListener"/>
 	</applicationListeners>
 
 	<actions>

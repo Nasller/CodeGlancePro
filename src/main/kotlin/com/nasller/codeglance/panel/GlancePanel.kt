@@ -16,15 +16,15 @@ import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.util.Range
 import com.intellij.util.SingleAlarm
-import com.nasller.codeglance.CURRENT_EDITOR_DIFF_VIEW
 import com.nasller.codeglance.EditorInfo
 import com.nasller.codeglance.MyPanel
+import com.nasller.codeglance.config.CodeGlanceConfig.Companion.getWidth
 import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.listener.GlanceListener
 import com.nasller.codeglance.listener.HideScrollBarListener
 import com.nasller.codeglance.panel.scroll.ScrollBar
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
-import com.nasller.codeglance.render.Minimap
+import com.nasller.codeglance.render.BaseMinimap.Companion.getMinimap
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
 import java.util.concurrent.atomic.AtomicBoolean
@@ -42,7 +42,7 @@ class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable
 	val hideScrollBarListener = HideScrollBarListener(this)
 	val scrollbar = ScrollBar(this)
 	var myVcsPanel: MyVcsPanel? = null
-	val minimap = Minimap(this)
+	val minimap = editor.editorKind.getMinimap(this)
 	private val lock = AtomicBoolean(false)
 	private val alarm = SingleAlarm({ updateImage(directUpdate = true) }, 500, this)
 
@@ -292,7 +292,7 @@ class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable
 	}
 
 	fun getConfigSize(): Dimension{
-		val curWidth = if(editor.getUserData(CURRENT_EDITOR_DIFF_VIEW) != null) config.diffWidth else config.width
+		val curWidth = editor.editorKind.getWidth()
 		val calWidth = if (config.autoCalWidthInSplitterMode && FileEditorManagerEx.getInstanceEx(project).isInSplitter) {
 			val calWidth = editor.component.width / 12
 			if (calWidth < curWidth) {

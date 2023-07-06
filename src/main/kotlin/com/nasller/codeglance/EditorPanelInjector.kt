@@ -8,11 +8,8 @@ import com.intellij.diff.tools.fragmented.UnifiedDiffViewer
 import com.intellij.diff.tools.util.side.OnesideTextDiffViewer
 import com.intellij.diff.tools.util.side.ThreesideTextDiffViewer
 import com.intellij.diff.tools.util.side.TwosideTextDiffViewer
-import com.intellij.ide.AppLifecycleListener
 import com.intellij.ide.ui.LafManager
 import com.intellij.ide.ui.LafManagerListener
-import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.event.EditorFactoryEvent
@@ -36,7 +33,6 @@ import javax.swing.JPanel
 val CURRENT_EDITOR_DIFF_VIEW = Key<FrameDiffTool.DiffViewer>("CURRENT_EDITOR_DIFF_VIEW")
 
 class EditorPanelInjector : EditorFactoryListener {
-    /** EditorFactoryListener */
     override fun editorCreated(event: EditorFactoryEvent) {
         if(event.editor.editorKind == EditorKind.DIFF) return
         val editorImpl = event.editor as? EditorImpl ?: return
@@ -50,20 +46,10 @@ class EditorPanelInjector : EditorFactoryListener {
 }
 
 class DiffEditorPanelInjector : DiffExtension(){
-    /** DiffExtension */
     override fun onViewerCreated(viewer: FrameDiffTool.DiffViewer, context: DiffContext, request: DiffRequest) = viewer.diffEditorInjector()
 }
 
-class GlobalListener : AppLifecycleListener,SettingsChangeListener,LafManagerListener,Disposable {
-    private var isFirstSetup = true
-    init {
-        ApplicationManager.getApplication().messageBus.connect().apply {
-            subscribe(LafManagerListener.TOPIC, this@GlobalListener)
-            subscribe(SettingsChangeListener.TOPIC, this@GlobalListener)
-        }
-    }
-
-    /** SettingsChangeListener */
+class GlobalSettingsChangeListener : SettingsChangeListener{
     override fun onGlobalChanged() {
         processAllGlanceEditor { oldGlance, info ->
             val oldGlancePanel = oldGlance?.apply { Disposer.dispose(this) }
@@ -82,13 +68,14 @@ class GlobalListener : AppLifecycleListener,SettingsChangeListener,LafManagerLis
             }
         }
     }
+}
 
-    /** LafManagerListener */
+class GlobalLafManagerListener : LafManagerListener {
+    private var isFirstSetup = true
+
     override fun lookAndFeelChanged(source: LafManager) = if(isFirstSetup) isFirstSetup = false else {
         processAllGlanceEditor { oldGlance, _ -> oldGlance?.apply{ refresh() } }
     }
-
-    override fun dispose() {}
 }
 
 private val firstRunEditor = firstRunEditor@ { info: EditorInfo, diffView: FrameDiffTool.DiffViewer? ->

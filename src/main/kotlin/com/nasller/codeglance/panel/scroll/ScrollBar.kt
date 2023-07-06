@@ -15,6 +15,7 @@ import com.intellij.util.Alarm
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.MouseEventAdapter
 import com.nasller.codeglance.CURRENT_EDITOR_DIFF_VIEW
+import com.nasller.codeglance.config.CodeGlanceConfig.Companion.setWidth
 import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
@@ -112,12 +113,11 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			val newWidth = if(editor.getUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX) == GlancePanel.PlaceIndex.Left)
 				widthStart + e.xOnScreen - resizeStart
 			else widthStart + resizeStart - e.xOnScreen
+			editor.editorKind.setWidth(newWidth.coerceIn(GlancePanel.minWidth, GlancePanel.maxWidth))
 			val diffViewer = editor.getUserData(CURRENT_EDITOR_DIFF_VIEW)
 			if(diffViewer != null){
-				config.diffWidth = newWidth.coerceIn(GlancePanel.minWidth, GlancePanel.maxWidth)
 				diffViewer.editors.mapNotNull { it.getUserData(GlancePanel.CURRENT_GLANCE) }.forEach { it.refreshWithWidth() }
 			}else {
-				config.width = newWidth.coerceIn(GlancePanel.minWidth, GlancePanel.maxWidth)
 				glancePanel.refreshWithWidth()
 			}
 		} else if (dragging) {

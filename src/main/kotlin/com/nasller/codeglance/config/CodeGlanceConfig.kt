@@ -22,7 +22,6 @@ class CodeGlanceConfig : BaseState() {
 	var delayHoveringToShowScrollBar by property(0)
 	var clickType by enum(ClickTypeEnum.CODE_POSITION)
 	var jumpOnMouseDown by enum(MouseJumpEnum.MOUSE_DOWN)
-	var width by property(110)
 	var viewportColor by nonNullString("A0A0A0")
 	var viewportBorderColor by nonNullString("00FF00")
 	var viewportBorderThickness by property(0)
@@ -44,14 +43,38 @@ class CodeGlanceConfig : BaseState() {
 	var diffTwoSide by property(true)
 	var diffThreeSide by property(true)
 	var diffThreeSideMiddle by property(false)
-	var diffWidth by property(50)
 	var editorKinds by listOf(EditorKind.values().toMutableList())
+	private var mainWidth by property(110)
+	private var diffWidth by property(50)
+	private var unTypedWidth by property(50)
+	private var consoleWidth by property(50)
+	private var previewWidth by property(50)
 
 	fun singleFileVisibleButton() = !hoveringToShowScrollBar && singleFileVisibleButton
 
 	private fun nonNullString(initialValue: String = "") = property(initialValue) { it == initialValue }
 
-	private fun <T : Any> listOf(value: MutableList<T>) = property(value) { value.size == it.size && value.containsAll(it) }
+	private fun <T : Any> listOf(value: MutableList<T>) = property(value) { it == value }
+
+	companion object{
+		fun EditorKind.getWidth() = when(this){
+			EditorKind.UNTYPED -> CodeGlanceConfigService.getConfig().unTypedWidth
+			EditorKind.CONSOLE -> CodeGlanceConfigService.getConfig().consoleWidth
+			EditorKind.PREVIEW -> CodeGlanceConfigService.getConfig().previewWidth
+			EditorKind.DIFF -> CodeGlanceConfigService.getConfig().diffWidth
+			else -> CodeGlanceConfigService.getConfig().mainWidth
+		}
+
+		fun EditorKind.setWidth(value: Int) {
+			when (this) {
+				EditorKind.UNTYPED -> CodeGlanceConfigService.getConfig().unTypedWidth = value
+				EditorKind.CONSOLE -> CodeGlanceConfigService.getConfig().consoleWidth = value
+				EditorKind.PREVIEW -> CodeGlanceConfigService.getConfig().previewWidth = value
+				EditorKind.DIFF -> CodeGlanceConfigService.getConfig().diffWidth = value
+				else -> CodeGlanceConfigService.getConfig().mainWidth = value
+			}
+		}
+	}
 }
 
 val SettingsChangePublisher: SettingsChangeListener = ApplicationManager.getApplication().messageBus.syncPublisher(SettingsChangeListener.TOPIC)
