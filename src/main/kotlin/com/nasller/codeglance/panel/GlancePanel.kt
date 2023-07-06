@@ -3,13 +3,14 @@ package com.nasller.codeglance.panel
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.HighlighterLayer
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
-import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
+import com.intellij.openapi.fileEditor.impl.EditorsSplitters
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
@@ -24,11 +25,15 @@ import com.nasller.codeglance.listener.GlanceListener
 import com.nasller.codeglance.listener.HideScrollBarListener
 import com.nasller.codeglance.panel.scroll.ScrollBar
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
+import com.nasller.codeglance.render.BaseMinimap
 import com.nasller.codeglance.render.BaseMinimap.Companion.getMinimap
+import com.nasller.codeglance.render.MarkCommentState
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
+import java.lang.ref.SoftReference
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.JPanel
+import javax.swing.SwingUtilities
 
 class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable {
 	val editor = info.editor
@@ -42,7 +47,9 @@ class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable
 	val hideScrollBarListener = HideScrollBarListener(this)
 	val scrollbar = ScrollBar(this)
 	var myVcsPanel: MyVcsPanel? = null
-	val minimap = editor.editorKind.getMinimap(this)
+	val rangeList = mutableListOf<Pair<Int,Range<Int>>>()
+	val markCommentState = MarkCommentState(this)
+	private var minimapReference : SoftReference<BaseMinimap>
 	private val lock = AtomicBoolean(false)
 	private val alarm = SingleAlarm({ updateImage(directUpdate = true) }, 500, this)
 
@@ -52,7 +59,10 @@ class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable
 		isOpaque = false
 		editor.component.isOpaque = false
 		isVisible = !isDisabled
-		minimap.refreshMarkCommentHighlight(editor)
+		markCommentState.refreshMarkCommentHighlight(editor)
+		editor.editorKind.getMinimap(this).apply {
+			minimapReference = SoftReference(this)
+		}
 		refreshWithWidth(directUpdate = true)
 		editor.putUserData(CURRENT_GLANCE, this)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, if (info.place == BorderLayout.LINE_START) PlaceIndex.Left else PlaceIndex.Right)
@@ -82,7 +92,13 @@ class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable
 	private fun updateImgTask(updateScroll: Boolean = false) {
 		try {
 			if (updateScroll) updateScrollState()
-			minimap.update()
+			var image = minimapReference.get()
+			if(image == null) {
+				val baseMinimap = editor.editorKind.getMinimap(this@GlancePanel)
+				minimapReference = SoftReference(baseMinimap)
+				image = baseMinimap
+			}
+			image.update()
 		} finally {
 			lock.set(false)
 			repaint()
@@ -98,6 +114,12 @@ class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable
 
 	fun getPlaceIndex() = editor.getUserData(CURRENT_GLANCE_PLACE_INDEX) ?: PlaceIndex.Right
 
+	fun isInSplitter() = if(editor.editorKind == EditorKind.MAIN_EDITOR){
+		(SwingUtilities.getAncestorOfClass(EditorsSplitters::class.java, editor.component) as? EditorsSplitters)?.currentWindow?.run {
+			inSplitter()
+		}?: false
+	}else false
+
 	fun changeOriginScrollBarWidth(control: Boolean = true) {
 		if (config.hideOriginalScrollBar && control && (!isDisabled || isVisible)) {
 			myVcsPanel?.apply { isVisible = true }
@@ -110,7 +132,7 @@ class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable
 
 	fun getMyRenderVisualLine(y: Int): Int {
 		var minus = 0
-		for (pair in minimap.rangeList) {
+		for (pair in rangeList) {
 			if (y in pair.second.from..pair.second.to) {
 				return pair.first
 			} else if (pair.second.to < y) {
@@ -279,7 +301,7 @@ class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable
 	private fun getMyRenderLine(lineStart: Int, lineEnd: Int): Pair<Int, Int> {
 		var startAdd = 0
 		var endAdd = 0
-		for (pair in minimap.rangeList) {
+		for (pair in rangeList) {
 			if (pair.first in (lineStart + 1) until lineEnd) {
 				endAdd += pair.second.to - pair.second.from
 			} else if (pair.first < lineStart) {
@@ -293,22 +315,25 @@ class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable
 
 	fun getConfigSize(): Dimension{
 		val curWidth = editor.editorKind.getWidth()
-		val calWidth = if (config.autoCalWidthInSplitterMode && FileEditorManagerEx.getInstanceEx(project).isInSplitter) {
+		return Dimension(if (config.autoCalWidthInSplitterMode && isInSplitter()) {
 			val calWidth = editor.component.width / 12
 			if (calWidth < curWidth) {
 				if (calWidth < 15) 15 else calWidth
 			} else curWidth
-		} else curWidth
-		return Dimension(calWidth, 0)
+		} else curWidth, 0)
 	}
 
 	override fun paintComponent(gfx: Graphics) {
+		val minimap = minimapReference.get()
+		if(minimap == null) {
+			updateImage()
+			return
+		}
 		with(gfx as Graphics2D){
 			paintSomething()
-			val imageLazy = minimap.img
-			if (editor.document.textLength != 0 && imageLazy.isInitialized()) {
+			if (editor.document.textLength != 0 && minimap.img.isInitialized()) {
 				composite = srcOver0_8
-				drawImage(imageLazy.value, 0, 0, width, scrollState.drawHeight,
+				drawImage(minimap.img.value, 0, 0, width, scrollState.drawHeight,
 					0, scrollState.visibleStart, width, scrollState.visibleEnd, null)
 			}
 			scrollbar.paint(this)
@@ -332,8 +357,11 @@ class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable
 		hideScrollBarListener.removeHideScrollBarListener()
 		alarm.cancelAllRequests()
 		scrollbar.clear()
-		minimap.img.apply { if(isInitialized()) value.flush() }
-		minimap.markCommentMap.clear()
+		minimapReference.get()?.apply {
+			if(img.isInitialized()) img.value.flush()
+		}
+		markCommentState.clear()
+		minimapReference.clear()
 	}
 
 	private inner class RangeHighlightColor(val startOffset: Int, val endOffset: Int, val color: Color, var fullLine: Boolean, val fullLineWithActualHighlight: Boolean) {

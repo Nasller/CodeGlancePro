@@ -24,11 +24,12 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		val lineCount = editor.document.lineCount
 		if(lineCount <= 0) return
 		var curImg = img.value
-		if (curImg.height < glancePanel.scrollState.documentHeight || curImg.width < glancePanel.width) {
+		if (curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
 			curImg.flush()
 			curImg = getBufferedImage()
 			img = lazyOf(curImg)
 		}
+		val rangeList = glancePanel.rangeList
 		if(rangeList.size > 0) rangeList.clear()
 		val text = editor.document.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground
@@ -87,7 +88,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 				} else {
 					(color ?: defaultColor).setColorRgba()
 					//jump over the fold line
-					val heightLine = (region.heightInPixels * glancePanel.scrollState.scale).roundToInt()
+					val heightLine = (region.heightInPixels * scrollState.scale).roundToInt()
 					skipY -= (foldLine + 1) * config.pixelsPerLine - heightLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 					rangeList.add(Pair(editor.offsetToVisualLine(endOffset),
@@ -120,7 +121,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 								val lineEndOffset = DocumentUtil.getLineEndOffset(startOffset, editor.document)
 								val sumBlock = editor.inlayModel.getBlockElementsInRange(startOffset, lineEndOffset)
 									.filter { it.placement == Inlay.Placement.ABOVE_LINE }
-									.sumOf { (it.heightInPixels * glancePanel.scrollState.scale).roundToInt() }
+									.sumOf { (it.heightInPixels * scrollState.scale).roundToInt() }
 								if (sumBlock > 0) {
 									rangeList.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
 									y += sumBlock
@@ -145,7 +146,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 								val startOffset = offset + 1
 								val sumBlock = editor.inlayModel.getBlockElementsInRange(startOffset, DocumentUtil.getLineEndOffset(startOffset, editor.document))
 									.filter { it.placement == Inlay.Placement.ABOVE_LINE }
-									.sumOf { (it.heightInPixels * glancePanel.scrollState.scale).roundToInt() }
+									.sumOf { (it.heightInPixels * scrollState.scale).roundToInt() }
 								if (sumBlock > 0) {
 									rangeList.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
 									y += sumBlock
@@ -166,6 +167,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	}
 
 	private fun makeMarkHighlight(text: CharSequence,lineCount: Int,graphics: Graphics2D):Map<Int,MarkCommentData>{
+		val markCommentMap = glancePanel.markCommentState.markCommentMap
 		if(markCommentMap.isNotEmpty()) {
 			val map = mutableMapOf<Int, MarkCommentData>()
 			val file = glancePanel.psiDocumentManager.getCachedPsiFile(editor.document)

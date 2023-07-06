@@ -17,8 +17,10 @@ import java.awt.event.MouseWheelEvent
 import javax.swing.JPanel
 
 class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
+	private val editor
+		get() = glancePanel.editor
 	init{
-		Disposer.register(glancePanel.editor.disposable, MyVcsListener(this))
+		Disposer.register(editor.disposable, MyVcsListener(this))
 		val mouseHandler = MouseHandler()
 		addMouseListener(mouseHandler)
 		addMouseWheelListener(mouseHandler)
@@ -37,7 +39,6 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 
 		override fun mouseClicked(e: MouseEvent) {
 			hoverVcsLine?.let {
-				val editor = glancePanel.editor
 				editor.caretModel.moveToVisualPosition(VisualPosition(it,0))
 				editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
 			}
@@ -45,7 +46,6 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 
 		override fun mouseMoved(e: MouseEvent) {
 			if(glancePanel.config.showVcsHighlight.not()) return
-			val editor = glancePanel.editor
 			val rangeOffset = glancePanel.getVisibleRangeOffset()
 			val process = editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from,rangeOffset.to) {
 				if (it.isThinErrorStripeMark) it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
@@ -70,6 +70,6 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 			hoverVcsLine = null
 		}
 
-		override fun mouseWheelMoved(e: MouseWheelEvent) = MouseEventAdapter.redispatch(e,glancePanel.editor.contentComponent)
+		override fun mouseWheelMoved(e: MouseWheelEvent) = MouseEventAdapter.redispatch(e,editor.contentComponent)
 	}
 }

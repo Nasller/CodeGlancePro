@@ -8,7 +8,7 @@ class ConsoleMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		val lineCount = editor.document.lineCount
 		if(lineCount <= 0) return
 		var curImg = img.value
-		if (curImg.height < glancePanel.scrollState.documentHeight || curImg.width < glancePanel.width) {
+		if (curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
 			curImg.flush()
 			curImg = getBufferedImage()
 			img = lazyOf(curImg)

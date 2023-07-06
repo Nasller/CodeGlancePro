@@ -1,21 +1,19 @@
 package com.nasller.codeglance.render
 
 import com.intellij.openapi.editor.EditorKind
-import com.intellij.openapi.editor.ex.RangeHighlighterEx
-import com.intellij.openapi.editor.impl.EditorImpl
-import com.intellij.util.Range
-import com.nasller.codeglance.config.CodeGlanceColorsPage
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Color
 import java.awt.image.BufferedImage
 
 abstract class BaseMinimap(protected val glancePanel: GlancePanel){
-	protected val editor = glancePanel.editor
-	protected val config = glancePanel.config
+	protected val editor
+		get() = glancePanel.editor
+	protected val config
+		get() = glancePanel.config
+	protected val scrollState
+		get() = glancePanel.scrollState
 	private val scaleBuffer = FloatArray(4)
-	val markCommentMap = hashMapOf<Long,RangeHighlighterEx>()
 	var img = lazy(LazyThreadSafetyMode.NONE) { getBufferedImage() }
-	val rangeList = mutableListOf<Pair<Int,Range<Int>>>()
 
 	abstract fun update()
 
@@ -108,25 +106,6 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel){
 		scaleBuffer[0] = red.toFloat()
 		scaleBuffer[1] = green.toFloat()
 		scaleBuffer[2] = blue.toFloat()
-	}
-
-	fun markCommentHighlightChange(highlighter: RangeHighlighterEx,remove: Boolean) : Boolean{
-		if(editor.editorKind == EditorKind.CONSOLE) return false
-		return if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey){
-			if(remove) markCommentMap.remove(highlighter.id)
-			else markCommentMap[highlighter.id] = highlighter
-			true
-		} else false
-	}
-
-	fun refreshMarkCommentHighlight(editor: EditorImpl){
-		if(editor.editorKind == EditorKind.CONSOLE) return
-		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0,editor.document.textLength){
-			if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == it.textAttributesKey){
-				markCommentMap[it.id] = it
-			}
-			return@processRangeHighlightersOverlappingWith true
-		}
 	}
 
 	@Suppress("UndesirableClassUsage")

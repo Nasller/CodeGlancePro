@@ -18,7 +18,8 @@ import java.awt.event.*
 class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(), FoldingListener, MarkupModelListener,
 	SettingsChangeListener, CaretListener, PrioritizedDocumentListener, VisibleAreaListener, SelectionListener,
 	HierarchyBoundsListener, HierarchyListener, SoftWrapChangeListener, InlayModel.Listener, Disposable {
-	private val editor = glancePanel.editor
+	private val editor
+		get() = glancePanel.editor
 	private var softWrapEnabled = false
 	init {
 		glancePanel.addHierarchyListener(this)
@@ -98,7 +99,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
 	private fun updateRangeHighlight(highlighter: RangeHighlighterEx,remove: Boolean) {
 		//如果开启隐藏滚动条则忽略Vcs高亮
-		val highlightChange = glancePanel.minimap.markCommentHighlightChange(highlighter, remove)
+		val highlightChange = glancePanel.markCommentState.markCommentHighlightChange(highlighter, remove)
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode
 			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark)) return
 		if(highlightChange || EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) {

@@ -7,7 +7,6 @@ import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.ex.MarkupModelEx
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
-import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.HintHint
@@ -33,9 +32,12 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
-	private val config = glancePanel.config
-	private val editor = glancePanel.editor
-	private val scrollState = glancePanel.scrollState
+	private val config
+		get() = glancePanel.config
+	private val editor
+		get() = glancePanel.editor
+	private val scrollState
+		get() = glancePanel.scrollState
 	private val alarm = Alarm(glancePanel)
 	private val myEditorFragmentRenderer = CustomEditorFragmentRenderer(editor)
 	private var visibleRectAlpha = DEFAULT_ALPHA
@@ -235,7 +237,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	private fun isInResizeGutter(x: Int): Boolean =
-		if (config.locked || config.hoveringToShowScrollBar || FileEditorManagerEx.getInstanceEx(glancePanel.project).isInSplitter) false else {
+		if (config.locked || config.hoveringToShowScrollBar || glancePanel.isInSplitter()) false else {
 				if(editor.getUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX) == GlancePanel.PlaceIndex.Left)
 					x in glancePanel.width - 7 .. glancePanel.width
 				else x in 0..7
