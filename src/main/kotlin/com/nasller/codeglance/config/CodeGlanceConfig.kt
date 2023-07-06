@@ -43,7 +43,7 @@ class CodeGlanceConfig : BaseState() {
 	var diffTwoSide by property(true)
 	var diffThreeSide by property(true)
 	var diffThreeSideMiddle by property(false)
-	var editorKinds by listOf(EditorKind.values().toMutableList())
+	var editorKinds by listOf(mutableListOf(EditorKind.MAIN_EDITOR, EditorKind.CONSOLE, EditorKind.PREVIEW, EditorKind.DIFF))
 	var mainWidth by property(110)
 	var diffWidth by property(50)
 	var unTypedWidth by property(50)
