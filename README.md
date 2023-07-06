@@ -3,7 +3,6 @@
 [![Version](https://img.shields.io/jetbrains/plugin/v/18824-codeglance-pro.svg)](https://plugins.jetbrains.com/plugin/18824-codeglance-pro)
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/18824-codeglance-pro.svg)](https://plugins.jetbrains.com/plugin/18824-codeglance-pro)
 
-## Good News,Jetbrains will release their minimap implementation, look forward to it.I have seen some minimap implementations!
 [Preview Channel](https://plugins.jetbrains.com/plugin/18824-codeglance-pro/versions/preview)
 #### Main differences compared to CodeGlance
 - Hide original scrollbar
