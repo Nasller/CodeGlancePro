@@ -44,11 +44,11 @@ class CodeGlanceConfig : BaseState() {
 	var diffThreeSide by property(true)
 	var diffThreeSideMiddle by property(false)
 	var editorKinds by listOf(EditorKind.values().toMutableList())
-	private var mainWidth by property(110)
-	private var diffWidth by property(50)
-	private var unTypedWidth by property(50)
-	private var consoleWidth by property(50)
-	private var previewWidth by property(50)
+	var mainWidth by property(110)
+	var diffWidth by property(50)
+	var unTypedWidth by property(50)
+	var consoleWidth by property(50)
+	var previewWidth by property(50)
 
 	fun singleFileVisibleButton() = !hoveringToShowScrollBar && singleFileVisibleButton
 
