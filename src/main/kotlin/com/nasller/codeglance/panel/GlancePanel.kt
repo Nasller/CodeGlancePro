@@ -82,7 +82,8 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	}
 
 	fun updateImage(directUpdate: Boolean = false, updateScroll: Boolean = false) =
-		if (checkVisible() && runReadAction{ editor.highlighter !is EmptyEditorHighlighter }) {
+		if (checkVisible() && (editor.editorKind == EditorKind.CONSOLE || editor.editorKind == EditorKind.UNTYPED
+					|| runReadAction{ editor.highlighter !is EmptyEditorHighlighter })) {
 			psiDocumentManager.performForCommittedDocument(editor.document) {
 				if (directUpdate) updateImgTask(updateScroll)
 				else invokeLater { updateImgTask(updateScroll) }
