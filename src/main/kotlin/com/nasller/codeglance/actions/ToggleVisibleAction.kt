@@ -15,6 +15,8 @@ import com.nasller.codeglance.util.message
 import javax.swing.JComponent
 
 class ToggleVisibleAction : DumbAwareToggleAction(), CustomComponentAction {
+    init { isEnabledInModalContext = true }
+
     override fun createCustomComponent(presentation: Presentation, place: String): JComponent =
         object : ActionButton(this, presentation, place, JBUI.emptySize()) {
             override fun getPopState(): Int = if (myRollover && isEnabled) POPPED else NORMAL

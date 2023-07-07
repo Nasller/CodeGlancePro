@@ -5,19 +5,19 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.*
 import com.intellij.openapi.editor.Inlay.Placement
 import com.intellij.openapi.editor.event.*
-import com.intellij.openapi.editor.ex.FoldingListener
-import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
-import com.intellij.openapi.editor.ex.RangeHighlighterEx
-import com.intellij.openapi.editor.ex.SoftWrapChangeListener
+import com.intellij.openapi.editor.ex.*
 import com.intellij.openapi.editor.ex.util.EditorUtil
+import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.event.*
+import java.beans.PropertyChangeEvent
+import java.beans.PropertyChangeListener
 
 class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(), FoldingListener, MarkupModelListener,
 	SettingsChangeListener, CaretListener, PrioritizedDocumentListener, VisibleAreaListener, SelectionListener,
-	HierarchyBoundsListener, HierarchyListener, SoftWrapChangeListener, InlayModel.Listener, Disposable {
+	HierarchyBoundsListener, HierarchyListener, SoftWrapChangeListener, InlayModel.Listener, PropertyChangeListener, Disposable {
 	private val editor
 		get() = glancePanel.editor
 	private var softWrapEnabled = false
@@ -34,6 +34,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 		editor.caretModel.addCaretListener(this, glancePanel)
 		editor.markupModel.addMarkupModelListener(glancePanel, GlanceOtherListener(glancePanel))
 		editor.filteredDocumentMarkupModel.addMarkupModelListener(glancePanel, this)
+		editor.addPropertyChangeListener(this,this)
 		ApplicationManager.getApplication().messageBus.connect(glancePanel).subscribe(SettingsChangeListener.TOPIC, this)
 	}
 
@@ -45,15 +46,13 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
 	override fun onCustomFoldRegionPropertiesChange(region: CustomFoldRegion, flags: Int) {
 		if (flags and FoldingListener.ChangeFlags.HEIGHT_CHANGED != 0 &&
-			!editor.foldingModel.isInBatchFoldingOperation
-		) repaintOrRequest(true)
+			!editor.foldingModel.isInBatchFoldingOperation) repaintOrRequest(true)
 	}
 
 	/** InlayModel.Listener */
 	override fun onAdded(inlay: Inlay<*>) {
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode
-			|| inlay.placement != Placement.ABOVE_LINE
-		) return
+			|| inlay.placement != Placement.ABOVE_LINE) return
 		repaintOrRequest(true)
 	}
 
@@ -91,11 +90,9 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	override fun recalculationEnds() = Unit
 
 	/** MarkupModelListener */
-	override fun afterAdded(highlighter: RangeHighlighterEx) =
-		updateRangeHighlight(highlighter,false)
+	override fun afterAdded(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,false)
 
-	override fun beforeRemoved(highlighter: RangeHighlighterEx) =
-		updateRangeHighlight(highlighter,true)
+	override fun beforeRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,true)
 
 	private fun updateRangeHighlight(highlighter: RangeHighlighterEx,remove: Boolean) {
 		//如果开启隐藏滚动条则忽略Vcs高亮
@@ -142,7 +139,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	override fun onHoveringOriginalScrollBarChanged(value: Boolean) = if (value) glancePanel.hideScrollBarListener.addHideScrollBarListener()
 	else glancePanel.hideScrollBarListener.removeHideScrollBarListener()
 
-	override fun refresh(directUpdate: Boolean, updateScroll: Boolean) = glancePanel.refreshWithWidth(directUpdate, updateScroll)
+	override fun refresh(directUpdate: Boolean) = glancePanel.refreshWithWidth(directUpdate)
 
 	/** VisibleAreaListener */
 	override fun visibleAreaChanged(e: VisibleAreaEvent) {
@@ -161,6 +158,12 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	override fun hierarchyChanged(e: HierarchyEvent) {
 		if (checkWithGlance {config.autoCalWidthInSplitterMode && !config.hoveringToShowScrollBar} &&
 			e.changeFlags and HierarchyEvent.PARENT_CHANGED.toLong() != 0L) glancePanel.refreshWithWidth(refreshImage = false)
+	}
+
+	/** PropertyChangeListener */
+	override fun propertyChange(evt: PropertyChangeEvent) {
+		if (EditorEx.PROP_HIGHLIGHTER != evt.propertyName || evt.newValue is EmptyEditorHighlighter) return
+		glancePanel.updateImage()
 	}
 
 	private fun repaintOrRequest(request: Boolean = false) {

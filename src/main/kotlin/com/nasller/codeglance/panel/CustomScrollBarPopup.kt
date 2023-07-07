@@ -12,7 +12,6 @@ import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbAwareToggleAction
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.PopupMenuListenerAdapter
 import com.intellij.ui.awt.RelativePoint
@@ -29,7 +28,7 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
     override fun invokePopup(comp: Component?, x: Int, y: Int) {
         val config = glancePanel.config
         if (ApplicationManager.getApplication() == null) return
-        val file = PsiDocumentManager.getInstance(glancePanel.project).getPsiFile(glancePanel.editor.document) ?: return
+        val file = glancePanel.psiDocumentManager.getPsiFile(glancePanel.editor.document) ?: return
         val actionGroup = DefaultActionGroup(
             DumbAwareToggleOptionAction(object : ToggleOptionAction.Option {
                 override fun getName(): String = message("popup.hover.minimap")
@@ -60,7 +59,7 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
                 override fun setSelected(e: AnActionEvent, state: Boolean) {
                     config.autoCalWidthInSplitterMode = state
                     if(!config.hoveringToShowScrollBar) {
-                        SettingsChangePublisher.refresh(directUpdate = false)
+                        SettingsChangePublisher.refresh()
                     }
                 }
                 override fun getActionUpdateThread() = ActionUpdateThread.BGT
@@ -92,12 +91,14 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
                     override fun setSelected(e: AnActionEvent, state: Boolean) {
                         config.mouseWheelMoveEditorToolTip = state
                     }
+                    override fun getActionUpdateThread() = ActionUpdateThread.BGT
                 })
                 actionGroup.add(object : ToggleAction(message("glance.show.editor.preview.popup")) {
                     override fun isSelected(e: AnActionEvent): Boolean = config.showEditorToolTip
                     override fun setSelected(e: AnActionEvent, state: Boolean) {
                         config.showEditorToolTip = state
                     }
+                    override fun getActionUpdateThread() = ActionUpdateThread.BGT
                 })
             }
         }
@@ -127,22 +128,21 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
             gotoGroup.add(object : ToggleAction(EditorBundle.message("errors.panel.go.to.errors.first.radio")) {
                 override fun isSelected(e: AnActionEvent): Boolean =
                     DaemonCodeAnalyzerSettings.getInstance().isNextErrorActionGoesToErrorsFirst
-
                 override fun setSelected(e: AnActionEvent, state: Boolean) {
                     DaemonCodeAnalyzerSettings.getInstance().isNextErrorActionGoesToErrorsFirst = state
                 }
+                override fun getActionUpdateThread() = ActionUpdateThread.BGT
 
                 override fun isDumbAware(): Boolean = true
             })
             gotoGroup.add(object : ToggleAction(EditorBundle.message("errors.panel.go.to.next.error.warning.radio")) {
                 override fun isSelected(e: AnActionEvent): Boolean =
                     !DaemonCodeAnalyzerSettings.getInstance().isNextErrorActionGoesToErrorsFirst
-
                 override fun setSelected(e: AnActionEvent, state: Boolean) {
                     DaemonCodeAnalyzerSettings.getInstance().isNextErrorActionGoesToErrorsFirst = !state
                 }
-
                 override fun isDumbAware(): Boolean = true
+                override fun getActionUpdateThread() = ActionUpdateThread.BGT
             })
             return gotoGroup
         }

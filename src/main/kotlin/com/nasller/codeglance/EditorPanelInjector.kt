@@ -16,18 +16,15 @@ import com.intellij.openapi.editor.event.EditorFactoryEvent
 import com.intellij.openapi.editor.event.EditorFactoryListener
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
-import com.intellij.ui.DirtyUI
-import com.intellij.util.ui.JBSwingUtilities
+import com.intellij.ui.components.JBPanel
 import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import java.awt.BorderLayout
 import java.awt.Color
-import java.awt.Graphics
 import javax.swing.JPanel
 
 val CURRENT_EDITOR_DIFF_VIEW = Key<FrameDiffTool.DiffViewer>("CURRENT_EDITOR_DIFF_VIEW")
@@ -131,7 +128,7 @@ private fun processAllGlanceEditor(action: (oldGlance:GlancePanel?, EditorInfo)-
 }
 
 private fun setMyPanel(info: EditorInfo): GlancePanel {
-    val glancePanel = GlancePanel(info.editor.project ?: ProjectManager.getInstance().defaultProject, info)
+    val glancePanel = GlancePanel(info)
     info.editor.apply{ component.add(MyPanel(glancePanel), info.place) }
     glancePanel.hideScrollBarListener.addHideScrollBarListener()
     return glancePanel
@@ -142,7 +139,7 @@ private fun EditorImpl.isDisableExtensionFile(): Boolean{
     return extension.isNotBlank() && CodeGlanceConfigService.getConfig().disableLanguageSuffix.split(",").toSet().contains(extension)
 }
 
-internal class MyPanel(val panel: GlancePanel?): JPanel(BorderLayout()){
+internal class MyPanel(val panel: GlancePanel?): JBPanel<MyPanel>(BorderLayout()){
     init{
         add(panel!!)
         if (CodeGlanceConfigService.getConfig().hideOriginalScrollBar){
@@ -152,11 +149,6 @@ internal class MyPanel(val panel: GlancePanel?): JPanel(BorderLayout()){
     }
 
     override fun getBackground(): Color? = panel?.run { editor.contentComponent.background } ?: super.getBackground()
-
-    @DirtyUI
-    override fun getComponentGraphics(graphics: Graphics): Graphics {
-        return JBSwingUtilities.runGlobalCGTransform(this, super.getComponentGraphics(graphics))
-    }
 }
 
 data class EditorInfo(val editor: EditorImpl, val place: String)

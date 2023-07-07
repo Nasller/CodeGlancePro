@@ -3,22 +3,24 @@ package com.nasller.codeglance.panel
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
+import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.HighlighterLayer
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.fileEditor.impl.EditorsSplitters
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.util.Range
 import com.intellij.util.SingleAlarm
 import com.nasller.codeglance.EditorInfo
-import com.nasller.codeglance.MyPanel
 import com.nasller.codeglance.config.CodeGlanceConfig.Companion.getWidth
 import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.listener.GlanceListener
@@ -35,8 +37,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
 
-class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable {
+class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val editor = info.editor
+	val project: Project
+		get() = editor.project ?: ProjectManager.getInstance().defaultProject
 	var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
 	val psiDocumentManager: PsiDocumentManager = PsiDocumentManager.getInstance(project)
 	val config = CodeGlanceConfigService.getConfig()
@@ -60,17 +64,15 @@ class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable
 		editor.component.isOpaque = false
 		isVisible = !isDisabled
 		markCommentState.refreshMarkCommentHighlight(editor)
-		editor.editorKind.getMinimap(this).apply {
-			minimapReference = SoftReference(this)
-		}
-		refreshWithWidth(directUpdate = true)
+		editor.editorKind.getMinimap(this).apply { minimapReference = SoftReference(this) }
 		editor.putUserData(CURRENT_GLANCE, this)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, if (info.place == BorderLayout.LINE_START) PlaceIndex.Left else PlaceIndex.Right)
+		refreshWithWidth()
 	}
 
-	fun refreshWithWidth(refreshImage: Boolean = true, directUpdate: Boolean = false) {
+	fun refreshWithWidth(refreshImage: Boolean = true) {
 		preferredSize = if(!config.hoveringToShowScrollBar) getConfigSize() else Dimension(0,0)
-		refresh(refreshImage,directUpdate)
+		refresh(refreshImage)
 	}
 
 	fun refresh(refreshImage: Boolean = true, directUpdate: Boolean = false) {
@@ -80,7 +82,7 @@ class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable
 	}
 
 	fun updateImage(directUpdate: Boolean = false, updateScroll: Boolean = false) =
-		if (checkVisible() && lock.compareAndSet(false,true)) {
+		if (checkVisible() && runReadAction{ editor.highlighter !is EmptyEditorHighlighter }) {
 			psiDocumentManager.performForCommittedDocument(editor.document) {
 				if (directUpdate) updateImgTask(updateScroll)
 				else invokeLater { updateImgTask(updateScroll) }
@@ -90,18 +92,20 @@ class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable
 	fun delayUpdateImage() = alarm.cancelAndRequest()
 
 	private fun updateImgTask(updateScroll: Boolean = false) {
-		try {
-			if (updateScroll) updateScrollState()
-			var image = minimapReference.get()
-			if(image == null) {
-				val baseMinimap = editor.editorKind.getMinimap(this@GlancePanel)
-				minimapReference = SoftReference(baseMinimap)
-				image = baseMinimap
+		if(lock.compareAndSet(false,true)){
+			try {
+				if (updateScroll) updateScrollState()
+				var image = minimapReference.get()
+				if(image == null) {
+					val baseMinimap = editor.editorKind.getMinimap(this@GlancePanel)
+					minimapReference = SoftReference(baseMinimap)
+					image = baseMinimap
+				}
+				image.update()
+			} finally {
+				lock.set(false)
+				repaint()
 			}
-			image.update()
-		} finally {
-			lock.set(false)
-			repaint()
 		}
 	}
 
@@ -115,9 +119,8 @@ class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable
 	fun getPlaceIndex() = editor.getUserData(CURRENT_GLANCE_PLACE_INDEX) ?: PlaceIndex.Right
 
 	fun isInSplitter() = if(editor.editorKind == EditorKind.MAIN_EDITOR){
-		(SwingUtilities.getAncestorOfClass(EditorsSplitters::class.java, editor.component) as? EditorsSplitters)?.currentWindow?.run {
-			inSplitter()
-		}?: false
+		(SwingUtilities.getAncestorOfClass(EditorsSplitters::class.java, editor.component) as? EditorsSplitters)?.
+		currentWindow?.run { inSplitter() }?: false
 	}else false
 
 	fun changeOriginScrollBarWidth(control: Boolean = true) {
@@ -353,7 +356,7 @@ class GlancePanel(val project: Project, info: EditorInfo) : JPanel(), Disposable
 	override fun dispose() {
 		editor.putUserData(CURRENT_GLANCE, null)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, null)
-		editor.component.remove(if (this.parent is MyPanel) this.parent else this)
+		editor.component.remove(this.parent)
 		hideScrollBarListener.removeHideScrollBarListener()
 		alarm.cancelAllRequests()
 		scrollbar.clear()

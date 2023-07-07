@@ -82,7 +82,7 @@ val SettingsChangePublisher: SettingsChangeListener = ApplicationManager.getAppl
 interface SettingsChangeListener {
 	fun onHoveringOriginalScrollBarChanged(value: Boolean) {}
 
-	fun refresh(directUpdate: Boolean = false, updateScroll: Boolean = false) {}
+	fun refresh(directUpdate: Boolean = false) {}
 
 	fun onGlobalChanged() {}
 
