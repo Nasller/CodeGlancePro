@@ -95,13 +95,8 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		if(lock.compareAndSet(false,true)){
 			try {
 				if (updateScroll) updateScrollState()
-				var image = minimapReference.get()
-				if(image == null) {
-					val baseMinimap = editor.editorKind.getMinimap(this@GlancePanel)
-					minimapReference = SoftReference(baseMinimap)
-					image = baseMinimap
-				}
-				image.update()
+				val img = getOrCreateImg()
+				img.first?.update() ?: img.second?.update()
 			} finally {
 				lock.set(false)
 				repaint()
@@ -327,7 +322,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	}
 
 	override fun paintComponent(gfx: Graphics) {
-		val minimap = minimapReference.get()
+		val minimap = getOrCreateImg().first
 		if(minimap == null) {
 			updateImage()
 			return
@@ -365,6 +360,16 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		}
 		markCommentState.clear()
 		minimapReference.clear()
+	}
+
+	private fun getOrCreateImg(): Pair<BaseMinimap?,BaseMinimap?> {
+		val image = minimapReference.get()
+		if(image == null) {
+			val baseMinimap = editor.editorKind.getMinimap(this@GlancePanel)
+			minimapReference = SoftReference(baseMinimap)
+			return null to baseMinimap
+		}
+		return image to null
 	}
 
 	private inner class RangeHighlightColor(val startOffset: Int, val endOffset: Int, val color: Color, var fullLine: Boolean, val fullLineWithActualHighlight: Boolean) {
