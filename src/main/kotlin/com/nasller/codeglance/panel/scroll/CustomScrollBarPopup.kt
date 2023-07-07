@@ -1,4 +1,4 @@
-package com.nasller.codeglance.panel
+package com.nasller.codeglance.panel.scroll
 
 import com.intellij.codeInsight.CodeInsightBundle
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
@@ -16,6 +16,7 @@ import com.intellij.ui.PopupMenuListenerAdapter
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.config.SettingsChangePublisher
+import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.message
 import java.awt.Component
 import java.awt.Point

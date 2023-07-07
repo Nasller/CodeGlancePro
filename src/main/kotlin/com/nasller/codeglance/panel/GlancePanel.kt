@@ -6,6 +6,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.EditorKind
+import com.intellij.openapi.editor.colors.CodeInsightColors
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
@@ -26,6 +27,7 @@ import com.nasller.codeglance.config.CodeGlanceConfig.Companion.getWidth
 import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.listener.GlanceListener
 import com.nasller.codeglance.listener.HideScrollBarListener
+import com.nasller.codeglance.panel.scroll.CustomScrollBarPopup
 import com.nasller.codeglance.panel.scroll.ScrollBar
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import com.nasller.codeglance.render.BaseMinimap
@@ -239,8 +241,10 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	private fun Graphics2D.paintEditorMarkupModel(rangeOffset: Range<Int>,existLine: MutableSet<Int>) {
 		val map by lazy { hashMapOf<String, Int>() }
 		editor.markupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
-			(it.getErrorStripeMarkColor(editor.colorsScheme) ?: (if(ConsoleViewUtil.isConsoleViewEditor(editor))
-				it.getTextAttributes(editor.colorsScheme)?.foregroundColor else null))?.apply {
+			(it.getErrorStripeMarkColor(editor.colorsScheme) ?:
+			(if (ConsoleViewUtil.isConsoleViewEditor(editor) && it.textAttributesKey != CodeInsightColors.HYPERLINK_ATTRIBUTES)
+				it.getTextAttributes(editor.colorsScheme)?.foregroundColor
+			else null))?.apply {
 				val highlightColor = RangeHighlightColor(it, this, config.showOtherFullLineHighlight, existLine)
 				map.compute("${highlightColor.startOffset}-${highlightColor.endOffset}") { _, layer ->
 					if (layer == null || layer < it.layer) {
