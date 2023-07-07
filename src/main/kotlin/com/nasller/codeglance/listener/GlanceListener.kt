@@ -1,5 +1,6 @@
 package com.nasller.codeglance.listener
 
+import com.intellij.execution.impl.ConsoleViewUtil
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.*
@@ -126,7 +127,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	override fun documentChanged(event: DocumentEvent) {
 		if (event.document.isInBulkUpdate) return
 		//console delay update
-		if (editor.editorKind == EditorKind.CONSOLE || event.document.lineCount > glancePanel.config.moreThanLineDelay) {
+		if (ConsoleViewUtil.isConsoleViewEditor(editor) || event.document.lineCount > glancePanel.config.moreThanLineDelay) {
 			repaintOrRequest(true)
 		} else  glancePanel.updateImage()
 	}
@@ -139,7 +140,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	override fun onHoveringOriginalScrollBarChanged(value: Boolean) = if (value) glancePanel.hideScrollBarListener.addHideScrollBarListener()
 	else glancePanel.hideScrollBarListener.removeHideScrollBarListener()
 
-	override fun refresh(directUpdate: Boolean) = glancePanel.refreshWithWidth(directUpdate)
+	override fun refresh(refreshImage: Boolean) = glancePanel.refreshWithWidth(refreshImage)
 
 	/** VisibleAreaListener */
 	override fun visibleAreaChanged(e: VisibleAreaEvent) {

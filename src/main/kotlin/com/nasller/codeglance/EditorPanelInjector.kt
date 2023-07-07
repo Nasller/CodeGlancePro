@@ -59,7 +59,6 @@ class GlobalSettingsChangeListener : SettingsChangeListener{
                     setMyPanel(info).apply {
                         oldGlancePanel?.let{ glancePanel -> originalScrollbarWidth = glancePanel.originalScrollbarWidth }
                         changeOriginScrollBarWidth()
-                        updateImage()
                     }
                 }
             }

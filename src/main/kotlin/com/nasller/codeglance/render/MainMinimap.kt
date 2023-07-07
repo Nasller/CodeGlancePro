@@ -1,8 +1,10 @@
 package com.nasller.codeglance.render
 
 import com.intellij.ide.ui.UISettings
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.colors.EditorFontType
+import com.intellij.openapi.editor.highlighter.HighlighterIterator
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.text.StringUtil
@@ -33,14 +35,15 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		if(rangeList.size > 0) rangeList.clear()
 		val text = editor.document.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground
-		val hlIter = editor.highlighter.createIterator(0)
+		val hlIter = editor.highlighter.createIterator(0).run {
+			if(isLogFile) IdeLogFileHighlightDelegate(editor.document,this) else this
+		}
 		val softWrapEnable = editor.softWrapModel.isSoftWrappingEnabled
 		val hasBlockInlay = editor.inlayModel.hasBlockElements()
 
 		var x = 0
 		var y = 0
 		var skipY = 0
-		var lineNumber = 0
 		val moveCharIndex = { code: Int,enterAction: (()->Unit)? ->
 			when (code) {
 				9 -> x += 4//TAB
@@ -60,16 +63,9 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		g.composite = GlancePanel.CLEAR
 		g.fillRect(0, 0, curImg.width, curImg.height)
 		val highlight = makeMarkHighlight(text,lineCount,g)
-		loop@ while (!hlIter.atEnd() && !editor.isDisposed) {
+		loop@ while (!hlIter.atEnd()) {
 			val start = hlIter.start
-			//#69 fix log file of the ideolog plugin
-			editor.document.getLineNumber(start).let {
-				if(isLogFile && it != lineNumber && x > 0) {
-					x = 0
-					lineNumber = it
-				}
-				y = it * config.pixelsPerLine + skipY
-			}
+			y = editor.document.getLineNumber(start) * config.pixelsPerLine + skipY
 			val color by lazy(LazyThreadSafetyMode.NONE){ try {
 				hlIter.textAttributes.foregroundColor
 			} catch (_: ConcurrentModificationException){ null } }
@@ -205,4 +201,14 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	}
 
 	private data class MarkCommentData(var jumpEndOffset: Int,val comment: String,val font: Font,val fontHeight:Int)
+}
+
+private class IdeLogFileHighlightDelegate(private val document: Document, private val highlighterIterator: HighlighterIterator) : HighlighterIterator by highlighterIterator{
+	private val length = document.textLength
+
+	override fun getEnd(): Int {
+		val end = highlighterIterator.end
+		return if(DocumentUtil.isAtLineEnd(end,document) && end + 1 < length) end + 1
+		else end
+	}
 }

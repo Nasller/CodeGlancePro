@@ -1,6 +1,7 @@
 package com.nasller.codeglance.render
 
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.util.DocumentUtil
 import com.nasller.codeglance.panel.GlancePanel
 
 class ConsoleMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
@@ -41,9 +42,7 @@ class ConsoleMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		g.fillRect(0, 0, curImg.width, curImg.height)
 		loop@ while (!lineIter.atEnd() && !editor.isDisposed) {
 			val start = lineIter.start
-			editor.document.getLineNumber(start).let {
-				y = it * config.pixelsPerLine + skipY
-			}
+			y = editor.document.getLineNumber(start) * config.pixelsPerLine + skipY
 			val region = editor.foldingModel.getCollapsedRegionAtOffset(start)
 			if (region != null) {
 				val startLineNumber = editor.document.getLineNumber(region.startOffset)
@@ -55,6 +54,7 @@ class ConsoleMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 				}
 				skipY -= foldLine * config.pixelsPerLine
 				do lineIter.advance() while (!lineIter.atEnd() && lineIter.start < endOffset)
+				if(DocumentUtil.isAtLineEnd(endOffset, editor.document)) x = 0
 			} else {
 				val end = lineIter.end
 				val highlightList = if(config.syntaxHighlight) getHighlightColor(start, end) else emptyList()

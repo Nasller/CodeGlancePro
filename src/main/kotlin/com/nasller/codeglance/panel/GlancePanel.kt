@@ -1,6 +1,7 @@
 package com.nasller.codeglance.panel
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
+import com.intellij.execution.impl.ConsoleViewUtil
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runReadAction
@@ -67,6 +68,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		editor.editorKind.getMinimap(this).apply { minimapReference = SoftReference(this) }
 		editor.putUserData(CURRENT_GLANCE, this)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, if (info.place == BorderLayout.LINE_START) PlaceIndex.Left else PlaceIndex.Right)
+		updateScrollState()
 		refreshWithWidth()
 	}
 
@@ -77,13 +79,13 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 
 	fun refresh(refreshImage: Boolean = true, directUpdate: Boolean = false) {
 		revalidate()
-		if (refreshImage) updateImage(directUpdate, updateScroll = true)
+		if (refreshImage) updateImage(directUpdate)
 		else repaint()
 	}
 
 	fun updateImage(directUpdate: Boolean = false, updateScroll: Boolean = false) =
-		if (checkVisible() && (editor.editorKind == EditorKind.CONSOLE || editor.editorKind == EditorKind.UNTYPED
-					|| runReadAction{ editor.highlighter !is EmptyEditorHighlighter })) {
+		if (checkVisible() && (isUnSupportEditorKind() || runReadAction{ editor.highlighter !is EmptyEditorHighlighter }) &&
+			lock.compareAndSet(false,true)) {
 			psiDocumentManager.performForCommittedDocument(editor.document) {
 				if (directUpdate) updateImgTask(updateScroll)
 				else invokeLater { updateImgTask(updateScroll) }
@@ -93,15 +95,13 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	fun delayUpdateImage() = alarm.cancelAndRequest()
 
 	private fun updateImgTask(updateScroll: Boolean = false) {
-		if(lock.compareAndSet(false,true)){
-			try {
-				if (updateScroll) updateScrollState()
-				val img = getOrCreateImg()
-				img.first?.update() ?: img.second?.update()
-			} finally {
-				lock.set(false)
-				repaint()
-			}
+		try {
+			if(updateScroll) updateScrollState()
+			val img = getOrCreateImg()
+			img.first?.update() ?: img.second?.update()
+		} finally {
+			lock.set(false)
+			repaint()
 		}
 	}
 
@@ -113,6 +113,8 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	fun checkVisible() = !((!config.hoveringToShowScrollBar && !isVisible) || editor.isDisposed)
 
 	fun getPlaceIndex() = editor.getUserData(CURRENT_GLANCE_PLACE_INDEX) ?: PlaceIndex.Right
+
+	fun isUnSupportEditorKind() = ConsoleViewUtil.isConsoleViewEditor(editor) || editor.editorKind == EditorKind.UNTYPED
 
 	fun isInSplitter() = if(editor.editorKind == EditorKind.MAIN_EDITOR){
 		(SwingUtilities.getAncestorOfClass(EditorsSplitters::class.java, editor.component) as? EditorsSplitters)?.
@@ -237,7 +239,8 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	private fun Graphics2D.paintEditorMarkupModel(rangeOffset: Range<Int>,existLine: MutableSet<Int>) {
 		val map by lazy { hashMapOf<String, Int>() }
 		editor.markupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
-			it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
+			(it.getErrorStripeMarkColor(editor.colorsScheme) ?: (if(ConsoleViewUtil.isConsoleViewEditor(editor))
+				it.getTextAttributes(editor.colorsScheme)?.foregroundColor else null))?.apply {
 				val highlightColor = RangeHighlightColor(it, this, config.showOtherFullLineHighlight, existLine)
 				map.compute("${highlightColor.startOffset}-${highlightColor.endOffset}") { _, layer ->
 					if (layer == null || layer < it.layer) {
