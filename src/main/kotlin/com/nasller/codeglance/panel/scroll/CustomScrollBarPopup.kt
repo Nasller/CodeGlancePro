@@ -6,7 +6,6 @@ import com.intellij.codeInsight.daemon.DaemonCodeAnalyzerSettings
 import com.intellij.codeInsight.daemon.impl.getConfigureHighlightingLevelPopup
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.editor.EditorBundle
-import com.intellij.openapi.fileEditor.impl.EditorWindowHolder
 import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
@@ -14,7 +13,6 @@ import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.PopupMenuListenerAdapter
 import com.intellij.ui.awt.RelativePoint
-import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.config.SettingsChangePublisher
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.message
@@ -83,25 +81,23 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
                         popup?.show(RelativePoint(comp!!, Point(x, y)))
                     }
                 })
-                if (!UIUtil.uiParents(glancePanel.editor.component, false).filter(EditorWindowHolder::class.java).isEmpty) {
-                    actionGroup.addSeparator()
-                    actionGroup.add(object : DumbAwareToggleAction(message("glance.mouse.wheel.editor.preview")) {
-                        override fun isSelected(e: AnActionEvent): Boolean = config.mouseWheelMoveEditorToolTip
-                        override fun setSelected(e: AnActionEvent, state: Boolean) {
-                            config.mouseWheelMoveEditorToolTip = state
-                        }
-                        override fun getActionUpdateThread() = ActionUpdateThread.BGT
-                    })
-                    actionGroup.add(object : ToggleAction(message("glance.show.editor.preview.popup")) {
-                        override fun isSelected(e: AnActionEvent): Boolean = config.showEditorToolTip
-                        override fun setSelected(e: AnActionEvent, state: Boolean) {
-                            config.showEditorToolTip = state
-                        }
-                        override fun getActionUpdateThread() = ActionUpdateThread.BGT
-                    })
-                }
             }
         }
+        actionGroup.addSeparator()
+        actionGroup.add(object : DumbAwareToggleAction(message("glance.mouse.wheel.editor.preview")) {
+            override fun isSelected(e: AnActionEvent): Boolean = config.mouseWheelMoveEditorToolTip
+            override fun setSelected(e: AnActionEvent, state: Boolean) {
+                config.mouseWheelMoveEditorToolTip = state
+            }
+            override fun getActionUpdateThread() = ActionUpdateThread.BGT
+        })
+        actionGroup.add(object : ToggleAction(message("glance.show.editor.preview.popup")) {
+            override fun isSelected(e: AnActionEvent): Boolean = config.showEditorToolTip
+            override fun setSelected(e: AnActionEvent, state: Boolean) {
+                config.showEditorToolTip = state
+            }
+            override fun getActionUpdateThread() = ActionUpdateThread.BGT
+        })
         val menu = ActionManager.getInstance().createActionPopupMenu(ActionPlaces.RIGHT_EDITOR_GUTTER_POPUP, actionGroup).component
         menu.addPopupMenuListener(object :PopupMenuListenerAdapter(){
             override fun popupMenuWillBecomeVisible(e: PopupMenuEvent) { isVisible = true }
