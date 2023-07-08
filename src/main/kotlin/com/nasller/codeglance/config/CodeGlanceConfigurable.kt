@@ -10,6 +10,7 @@ import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.tabs.ColorButtonBase
+import com.intellij.util.ui.JBUI
 import com.nasller.codeglance.config.CodeGlanceConfig.Companion.getWidth
 import com.nasller.codeglance.config.CodeGlanceConfig.Companion.setWidth
 import com.nasller.codeglance.config.enums.ClickTypeEnum
@@ -17,6 +18,8 @@ import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.extensions.visitor.MarkCommentVisitor
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.ui.ColorButton
+import com.nasller.codeglance.ui.DonationDialog
+import com.nasller.codeglance.util.localMessage
 import com.nasller.codeglance.util.message
 import java.awt.Component
 import java.awt.Dimension
@@ -221,6 +224,11 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 						.bindSelected(config::diffThreeSideMiddle)
 						.gap(RightGap.SMALL)
 				})
+			}
+			row {
+				link(localMessage("donate.title")){
+					DonationDialog().show()
+				}.applyToComponent { border = JBUI.Borders.emptyTop(20) }
 			}
 		}
 	}

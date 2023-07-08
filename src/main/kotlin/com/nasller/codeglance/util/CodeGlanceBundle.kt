@@ -2,7 +2,6 @@ package com.nasller.codeglance.util
 
 import com.intellij.AbstractBundle
 import com.intellij.DynamicBundle
-import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.annotations.PropertyKey
 import java.util.*
@@ -39,11 +38,14 @@ object CodeGlanceBundle : AbstractBundle(BUNDLE) {
 	}
 }
 
-@Nls
 fun message(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg params: Any): String {
 	return CodeGlanceBundle.getAdaptedMessage(key, *params)
 }
 
 fun messagePointer(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg params: Any): Supplier<String> {
 	return CodeGlanceBundle.getAdaptedLazyMessage(key, *params)
+}
+
+fun localMessage(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg params: Any): String {
+	return CodeGlanceBundle.getMessage(key, *params)
 }
