@@ -5,6 +5,7 @@ import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.view.VisualLinesIterator
 import com.intellij.openapi.util.SystemInfoRt
+import com.intellij.openapi.util.TextRange
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.ui.UIUtil
@@ -22,6 +23,8 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 	private val renderDataMap = TreeMap<Int,LineRenderData>(Int::compareTo)
 	private val markAttributes
 		get() = editor.colorsScheme.getAttributes(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES)
+	private val rangeMap
+		get() = glancePanel.rangeMap
 
 	override fun update() {
 		val curImg = getMinimapImage() ?: return
@@ -96,14 +99,13 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 	}
 
 	fun refreshRenderData(startVisualLine: Int = 0, onlyLine: Boolean = false){
-		val rangeMap = glancePanel.rangeMap
-		if(rangeMap.size > 0 && startVisualLine == 0) rangeMap.clear()
-
-		val text = editor.document.immutableCharSequence
-		val defaultColor = editor.colorsScheme.defaultForeground
-		val softWraps = editor.softWrapModel.registeredSoftWraps
 		val visLinesIterator = VisualLinesIterator(editor, startVisualLine)
 		if(visLinesIterator.atEnd()) return
+
+		if(startVisualLine == 0) renderDataMap.clear()
+		if(rangeMap.size > 0 && startVisualLine == 0) rangeMap.clear()
+		val defaultColor = editor.colorsScheme.defaultForeground
+		val softWraps = editor.softWrapModel.registeredSoftWraps
 		val markCommentMap = hashMapOf<Int,RangeHighlighterEx>()
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(visLinesIterator.visualLineStartOffset, editor.document.textLength){
 			if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == it.textAttributesKey){
@@ -111,7 +113,8 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 			}
 			return@processRangeHighlightersOverlappingWith true
 		}
-		var curY = if(renderDataMap.isEmpty()) 0 else renderDataMap.subMap(0, startVisualLine).values.sumOf { it.y }
+		var curY = if(renderDataMap.isEmpty() || startVisualLine == 0) 0
+		else renderDataMap.subMap(0, startVisualLine).values.sumOf { it.y }
 		while (!visLinesIterator.atEnd()) {
 			val visualLine = visLinesIterator.visualLine
 			//BLOCK_INLAY
@@ -129,14 +132,13 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 				//jump over the fold line
 				val heightLine = (customFoldRegion.heightInPixels * scrollState.scale).toInt()
 				rangeMap.compute(visualLine){ _,list -> Range(curY,curY + heightLine).run(mergeRangeList(list)) }
-
 				curY += heightLine
 				//this is render document
 				val line = visLinesIterator.startLogicalLine + (heightLine / config.pixelsPerLine)
-				val renderStr = text.substring(startOffset, if(DocumentUtil.isValidLine(line,editor.document)) endOffset else {
+				val renderStr = editor.document.getText(TextRange(startOffset, if(DocumentUtil.isValidLine(line,editor.document)) endOffset else {
 					val lineEndOffset = editor.document.getLineEndOffset(line)
 					if(endOffset < lineEndOffset) endOffset else lineEndOffset
-				})
+				}))
 				renderDataMap[visualLine] = LineRenderData(emptyArray(), heightLine + aboveBlockLine, LineType.CUSTOM_FOLD, renderStr = renderStr, color = color)
 			}else{
 				val start = visLinesIterator.visualLineStartOffset
