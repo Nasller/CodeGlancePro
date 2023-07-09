@@ -21,11 +21,10 @@ import kotlin.math.roundToInt
 @Suppress("UnstableApiUsage")
 class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 	private val renderDataMap = TreeMap<Int,LineRenderData>(Int::compareTo)
-	private val markAttributes
-		get() = editor.colorsScheme.getAttributes(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES)
 
 	override fun update() {
 		val curImg = getMinimapImage() ?: return
+		val markAttributes = editor.colorsScheme.getAttributes(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES)
 		val font by lazy {
 			editor.colorsScheme.getFont(
 				when (markAttributes.fontType) {
@@ -63,8 +62,9 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 					}
 				}
 				LineType.COMMENT -> {
-					val startOffset = it.commentHighlighterEx!!.startOffset
-					val commentText = text.substring(startOffset, it.commentHighlighterEx.endOffset)
+					graphics.composite = GlancePanel.srcOver
+					graphics.color = markAttributes.foregroundColor
+					val commentText = text.substring(it.commentHighlighterEx!!.startOffset, it.commentHighlighterEx.endOffset)
 					val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
 						UIUtil.getFontWithFallback(font).deriveFont(markAttributes.fontType, font.size2D)
 					} else font
