@@ -24,8 +24,8 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 
 	override fun update() {
 		val curImg = getMinimapImage() ?: return
-		val rangeList = glancePanel.rangeList
-		if(rangeList.size > 0) rangeList.clear()
+		val rangeMap = glancePanel.rangeMap
+		if(rangeMap.size > 0) rangeMap.clear()
 		val text = editor.document.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val hlIter = editor.highlighter.createIterator(0).run {
@@ -77,17 +77,18 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 				} else {
 					(color ?: defaultColor).setColorRgba()
 					//jump over the fold line
-					val heightLine = (region.heightInPixels * scrollState.scale).roundToInt()
+					val heightLine = (region.heightInPixels * scrollState.scale).toInt()
 					skipY -= (foldLine + 1) * config.pixelsPerLine - heightLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
-					rangeList.add(Pair(editor.offsetToVisualLine(endOffset),
-						Range(y,editor.document.getLineNumber(hlIter.start) * config.pixelsPerLine + skipY)))
+					rangeMap.compute(editor.offsetToVisualLine(endOffset)) { _,list ->
+						Range(y, editor.document.getLineNumber(hlIter.start) * config.pixelsPerLine + skipY).run(mergeRangeList(list))
+					}
 					//this is render document
 					val line = startLineNumber - 1 + (heightLine / config.pixelsPerLine)
-					text.subSequence(start, if(DocumentUtil.isValidLine(line,editor.document)) endOffset else {
+					text.subSequence(start, if(DocumentUtil.isValidLine(line,editor.document)){
 						val lineEndOffset = editor.document.getLineEndOffset(line)
 						if(endOffset < lineEndOffset) endOffset else lineEndOffset
-					}).forEach(moveAndRenderChar)
+					}else endOffset).forEach(moveAndRenderChar)
 				}
 			} else {
 				val commentData = highlight[start]
@@ -110,9 +111,10 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 								val lineEndOffset = DocumentUtil.getLineEndOffset(startOffset, editor.document)
 								val sumBlock = editor.inlayModel.getBlockElementsInRange(startOffset, lineEndOffset)
 									.filter { it.placement == Inlay.Placement.ABOVE_LINE }
-									.sumOf { (it.heightInPixels * scrollState.scale).roundToInt() }
+									.sumOf { (it.heightInPixels * scrollState.scale).toInt() }
 								if (sumBlock > 0) {
-									rangeList.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
+									rangeMap.compute(editor.offsetToVisualLine(startOffset) - 1){ _,list ->
+										Range(y, y + sumBlock).run(mergeRangeList(list)) }
 									y += sumBlock
 									skipY += sumBlock
 									commentData.jumpEndOffset = lineEndOffset
@@ -135,9 +137,10 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 								val startOffset = offset + 1
 								val sumBlock = editor.inlayModel.getBlockElementsInRange(startOffset, DocumentUtil.getLineEndOffset(startOffset, editor.document))
 									.filter { it.placement == Inlay.Placement.ABOVE_LINE }
-									.sumOf { (it.heightInPixels * scrollState.scale).roundToInt() }
+									.sumOf { (it.heightInPixels * scrollState.scale).toInt() }
 								if (sumBlock > 0) {
-									rangeList.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
+									rangeMap.compute(editor.offsetToVisualLine(startOffset) - 1){ _,list ->
+										Range(y, y + sumBlock).run(mergeRangeList(list)) }
 									y += sumBlock
 									skipY += sumBlock
 								}
@@ -179,9 +182,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 						UIUtil.getFontWithFallback(font).deriveFont(attributes.fontType, font.size2D)
 					} else font
 					val line = editor.document.getLineNumber(textRange.startOffset) + (config.markersScaleFactor.toInt() - 1)
-					val jumpEndOffset = if (lineCount <= line) {
-						editor.document.getLineEndOffset(lineCount - 1)
-					} else {
+					val jumpEndOffset = if (lineCount <= line) text.length else {
 						editor.document.getLineEndOffset(line)
 					}
 					map[textRange.startOffset] = MarkCommentData(jumpEndOffset, commentText, textFont, (graphics.getFontMetrics(textFont).height / 1.5).roundToInt())

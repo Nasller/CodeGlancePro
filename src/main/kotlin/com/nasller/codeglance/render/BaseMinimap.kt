@@ -1,6 +1,7 @@
 package com.nasller.codeglance.render
 
 import com.intellij.openapi.editor.EditorKind
+import com.intellij.util.Range
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Color
 import java.awt.image.BufferedImage
@@ -37,6 +38,13 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel){
 			return@processRangeHighlightersOverlappingWith true
 		}
 		return list
+	}
+
+	protected fun mergeRangeList(list: MutableList<Range<Int>>?): Range<Int>.() -> MutableList<Range<Int>> = {
+		if (list != null) {
+			list.add(this)
+			list
+		} else mutableListOf(this)
 	}
 
 	protected fun BufferedImage.renderImage(x: Int, y: Int, char: Int, consumer: (() -> Unit)? = null) {

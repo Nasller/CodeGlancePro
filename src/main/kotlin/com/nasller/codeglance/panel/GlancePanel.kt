@@ -36,6 +36,7 @@ import com.nasller.codeglance.render.MarkCommentState
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
 import java.lang.ref.SoftReference
+import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
@@ -54,7 +55,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val hideScrollBarListener = HideScrollBarListener(this)
 	val scrollbar = ScrollBar(this)
 	var myVcsPanel: MyVcsPanel? = null
-	val rangeList = mutableListOf<Pair<Int,Range<Int>>>()
+	val rangeMap = TreeMap<Int, MutableList<Range<Int>>>(Int::compareTo)
 	val markCommentState = MarkCommentState(this)
 	private var minimapReference : SoftReference<BaseMinimap>
 	private val lock = AtomicBoolean(false)
@@ -135,12 +136,15 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 
 	fun getMyRenderVisualLine(y: Int): Int {
 		var minus = 0
-		for (pair in rangeList) {
-			if (y in pair.second.from..pair.second.to) {
-				return pair.first
-			} else if (pair.second.to < y) {
-				minus += pair.second.to - pair.second.from
-			} else break
+		for (entry in rangeMap) {
+			if (entry.value.any {y in it.from..it.to}) {
+				return entry.key
+			} else {
+				val cur = entry.value.firstOrNull { it.to < y }
+				if (cur != null) {
+					minus += cur.to - cur.from
+				} else break
+			}
 		}
 		return (y - minus) / config.pixelsPerLine
 	}
@@ -307,11 +311,11 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	private fun getMyRenderLine(lineStart: Int, lineEnd: Int): Pair<Int, Int> {
 		var startAdd = 0
 		var endAdd = 0
-		for (pair in rangeList) {
-			if (pair.first in (lineStart + 1) until lineEnd) {
-				endAdd += pair.second.to - pair.second.from
-			} else if (pair.first < lineStart) {
-				val i = pair.second.to - pair.second.from
+		for (entry in rangeMap) {
+			if (entry.key in (lineStart + 1) until lineEnd) {
+				endAdd += entry.value.sumOf { it.to - it.from }
+			} else if (entry.key < lineStart) {
+				val i = entry.value.sumOf { it.to - it.from }
 				startAdd += i
 				endAdd += i
 			} else break
