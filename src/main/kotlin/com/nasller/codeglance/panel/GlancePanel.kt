@@ -34,8 +34,8 @@ import com.nasller.codeglance.render.BaseMinimap
 import com.nasller.codeglance.render.BaseMinimap.Companion.getMinimap
 import com.nasller.codeglance.render.MarkCommentState
 import com.nasller.codeglance.render.ScrollState
+import com.nasller.codeglance.util.MySoftReference
 import java.awt.*
-import java.lang.ref.SoftReference
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.JPanel
@@ -57,7 +57,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	var myVcsPanel: MyVcsPanel? = null
 	val rangeMap = TreeMap<Int, MutableList<Range<Int>>>(Int::compareTo)
 	val markCommentState = MarkCommentState(this)
-	private var minimapReference : SoftReference<BaseMinimap>
+	private var minimapReference : MySoftReference<BaseMinimap>
 	private val lock = AtomicBoolean(false)
 	private val alarm = SingleAlarm({ updateImage(directUpdate = true) }, 500, this)
 
@@ -68,7 +68,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		editor.component.isOpaque = false
 		isVisible = !isDisabled
 		markCommentState.refreshMarkCommentHighlight(editor)
-		editor.editorKind.getMinimap(this).apply { minimapReference = SoftReference(this) }
+		editor.editorKind.getMinimap(this).apply { minimapReference = MySoftReference(this, useSoftReference()) }
 		editor.putUserData(CURRENT_GLANCE, this)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, if (info.place == BorderLayout.LINE_START) PlaceIndex.Left else PlaceIndex.Right)
 		updateScrollState()
@@ -378,11 +378,13 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		val image = minimapReference.get()
 		if(image == null) {
 			val baseMinimap = editor.editorKind.getMinimap(this@GlancePanel)
-			minimapReference = SoftReference(baseMinimap)
+			minimapReference = MySoftReference(baseMinimap, useSoftReference())
 			return null to baseMinimap
 		}
 		return image to null
 	}
+
+	private fun useSoftReference() = EditorKind.MAIN_EDITOR != editor.editorKind
 
 	private inner class RangeHighlightColor(val startOffset: Int, val endOffset: Int, val color: Color, var fullLine: Boolean, val fullLineWithActualHighlight: Boolean) {
 		constructor(it: RangeHighlighterEx, color: Color, fullLine: Boolean,existLine: MutableSet<Int>) :
