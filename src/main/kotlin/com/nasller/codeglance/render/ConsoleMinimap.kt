@@ -6,14 +6,7 @@ import com.nasller.codeglance.panel.GlancePanel
 
 class ConsoleMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	override fun update() {
-		val lineCount = editor.document.lineCount
-		if(lineCount <= 0) return
-		var curImg = img.value
-		if (curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
-			curImg.flush()
-			curImg = getBufferedImage()
-			img = lazyOf(curImg)
-		}
+		val curImg = getMinimapImage() ?: return
 		val text = editor.document.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val lineIter = editor.document.createLineIterator()

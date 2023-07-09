@@ -17,6 +17,18 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel){
 
 	abstract fun update()
 
+	protected fun getMinimapImage() : BufferedImage? {
+		val lineCount = editor.document.lineCount
+		if (lineCount <= 0) return null
+		var curImg = img.value
+		if (curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
+			curImg.flush()
+			curImg = getBufferedImage()
+			img = lazyOf(curImg)
+		}
+		return curImg
+	}
+
 	protected fun getHighlightColor(startOffset:Int,endOffset:Int):MutableList<RangeHighlightColor>{
 		val list = mutableListOf<RangeHighlightColor>()
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(startOffset,endOffset) {

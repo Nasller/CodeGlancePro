@@ -23,14 +23,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	private val isLogFile = editor.virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
 
 	override fun update() {
-		val lineCount = editor.document.lineCount
-		if(lineCount <= 0) return
-		var curImg = img.value
-		if (curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
-			curImg.flush()
-			curImg = getBufferedImage()
-			img = lazyOf(curImg)
-		}
+		val curImg = getMinimapImage() ?: return
 		val rangeList = glancePanel.rangeList
 		if(rangeList.size > 0) rangeList.clear()
 		val text = editor.document.immutableCharSequence
@@ -62,7 +55,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		val g = curImg.createGraphics()
 		g.composite = GlancePanel.CLEAR
 		g.fillRect(0, 0, curImg.width, curImg.height)
-		val highlight = makeMarkHighlight(text,lineCount,g)
+		val highlight = makeMarkHighlight(text, g)
 		loop@ while (!hlIter.atEnd()) {
 			val start = hlIter.start
 			y = editor.document.getLineNumber(start) * config.pixelsPerLine + skipY
@@ -91,7 +84,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 						Range(y,editor.document.getLineNumber(hlIter.start) * config.pixelsPerLine + skipY)))
 					//this is render document
 					val line = startLineNumber - 1 + (heightLine / config.pixelsPerLine)
-					text.subSequence(start, if(lineCount <= line) endOffset else {
+					text.subSequence(start, if(DocumentUtil.isValidLine(line,editor.document)) endOffset else {
 						val lineEndOffset = editor.document.getLineEndOffset(line)
 						if(endOffset < lineEndOffset) endOffset else lineEndOffset
 					}).forEach(moveAndRenderChar)
@@ -162,9 +155,10 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		g.dispose()
 	}
 
-	private fun makeMarkHighlight(text: CharSequence,lineCount: Int,graphics: Graphics2D):Map<Int,MarkCommentData>{
+	private fun makeMarkHighlight(text: CharSequence, graphics: Graphics2D):Map<Int,MarkCommentData>{
 		val markCommentMap = glancePanel.markCommentState.markCommentMap
 		if(markCommentMap.isNotEmpty()) {
+			val lineCount = editor.document.lineCount
 			val map = mutableMapOf<Int, MarkCommentData>()
 			val file = glancePanel.psiDocumentManager.getCachedPsiFile(editor.document)
 			val attributes = editor.colorsScheme.getAttributes(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES)
@@ -180,7 +174,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 				val startOffset = highlighterEx.startOffset
 				file?.findElementAt(startOffset)?.findParentOfType<PsiComment>(false)?.let { comment ->
 					val textRange = comment.textRange
-					val commentText = text.subSequence(startOffset, highlighterEx.endOffset).toString()
+					val commentText = text.substring(startOffset, highlighterEx.endOffset)
 					val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
 						UIUtil.getFontWithFallback(font).deriveFont(attributes.fontType, font.size2D)
 					} else font
