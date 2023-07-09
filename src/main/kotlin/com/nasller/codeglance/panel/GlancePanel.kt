@@ -57,9 +57,9 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	var myVcsPanel: MyVcsPanel? = null
 	val rangeMap = TreeMap<Int, MutableList<Range<Int>>>(Int::compareTo)
 	val markCommentState = MarkCommentState(this)
-	private var minimapReference : MySoftReference<BaseMinimap>
 	private val lock = AtomicBoolean(false)
 	private val alarm = SingleAlarm({ updateImage(directUpdate = true) }, 500, this)
+	private var minimapReference = MySoftReference.create(editor.editorKind.getMinimap(this), useSoftReference())
 
 	init {
 		Disposer.register(editor.disposable, this)
@@ -68,7 +68,6 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		editor.component.isOpaque = false
 		isVisible = !isDisabled
 		markCommentState.refreshMarkCommentHighlight(editor)
-		editor.editorKind.getMinimap(this).apply { minimapReference = MySoftReference(this, useSoftReference()) }
 		editor.putUserData(CURRENT_GLANCE, this)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, if (info.place == BorderLayout.LINE_START) PlaceIndex.Left else PlaceIndex.Right)
 		updateScrollState()
@@ -378,7 +377,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		val image = minimapReference.get()
 		if(image == null) {
 			val baseMinimap = editor.editorKind.getMinimap(this@GlancePanel)
-			minimapReference = MySoftReference(baseMinimap, useSoftReference())
+			minimapReference = MySoftReference.create(baseMinimap, useSoftReference())
 			return null to baseMinimap
 		}
 		return image to null
