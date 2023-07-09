@@ -24,7 +24,6 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 
 	override fun update() {
 		val curImg = getMinimapImage() ?: return
-		val rangeMap = glancePanel.rangeMap
 		if(rangeMap.size > 0) rangeMap.clear()
 		val text = editor.document.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground

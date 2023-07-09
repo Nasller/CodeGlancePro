@@ -13,6 +13,8 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel){
 		get() = glancePanel.config
 	protected val scrollState
 		get() = glancePanel.scrollState
+	protected val rangeMap
+		get() = glancePanel.rangeMap
 	private val scaleBuffer = FloatArray(4)
 	var img = lazy(LazyThreadSafetyMode.NONE) { getBufferedImage() }
 

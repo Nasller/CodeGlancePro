@@ -23,8 +23,6 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 	private val renderDataMap = TreeMap<Int,LineRenderData>(Int::compareTo)
 	private val markAttributes
 		get() = editor.colorsScheme.getAttributes(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES)
-	private val rangeMap
-		get() = glancePanel.rangeMap
 
 	override fun update() {
 		val curImg = getMinimapImage() ?: return
