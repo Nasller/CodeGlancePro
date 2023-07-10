@@ -339,7 +339,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 			return
 		}
 		with(gfx as Graphics2D){
-			gfx.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+			setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
 			paintSomething()
 			if (editor.document.textLength != 0 && minimap.img.isInitialized()) {
 				composite = srcOver0_8
