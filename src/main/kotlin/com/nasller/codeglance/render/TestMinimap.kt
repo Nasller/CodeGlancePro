@@ -91,7 +91,7 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 					graphics.font = textFont
 					graphics.drawString(commentText,2,totalY + (graphics.getFontMetrics(textFont).height / 1.5).roundToInt())
 					//skip line
-					skipLine = config.markersScaleFactor.toInt() - 1
+					skipLine = config.markersScaleFactor.toInt() - 1 - (if(it.y > config.pixelsPerLine) it.y - config.pixelsPerLine else 0)
 				}
 				LineType.CUSTOM_FOLD -> {
 					it.color!!.setColorRgba()
@@ -117,10 +117,10 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 	}
 
 	private fun refreshRenderData(startVisualLine: Int = 0, endVisualLine: Int = 0) {
+		if(startVisualLine == 0 && endVisualLine == 0) resetRenderData()
 		val visLinesIterator = VisualLinesIterator(editor, startVisualLine)
 		if(visLinesIterator.atEnd()) return
 
-		if(rangeMap.size > 0 && startVisualLine == 0) rangeMap.clear()
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val softWraps = editor.softWrapModel.registeredSoftWraps
 		val markCommentMap = hashMapOf<Int,RangeHighlighterEx>()
@@ -134,11 +134,10 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 		else renderDataList.subList(0, startVisualLine).sumOf { it?.y ?: 0 }
 		while (!visLinesIterator.atEnd()) {
 			val visualLine = visLinesIterator.visualLine
+			val rangeList = lazy { mutableListOf<Range<Int>>() }
 			//BLOCK_INLAY
-			val aboveBlockLine = visLinesIterator.blockInlaysAbove.sumOf { (it.heightInPixels * scrollState.scale).toInt() }.apply { if(this > 0) {
-					rangeMap.compute(visualLine - 1){ _,list -> Range(curY, curY + this).run(mergeRangeList(list)) }
-					curY += this
-			} }
+			val aboveBlockLine = visLinesIterator.blockInlaysAbove.sumOf { (it.heightInPixels * scrollState.scale).toInt() }
+				.apply { if(this > 0) { rangeList.value.add(Range(curY, curY + this)) } }
 			//CUSTOM_FOLD
 			val customFoldRegion = visLinesIterator.customFoldRegion
 			if(customFoldRegion != null){
@@ -148,7 +147,7 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 				val color = runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() ?: defaultColor
 				//jump over the fold line
 				val heightLine = (customFoldRegion.heightInPixels * scrollState.scale).toInt()
-				rangeMap.compute(visualLine){ _,list -> Range(curY,curY + heightLine).run(mergeRangeList(list)) }
+				rangeList.value.add(Range(curY,curY + heightLine))
 				curY += heightLine
 				//this is render document
 				val line = visLinesIterator.startLogicalLine + (heightLine / config.pixelsPerLine)
@@ -161,8 +160,9 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 				val start = visLinesIterator.visualLineStartOffset
 				//COMMENT
 				val commentData = markCommentMap[start]
+				val lineHeight = config.pixelsPerLine + aboveBlockLine
 				if(commentData != null){
-					renderDataList[visualLine] = LineRenderData(emptyArray(), config.pixelsPerLine + aboveBlockLine, LineType.COMMENT, commentHighlighterEx = commentData)
+					renderDataList[visualLine] = LineRenderData(emptyArray(), lineHeight, LineType.COMMENT, commentHighlighterEx = commentData)
 				}else{
 					var x = if (visLinesIterator.startsWithSoftWrap()) {
 						softWraps[visLinesIterator.startOrPrevWrapIndex].indentInColumns
@@ -181,13 +181,20 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 						x = xEnd + 1
 						hlIter.advance()
 					}
-					renderDataList[visualLine] = LineRenderData(xRenderDataList.toTypedArray(), config.pixelsPerLine + aboveBlockLine)
+					renderDataList[visualLine] = LineRenderData(xRenderDataList.toTypedArray(), lineHeight)
 				}
-				curY += config.pixelsPerLine
+				curY += lineHeight
 			}
+			if(rangeList.isInitialized()) rangeMap[visualLine] = rangeList.value
 			if(endVisualLine == 0 || visualLine <= endVisualLine) visLinesIterator.advance()
 			else break
 		}
+	}
+
+	private fun resetRenderData(){
+		renderDataList.clear()
+		renderDataList.addAll(Collections.nCopies(editor.visibleLineCount, null))
+		rangeMap.clear()
 	}
 
 	/** FoldingListener */
