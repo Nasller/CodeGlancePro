@@ -19,7 +19,10 @@ import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
-import java.awt.*
+import java.awt.AlphaComposite
+import java.awt.Cursor
+import java.awt.Graphics2D
+import java.awt.Shape
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
@@ -73,15 +76,12 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	fun paint(gfx: Graphics2D) {
 		gfx.color = ColorUtil.fromHex(config.viewportColor)
 		gfx.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, visibleRectAlpha)
-		val old = gfx.getRenderingHint(RenderingHints.KEY_ANTIALIASING)
-		gfx.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
 		gfx.fillRoundRect(0, vOffset, glancePanel.width, scrollState.viewportHeight,5, 5)
 		getBorderShape(vOffset, glancePanel.width, scrollState.viewportHeight, config.viewportBorderThickness)?.let {
 			gfx.composite = GlancePanel.srcOver
 			gfx.color = ColorUtil.fromHex(config.viewportBorderColor)
 			gfx.fill(it)
 		}
-		gfx.setRenderingHint(RenderingHints.KEY_ANTIALIASING, old)
 	}
 
 	fun clear() {

@@ -17,6 +17,7 @@ import com.nasller.codeglance.config.CodeGlanceColorsPage
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Font
 import java.awt.Graphics2D
+import java.awt.RenderingHints
 import kotlin.math.roundToInt
 
 class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
@@ -51,9 +52,11 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 			moveCharIndex(it.code,null)
 			curImg.renderImage(x, y, it.code)
 		}
-		val g = curImg.createGraphics()
-		g.composite = GlancePanel.CLEAR
-		g.fillRect(0, 0, curImg.width, curImg.height)
+		val g = curImg.createGraphics().apply {
+			setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+			composite = GlancePanel.CLEAR
+			fillRect(0, 0, curImg.width, curImg.height)
+		}
 		val highlight = makeMarkHighlight(text, g)
 		loop@ while (!hlIter.atEnd()) {
 			val start = hlIter.start

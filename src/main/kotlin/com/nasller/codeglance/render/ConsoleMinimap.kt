@@ -30,9 +30,10 @@ class ConsoleMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 			moveCharIndex(it.code,null)
 			curImg.renderImage(x, y, it.code)
 		}
-		val g = curImg.createGraphics()
-		g.composite = GlancePanel.CLEAR
-		g.fillRect(0, 0, curImg.width, curImg.height)
+		val g = curImg.createGraphics().apply {
+			composite = GlancePanel.CLEAR
+			fillRect(0, 0, curImg.width, curImg.height)
+		}
 		loop@ while (!lineIter.atEnd() && !editor.isDisposed) {
 			val start = lineIter.start
 			y = editor.document.getLineNumber(start) * config.pixelsPerLine + skipY
