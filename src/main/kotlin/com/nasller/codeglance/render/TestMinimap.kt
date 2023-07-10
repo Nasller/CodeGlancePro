@@ -1,8 +1,13 @@
 package com.nasller.codeglance.render
 
 import com.intellij.ide.ui.UISettings
+import com.intellij.openapi.editor.*
 import com.intellij.openapi.editor.colors.EditorFontType
-import com.intellij.openapi.editor.ex.RangeHighlighterEx
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.ex.*
+import com.intellij.openapi.editor.ex.util.EditorUtil
+import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
+import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.intellij.openapi.editor.impl.view.VisualLinesIterator
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.TextRange
@@ -10,17 +15,31 @@ import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.config.CodeGlanceColorsPage
+import com.nasller.codeglance.listener.GlanceOtherListener
 import com.nasller.codeglance.panel.GlancePanel
 import org.jetbrains.kotlin.ir.descriptors.IrAbstractDescriptorBasedFunctionFactory.Companion.offset
 import java.awt.Color
 import java.awt.Font
+import java.beans.PropertyChangeEvent
+import java.beans.PropertyChangeListener
 import java.util.*
 import kotlin.collections.set
 import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
-class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
-	private val renderDataMap = TreeMap<Int,LineRenderData>(Int::compareTo)
+class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingListener, MarkupModelListener,
+	PrioritizedDocumentListener, SoftWrapChangeListener, InlayModel.Listener, PropertyChangeListener {
+	private val renderDataList = ArrayList<LineRenderData?>(Collections.nCopies(editor.visibleLineCount, null))
+	private var softWrapEnabled = false
+	init {
+		editor.document.addDocumentListener(this, glancePanel)
+		editor.foldingModel.addListener(this, glancePanel)
+		editor.inlayModel.addListener(this, glancePanel)
+		editor.softWrapModel.addSoftWrapChangeListener(this)
+		editor.markupModel.addMarkupModelListener(glancePanel, GlanceOtherListener(glancePanel))
+		editor.filteredDocumentMarkupModel.addMarkupModelListener(glancePanel, this)
+		editor.addPropertyChangeListener(this,glancePanel)
+	}
 
 	override fun update() {
 		val curImg = getMinimapImage() ?: return
@@ -42,7 +61,8 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 		UISettings.setupAntialiasing(graphics)
 		var totalY = 0
 		var skipLine = 0
-		for (it in renderDataMap.values) {
+		for (it in renderDataList) {
+			if(it == null) continue
 			if(skipLine > 0){
 				skipLine--
 				continue
@@ -96,11 +116,10 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 		graphics.dispose()
 	}
 
-	fun refreshRenderData(startVisualLine: Int = 0, onlyLine: Boolean = false){
+	private fun refreshRenderData(startVisualLine: Int = 0, endVisualLine: Int = 0) {
 		val visLinesIterator = VisualLinesIterator(editor, startVisualLine)
 		if(visLinesIterator.atEnd()) return
 
-		if(startVisualLine == 0) renderDataMap.clear()
 		if(rangeMap.size > 0 && startVisualLine == 0) rangeMap.clear()
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val softWraps = editor.softWrapModel.registeredSoftWraps
@@ -111,8 +130,8 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 			}
 			return@processRangeHighlightersOverlappingWith true
 		}
-		var curY = if(renderDataMap.isEmpty() || startVisualLine == 0) 0
-		else renderDataMap.subMap(0, startVisualLine).values.sumOf { it.y }
+		var curY = if(renderDataList.isEmpty() || startVisualLine == 0) 0
+		else renderDataList.subList(0, startVisualLine).sumOf { it?.y ?: 0 }
 		while (!visLinesIterator.atEnd()) {
 			val visualLine = visLinesIterator.visualLine
 			//BLOCK_INLAY
@@ -137,13 +156,13 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 					val lineEndOffset = editor.document.getLineEndOffset(line)
 					if(endOffset < lineEndOffset) endOffset else lineEndOffset
 				}))
-				renderDataMap[visualLine] = LineRenderData(emptyArray(), heightLine + aboveBlockLine, LineType.CUSTOM_FOLD, renderStr = renderStr, color = color)
+				renderDataList[visualLine] = LineRenderData(emptyArray(), heightLine + aboveBlockLine, LineType.CUSTOM_FOLD, renderStr = renderStr, color = color)
 			}else{
 				val start = visLinesIterator.visualLineStartOffset
 				//COMMENT
 				val commentData = markCommentMap[start]
 				if(commentData != null){
-					renderDataMap[visualLine] = LineRenderData(emptyArray(), config.pixelsPerLine + aboveBlockLine, LineType.COMMENT, commentHighlighterEx = commentData)
+					renderDataList[visualLine] = LineRenderData(emptyArray(), config.pixelsPerLine + aboveBlockLine, LineType.COMMENT, commentHighlighterEx = commentData)
 				}else{
 					var x = if (visLinesIterator.startsWithSoftWrap()) {
 						softWraps[visLinesIterator.startOrPrevWrapIndex].indentInColumns
@@ -162,13 +181,121 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 						x = xEnd + 1
 						hlIter.advance()
 					}
-					renderDataMap[visualLine] = LineRenderData(xRenderDataList.toTypedArray(), config.pixelsPerLine + aboveBlockLine)
+					renderDataList[visualLine] = LineRenderData(xRenderDataList.toTypedArray(), config.pixelsPerLine + aboveBlockLine)
 				}
 				curY += config.pixelsPerLine
 			}
-			if(onlyLine) break
-			else visLinesIterator.advance()
+			if(endVisualLine == 0 || visualLine <= endVisualLine) visLinesIterator.advance()
+			else break
 		}
+	}
+
+	/** FoldingListener */
+	override fun onFoldProcessingEnd() {
+		if (editor.document.isInBulkUpdate) return
+		refreshRenderData()
+	}
+
+	override fun onCustomFoldRegionPropertiesChange(region: CustomFoldRegion, flags: Int) {
+		if (flags and FoldingListener.ChangeFlags.HEIGHT_CHANGED != 0 && !editor.foldingModel.isInBatchFoldingOperation) {
+			val visualLine = editor.offsetToVisualLine(region.startOffset)
+			refreshRenderData(visualLine, visualLine)
+		}
+	}
+
+	/** InlayModel.Listener */
+	override fun onAdded(inlay: Inlay<*>) {
+		if (checkinInlay(inlay)) return
+		val visualLine = editor.offsetToVisualLine(inlay.offset)
+		refreshRenderData(visualLine,visualLine)
+	}
+
+	override fun onRemoved(inlay: Inlay<*>) {
+		if (checkinInlay(inlay)) return
+		val visualLine = editor.offsetToVisualLine(inlay.offset)
+		refreshRenderData(visualLine,visualLine)
+	}
+
+	override fun onUpdated(inlay: Inlay<*>, changeFlags: Int) {
+		if (checkinInlay(inlay) || changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0) return
+		val visualLine = editor.offsetToVisualLine(inlay.offset)
+		refreshRenderData(visualLine,visualLine)
+	}
+
+	private fun checkinInlay(inlay: Inlay<*>) =
+		editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || inlay.placement != Inlay.Placement.ABOVE_LINE
+
+	override fun onBatchModeFinish(editor: Editor) {
+		if (editor.document.isInBulkUpdate) return
+		refreshRenderData()
+	}
+
+	/** SoftWrapChangeListener */
+	override fun softWrapsChanged() {
+		val enabled = editor.softWrapModel.isSoftWrappingEnabled
+		if (enabled && !softWrapEnabled) {
+			softWrapEnabled = true
+			refreshRenderData()
+		} else if (!enabled && softWrapEnabled) {
+			softWrapEnabled = false
+			refreshRenderData()
+		}
+	}
+
+	override fun recalculationEnds() = Unit
+
+	/** MarkupModelListener */
+	override fun afterAdded(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,false)
+
+	override fun beforeRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,true)
+
+	private fun updateRangeHighlight(highlighter: RangeHighlighterEx,remove: Boolean) {
+		//如果开启隐藏滚动条则忽略Vcs高亮
+		val highlightChange = glancePanel.markCommentState.markCommentHighlightChange(highlighter, remove)
+		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode
+			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark)) return
+		if(highlightChange || EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) {
+			val visualLine = editor.offsetToVisualLine(highlighter.startOffset)
+			refreshRenderData(visualLine, visualLine)
+		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
+			glancePanel.repaint()
+		}
+	}
+
+	/** PrioritizedDocumentListener */
+	private var myUpdateInProgress: Boolean = false
+	private var myDocumentChangeOldEndLine = 0
+
+	override fun beforeDocumentChange(event: DocumentEvent) {
+		myUpdateInProgress = true
+		myDocumentChangeOldEndLine = editor.offsetToVisualLine(event.offset + event.oldLength)
+	}
+
+	override fun documentChanged(event: DocumentEvent) {
+		try {
+			if (event.document.isInBulkUpdate) return
+			val startVisualLine = editor.offsetToVisualLine(event.offset)
+			val endVisualLine = editor.offsetToVisualLine(event.offset + event.newLength)
+			if(myDocumentChangeOldEndLine < endVisualLine) {
+				renderDataList.addAll(myDocumentChangeOldEndLine + 1,
+					Collections.nCopies(endVisualLine - myDocumentChangeOldEndLine, null))
+			}else if(myDocumentChangeOldEndLine > endVisualLine) {
+				renderDataList.subList(endVisualLine + 1, myDocumentChangeOldEndLine + 1).clear()
+			}
+			refreshRenderData(startVisualLine, endVisualLine)
+		}finally {
+			myUpdateInProgress = false
+		}
+	}
+
+	override fun bulkUpdateFinished(document: Document) = refreshRenderData()
+
+	override fun getPriority(): Int = 180 //EditorDocumentPriorities
+
+	/** PropertyChangeListener */
+	override fun propertyChange(evt: PropertyChangeEvent) {
+		if (EditorEx.PROP_HIGHLIGHTER != evt.propertyName || evt.newValue is EmptyEditorHighlighter) return
+		refreshRenderData()
 	}
 }
 

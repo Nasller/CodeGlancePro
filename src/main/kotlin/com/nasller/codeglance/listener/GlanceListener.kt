@@ -59,15 +59,13 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
 	override fun onRemoved(inlay: Inlay<*>) {
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode
-			|| inlay.placement != Placement.ABOVE_LINE
-		) return
+			|| inlay.placement != Placement.ABOVE_LINE) return
 		repaintOrRequest(true)
 	}
 
 	override fun onUpdated(inlay: Inlay<*>, changeFlags: Int) {
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode ||
-			inlay.placement != Placement.ABOVE_LINE || changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0
-		) return
+			inlay.placement != Placement.ABOVE_LINE || changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0) return
 		repaintOrRequest(true)
 	}
 
@@ -129,7 +127,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 		//console delay update
 		if (ConsoleViewUtil.isConsoleViewEditor(editor) || event.document.lineCount > glancePanel.config.moreThanLineDelay) {
 			repaintOrRequest(true)
-		} else  glancePanel.updateImage()
+		} else glancePanel.updateImage()
 	}
 
 	override fun bulkUpdateFinished(document: Document) = glancePanel.updateImage()
