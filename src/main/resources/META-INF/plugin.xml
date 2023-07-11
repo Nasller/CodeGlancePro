@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.6.8</h3>
+		<ul>
+			<li></li>
+		</ul>
 		<h3>1.6.7</h3>
 		<ul>
 			<li>Change the editor injection method to support more editors</li>
@@ -45,10 +49,6 @@
 		<h3>1.6.3</h3>
 		<ul>
 			<li>Support 2023.2 EAP</li>
-		</ul>
-		<h3>1.6.2</h3>
-		<ul>
-			<li>Show other full line highlight</li>
 		</ul>
 	]]></change-notes>
 
