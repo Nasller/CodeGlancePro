@@ -46,8 +46,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	}
 
 	override fun onCustomFoldRegionPropertiesChange(region: CustomFoldRegion, flags: Int) {
-		if (flags and FoldingListener.ChangeFlags.HEIGHT_CHANGED != 0 &&
-			!editor.foldingModel.isInBatchFoldingOperation) repaintOrRequest(true)
+		if (flags and FoldingListener.ChangeFlags.HEIGHT_CHANGED != 0 && !editor.document.isInBulkUpdate) repaintOrRequest(true)
 	}
 
 	/** InlayModel.Listener */
@@ -96,7 +95,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	private fun updateRangeHighlight(highlighter: RangeHighlighterEx,remove: Boolean) {
 		//如果开启隐藏滚动条则忽略Vcs高亮
 		val highlightChange = glancePanel.markCommentState.markCommentHighlightChange(highlighter, remove)
-		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode
+		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation
 			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark)) return
 		if(highlightChange || EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) {
 			repaintOrRequest(true)

@@ -60,6 +60,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	private val lock = AtomicBoolean(false)
 	private val alarm = SingleAlarm({ updateImage(directUpdate = true) }, 500, this)
 	private var minimapReference = MySoftReference.create(editor.editorKind.getMinimap(this), useSoftReference())
+//	private val test = TestMinimap(this)
 
 	init {
 		Disposer.register(editor.disposable, this)
