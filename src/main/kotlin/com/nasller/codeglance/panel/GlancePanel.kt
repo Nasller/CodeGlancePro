@@ -3,6 +3,7 @@ package com.nasller.codeglance.panel
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.execution.impl.ConsoleViewUtil
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.EditorKind
@@ -20,6 +21,7 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
+import com.intellij.util.Alarm.ThreadToUse
 import com.intellij.util.Range
 import com.intellij.util.SingleAlarm
 import com.nasller.codeglance.EditorInfo
@@ -58,7 +60,8 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val rangeMap = TreeMap<Int, MutableList<Range<Int>>>(Int::compareTo)
 	val markCommentState = MarkCommentState(this)
 	private val lock = AtomicBoolean(false)
-	private val alarm = SingleAlarm({ updateImage(directUpdate = true) }, 500, this)
+	private val alarm = SingleAlarm({ updateImage(directUpdate = true) }, 500, this, ThreadToUse.SWING_THREAD,
+		if(isNotMainEditorKind()) ModalityState.any() else ModalityState.NON_MODAL)
 	private var minimapReference = MySoftReference.create(editor.editorKind.getMinimap(this), useSoftReference())
 //	private val test = TestMinimap(this)
 
@@ -87,11 +90,11 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	}
 
 	fun updateImage(directUpdate: Boolean = false, updateScroll: Boolean = false) =
-		if (checkVisible() && (isUnSupportEditorKind() || runReadAction{ editor.highlighter !is EmptyEditorHighlighter }) &&
+		if (checkVisible() && (isNotMainEditorKind() || runReadAction{ editor.highlighter !is EmptyEditorHighlighter }) &&
 			lock.compareAndSet(false,true)) {
 			psiDocumentManager.performForCommittedDocument(editor.document) {
 				if (directUpdate) updateImgTask(updateScroll)
-				else invokeLater { updateImgTask(updateScroll) }
+				else invokeLater{ updateImgTask(updateScroll) }
 			}
 		} else Unit
 
@@ -117,7 +120,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 
 	fun getPlaceIndex() = editor.getUserData(CURRENT_GLANCE_PLACE_INDEX) ?: PlaceIndex.Right
 
-	fun isUnSupportEditorKind() = ConsoleViewUtil.isConsoleViewEditor(editor) || editor.editorKind == EditorKind.UNTYPED
+	fun isNotMainEditorKind() = ConsoleViewUtil.isConsoleViewEditor(editor) || editor.editorKind == EditorKind.UNTYPED
 
 	fun isInSplitter() = if(editor.editorKind == EditorKind.MAIN_EDITOR){
 		(SwingUtilities.getAncestorOfClass(EditorsSplitters::class.java, editor.component) as? EditorsSplitters)?.
@@ -365,9 +368,9 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		editor.putUserData(CURRENT_GLANCE, null)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, null)
 		editor.component.remove(this.parent)
-		hideScrollBarListener.removeHideScrollBarListener()
-		alarm.cancelAllRequests()
-		scrollbar.clear()
+		hideScrollBarListener.removeHideScrollBarListener(true)
+		alarm.dispose()
+		scrollbar.dispose()
 		minimapReference.get()?.apply {
 			if(img.isInitialized()) img.value.flush()
 		}

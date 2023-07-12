@@ -34,7 +34,7 @@ class ConsoleMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 			composite = GlancePanel.CLEAR
 			fillRect(0, 0, curImg.width, curImg.height)
 		}
-		loop@ while (!lineIter.atEnd() && !editor.isDisposed) {
+		loop@ while (!lineIter.atEnd()) {
 			val start = lineIter.start
 			y = editor.document.getLineNumber(start) * config.pixelsPerLine + skipY
 			val region = editor.foldingModel.getCollapsedRegionAtOffset(start)

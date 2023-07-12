@@ -84,8 +84,8 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		}
 	}
 
-	fun clear() {
-		alarm.cancelAllRequests()
+	fun dispose() {
+		alarm.dispose()
 		myEditorFragmentRenderer.clearHint()
 	}
 

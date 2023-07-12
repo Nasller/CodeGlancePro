@@ -22,7 +22,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel){
 
 	protected fun getMinimapImage() : BufferedImage? {
 		val lineCount = editor.document.lineCount
-		if (lineCount <= 0) return null
+		if (editor.isDisposed || lineCount <= 0) return null
 		var curImg = img.value
 		if (curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
 			curImg.flush()

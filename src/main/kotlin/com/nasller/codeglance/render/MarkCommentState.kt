@@ -9,7 +9,7 @@ class MarkCommentState(val glancePanel: GlancePanel) {
 	val markCommentMap = hashMapOf<Long,RangeHighlighterEx>()
 
 	fun markCommentHighlightChange(highlighter: RangeHighlighterEx, remove: Boolean) : Boolean{
-		if(glancePanel.isUnSupportEditorKind()) return false
+		if(glancePanel.isNotMainEditorKind()) return false
 		return if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey){
 			if(remove) markCommentMap.remove(highlighter.id)
 			else markCommentMap[highlighter.id] = highlighter
@@ -18,7 +18,7 @@ class MarkCommentState(val glancePanel: GlancePanel) {
 	}
 
 	fun refreshMarkCommentHighlight(editor: EditorImpl){
-		if(glancePanel.isUnSupportEditorKind()) return
+		if(glancePanel.isNotMainEditorKind()) return
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0,editor.document.textLength){
 			if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == it.textAttributesKey){
 				markCommentMap[it.id] = it

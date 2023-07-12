@@ -8,6 +8,7 @@ import java.awt.Dimension
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 
+@Suppress("UnstableApiUsage")
 class HideScrollBarListener(private val glancePanel: GlancePanel) : MouseAdapter() {
 	private var animationId = -1L
 	private val animator = JBAnimator(glancePanel).apply {
@@ -78,12 +79,17 @@ class HideScrollBarListener(private val glancePanel: GlancePanel) : MouseAdapter
 		}
 	}
 
-	fun removeHideScrollBarListener() = glancePanel.run {
+	fun removeHideScrollBarListener(dispose: Boolean = false) = glancePanel.run {
 		val scrollBarListener = this@HideScrollBarListener
 		if (!config.hideOriginalScrollBar) editor.scrollPane.verticalScrollBar.removeMouseListener(scrollBarListener)
 		else myVcsPanel?.removeMouseListener(scrollBarListener)
-		alarm.cancelAllRequests()
-		animator.stop()
+		if(dispose) {
+			alarm.dispose()
+			animator.dispose()
+		}else {
+			alarm.cancelAllRequests()
+			animator.stop()
+		}
 		showHideOriginScrollBar(true)
 		refreshWithWidth(refreshImage = false)
 	}

@@ -5,7 +5,6 @@ val dir: String = projectDir.parentFile.absolutePath
 fun properties(key: String) = project.findProperty(key)?.toString() ?: ""
 
 plugins {
-	// Java support
 	id("java")
 	alias(libs.plugins.kotlin)
 	alias(libs.plugins.gradleIntelliJPlugin)
