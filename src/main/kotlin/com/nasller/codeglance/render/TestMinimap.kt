@@ -8,7 +8,6 @@ import com.intellij.openapi.editor.ex.*
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
-import com.intellij.openapi.editor.impl.view.VisualLinesIterator
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.TextRange
 import com.intellij.util.DocumentUtil
@@ -17,6 +16,7 @@ import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.config.CodeGlanceColorsPage
 import com.nasller.codeglance.listener.GlanceOtherListener
 import com.nasller.codeglance.panel.GlancePanel
+import com.nasller.codeglance.util.MyVisualLinesIterator
 import org.jetbrains.kotlin.ir.descriptors.IrAbstractDescriptorBasedFunctionFactory.Companion.offset
 import java.awt.Color
 import java.awt.Font
@@ -118,13 +118,13 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 
 	private fun refreshRenderData(startVisualLine: Int = 0, endVisualLine: Int = 0) {
 		if(startVisualLine == 0 && endVisualLine == 0) resetRenderData()
-		val visLinesIterator = VisualLinesIterator(editor, startVisualLine)
+		val visLinesIterator = MyVisualLinesIterator(editor, startVisualLine)
 		if(visLinesIterator.atEnd()) return
 
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val softWraps = editor.softWrapModel.registeredSoftWraps
 		val markCommentMap = hashMapOf<Int,RangeHighlighterEx>()
-		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(visLinesIterator.visualLineStartOffset, editor.document.textLength){
+		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(visLinesIterator.getVisualLineStartOffset(), editor.document.textLength){
 			if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == it.textAttributesKey){
 				markCommentMap[DocumentUtil.getLineStartOffset(it.startOffset,editor.document)] = it
 			}
@@ -133,13 +133,13 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 		var curY = if(renderDataList.isEmpty() || startVisualLine == 0) 0
 		else renderDataList.subList(0, startVisualLine).sumOf { it?.y ?: 0 }
 		while (!visLinesIterator.atEnd()) {
-			val visualLine = visLinesIterator.visualLine
+			val visualLine = visLinesIterator.getVisualLine()
 			val rangeList = lazy { mutableListOf<Range<Int>>() }
 			//BLOCK_INLAY
-			val aboveBlockLine = visLinesIterator.blockInlaysAbove.sumOf { (it.heightInPixels * scrollState.scale).toInt() }
+			val aboveBlockLine = visLinesIterator.getBlockInlaysAbove().sumOf { (it.heightInPixels * scrollState.scale).toInt() }
 				.apply { if(this > 0) { rangeList.value.add(Range(curY, curY + this)) } }
 			//CUSTOM_FOLD
-			val customFoldRegion = visLinesIterator.customFoldRegion
+			val customFoldRegion = visLinesIterator.getCustomFoldRegion()
 			if(customFoldRegion != null){
 				val startOffset = customFoldRegion.startOffset
 				val endOffset = customFoldRegion.endOffset
@@ -150,14 +150,14 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 				rangeList.value.add(Range(curY,curY + heightLine))
 				curY += heightLine
 				//this is render document
-				val line = visLinesIterator.startLogicalLine + (heightLine / config.pixelsPerLine)
+				val line = visLinesIterator.getStartLogicalLine() + (heightLine / config.pixelsPerLine)
 				val renderStr = editor.document.getText(TextRange(startOffset, if(DocumentUtil.isValidLine(line,editor.document)) endOffset else {
 					val lineEndOffset = editor.document.getLineEndOffset(line)
 					if(endOffset < lineEndOffset) endOffset else lineEndOffset
 				}))
 				renderDataList[visualLine] = LineRenderData(emptyArray(), heightLine + aboveBlockLine, LineType.CUSTOM_FOLD, renderStr = renderStr, color = color)
 			}else{
-				val start = visLinesIterator.visualLineStartOffset
+				val start = visLinesIterator.getVisualLineStartOffset()
 				//COMMENT
 				val commentData = markCommentMap[start]
 				val lineHeight = config.pixelsPerLine + aboveBlockLine
@@ -165,9 +165,9 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 					renderDataList[visualLine] = LineRenderData(emptyArray(), lineHeight, LineType.COMMENT, commentHighlighterEx = commentData)
 				}else{
 					var x = if (visLinesIterator.startsWithSoftWrap()) {
-						softWraps[visLinesIterator.startOrPrevWrapIndex].indentInColumns
+						softWraps[visLinesIterator.getStartOrPrevWrapIndex()].indentInColumns
 					}else 0
-					val end = visLinesIterator.visualLineEndOffset
+					val end = visLinesIterator.getVisualLineEndOffset()
 					val hlIter = editor.highlighter.createIterator(start)
 					val xRenderDataList = mutableListOf<XRenderData>()
 					while (!hlIter.atEnd() && hlIter.end <= end){
