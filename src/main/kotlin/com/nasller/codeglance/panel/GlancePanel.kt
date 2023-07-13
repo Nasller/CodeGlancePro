@@ -32,11 +32,9 @@ import com.nasller.codeglance.listener.HideScrollBarListener
 import com.nasller.codeglance.panel.scroll.CustomScrollBarPopup
 import com.nasller.codeglance.panel.scroll.ScrollBar
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
-import com.nasller.codeglance.render.BaseMinimap
 import com.nasller.codeglance.render.BaseMinimap.Companion.getMinimap
 import com.nasller.codeglance.render.MarkCommentState
 import com.nasller.codeglance.render.ScrollState
-import com.nasller.codeglance.util.MySoftReference
 import java.awt.*
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
@@ -62,12 +60,11 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	private val lock = AtomicBoolean(false)
 	private val alarm = SingleAlarm({ updateImage(directUpdate = true) }, 500, this, ThreadToUse.SWING_THREAD,
 		if(isNotMainEditorKind()) ModalityState.any() else ModalityState.NON_MODAL)
-	private var minimapReference = MySoftReference.create(editor.editorKind.getMinimap(this), useSoftReference())
-//	private val test = TestMinimap(this)
+	private val minimap = editor.editorKind.getMinimap(this)
 
 	init {
 		Disposer.register(editor.disposable, this)
-		Disposer.register(this,GlanceListener(this))
+		Disposer.register(this, GlanceListener(this))
 		isOpaque = false
 		editor.component.isOpaque = false
 		isVisible = !isDisabled
@@ -103,8 +100,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	private fun updateImgTask(updateScroll: Boolean = false) {
 		try {
 			if(updateScroll) updateScrollState()
-			val img = getOrCreateImg()
-			img.first?.update() ?: img.second?.update()
+			minimap.update()
 		} finally {
 			lock.set(false)
 			repaint()
@@ -337,17 +333,18 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	}
 
 	override fun paintComponent(gfx: Graphics) {
-		val minimap = getOrCreateImg().first
-		if(minimap == null) {
+		if(editor.isDisposed) return
+		val img = minimap.getImage()
+		if(img == null) {
 			updateImage()
 			return
 		}
 		with(gfx as Graphics2D){
 			setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
 			paintSomething()
-			if (editor.document.textLength != 0 && minimap.img.isInitialized()) {
+			if (editor.document.textLength != 0) {
 				composite = srcOver0_8
-				drawImage(minimap.img.value, 0, 0, width, scrollState.drawHeight,
+				drawImage(img, 0, 0, width, scrollState.drawHeight,
 					0, scrollState.visibleStart, width, scrollState.visibleEnd, null)
 			}
 			scrollbar.paint(this)
@@ -370,25 +367,10 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		editor.component.remove(this.parent)
 		hideScrollBarListener.removeHideScrollBarListener(true)
 		alarm.dispose()
+		minimap.dispose()
 		scrollbar.dispose()
-		minimapReference.get()?.apply {
-			if(img.isInitialized()) img.value.flush()
-		}
 		markCommentState.clear()
-		minimapReference.clear()
 	}
-
-	private fun getOrCreateImg(): Pair<BaseMinimap?,BaseMinimap?> {
-		val image = minimapReference.get()
-		if(image == null) {
-			val baseMinimap = editor.editorKind.getMinimap(this@GlancePanel)
-			minimapReference = MySoftReference.create(baseMinimap, useSoftReference())
-			return null to baseMinimap
-		}
-		return image to null
-	}
-
-	private fun useSoftReference() = EditorKind.MAIN_EDITOR != editor.editorKind
 
 	private inner class RangeHighlightColor(val startOffset: Int, val endOffset: Int, val color: Color, var fullLine: Boolean, val fullLineWithActualHighlight: Boolean) {
 		constructor(it: RangeHighlighterEx, color: Color, fullLine: Boolean,existLine: MutableSet<Int>) :

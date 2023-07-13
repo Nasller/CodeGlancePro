@@ -14,7 +14,6 @@ import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.config.CodeGlanceColorsPage
-import com.nasller.codeglance.listener.GlanceOtherListener
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MyVisualLinesIterator
 import org.jetbrains.kotlin.ir.descriptors.IrAbstractDescriptorBasedFunctionFactory.Companion.offset
@@ -32,13 +31,12 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 	private val renderDataList = ArrayList<LineRenderData?>(Collections.nCopies(editor.visibleLineCount, null))
 	private var softWrapEnabled = false
 	init {
-		editor.document.addDocumentListener(this, glancePanel)
-		editor.foldingModel.addListener(this, glancePanel)
-		editor.inlayModel.addListener(this, glancePanel)
+		editor.document.addDocumentListener(this, this)
+		editor.foldingModel.addListener(this, this)
+		editor.inlayModel.addListener(this, this)
 		editor.softWrapModel.addSoftWrapChangeListener(this)
-		editor.markupModel.addMarkupModelListener(glancePanel, GlanceOtherListener(glancePanel))
-		editor.filteredDocumentMarkupModel.addMarkupModelListener(glancePanel, this)
-		editor.addPropertyChangeListener(this,glancePanel)
+		editor.filteredDocumentMarkupModel.addMarkupModelListener(this, this)
+		editor.addPropertyChangeListener(this,this)
 	}
 
 	override fun update() {
@@ -64,9 +62,11 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 		for (it in renderDataList) {
 			if(it == null) continue
 			if(skipLine > 0){
-				skipLine--
+				if(it.aboveBlockLine > 0) skipLine -= skipLine - 2
+				else skipLine--
 				continue
 			}
+			totalY += it.aboveBlockLine
 			when(it.lineType){
 				LineType.CODE -> {
 					it.renderX.forEach { renderX ->
@@ -137,7 +137,6 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 			val rangeList = lazy { mutableListOf<Range<Int>>() }
 			//BLOCK_INLAY
 			val aboveBlockLine = visLinesIterator.getBlockInlaysAbove().sumOf { (it.heightInPixels * scrollState.scale).toInt() }
-				.apply { if(this > 0) { rangeList.value.add(Range(curY, curY + this)) } }
 			//CUSTOM_FOLD
 			val customFoldRegion = visLinesIterator.getCustomFoldRegion()
 			if(customFoldRegion != null){
@@ -147,22 +146,22 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 				val color = runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() ?: defaultColor
 				//jump over the fold line
 				val heightLine = (customFoldRegion.heightInPixels * scrollState.scale).toInt()
-				rangeList.value.add(Range(curY,curY + heightLine))
-				curY += heightLine
+				rangeList.value.add(Range(curY,curY + heightLine + aboveBlockLine))
+				curY += heightLine + aboveBlockLine
 				//this is render document
 				val line = visLinesIterator.getStartLogicalLine() + (heightLine / config.pixelsPerLine)
 				val renderStr = editor.document.getText(TextRange(startOffset, if(DocumentUtil.isValidLine(line,editor.document)) endOffset else {
 					val lineEndOffset = editor.document.getLineEndOffset(line)
 					if(endOffset < lineEndOffset) endOffset else lineEndOffset
 				}))
-				renderDataList[visualLine] = LineRenderData(emptyArray(), heightLine + aboveBlockLine, LineType.CUSTOM_FOLD, renderStr = renderStr, color = color)
+				renderDataList[visualLine] = LineRenderData(emptyArray(), heightLine, aboveBlockLine, LineType.CUSTOM_FOLD, renderStr = renderStr, color = color)
 			}else{
 				val start = visLinesIterator.getVisualLineStartOffset()
 				//COMMENT
 				val commentData = markCommentMap[start]
-				val lineHeight = config.pixelsPerLine + aboveBlockLine
 				if(commentData != null){
-					renderDataList[visualLine] = LineRenderData(emptyArray(), lineHeight, LineType.COMMENT, commentHighlighterEx = commentData)
+					renderDataList[visualLine] = LineRenderData(emptyArray(), config.pixelsPerLine, aboveBlockLine,
+						LineType.COMMENT, commentHighlighterEx = commentData)
 				}else{
 					var x = if (visLinesIterator.startsWithSoftWrap()) {
 						softWraps[visLinesIterator.getStartOrPrevWrapIndex()].indentInColumns
@@ -181,14 +180,16 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 						x = xEnd + 1
 						hlIter.advance()
 					}
-					renderDataList[visualLine] = LineRenderData(xRenderDataList.toTypedArray(), lineHeight)
+					renderDataList[visualLine] = LineRenderData(xRenderDataList.toTypedArray(), config.pixelsPerLine, aboveBlockLine)
 				}
-				curY += lineHeight
+				if(aboveBlockLine > 0) rangeList.value.add(Range(curY, curY + config.pixelsPerLine + aboveBlockLine))
+				curY += config.pixelsPerLine + aboveBlockLine
 			}
 			if(rangeList.isInitialized()) rangeMap[visualLine] = rangeList.value
 			if(endVisualLine == 0 || visualLine <= endVisualLine) visLinesIterator.advance()
 			else break
 		}
+		glancePanel.updateImage()
 	}
 
 	private fun resetRenderData(){
@@ -289,6 +290,7 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 					Collections.nCopies(endVisualLine - myDocumentChangeOldEndLine, null))
 			}else if(myDocumentChangeOldEndLine > endVisualLine) {
 				renderDataList.subList(endVisualLine + 1, myDocumentChangeOldEndLine + 1).clear()
+				(endVisualLine + 1..myDocumentChangeOldEndLine + 1).forEach{ rangeMap.remove(it) }
 			}
 			refreshRenderData(startVisualLine, endVisualLine)
 		}finally {
@@ -305,9 +307,14 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 		if (EditorEx.PROP_HIGHLIGHTER != evt.propertyName || evt.newValue is EmptyEditorHighlighter) return
 		refreshRenderData()
 	}
+
+	override fun dispose() {
+		super.dispose()
+		renderDataList.clear()
+	}
 }
 
-private data class LineRenderData(val renderX: Array<XRenderData>, val y: Int, val lineType: LineType = LineType.CODE,
+private data class LineRenderData(val renderX: Array<XRenderData>, val y: Int,val aboveBlockLine: Int, val lineType: LineType = LineType.CODE,
                           val renderStr: String? = null, val color: Color? = null, val commentHighlighterEx: RangeHighlighterEx? = null) {
 	override fun equals(other: Any?): Boolean {
 		if (this === other) return true

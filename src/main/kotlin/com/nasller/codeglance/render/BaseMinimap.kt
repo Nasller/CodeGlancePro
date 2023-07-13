@@ -1,12 +1,14 @@
 package com.nasller.codeglance.render
 
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.util.Range
 import com.nasller.codeglance.panel.GlancePanel
+import com.nasller.codeglance.util.MySoftReference
 import java.awt.Color
 import java.awt.image.BufferedImage
 
-abstract class BaseMinimap(protected val glancePanel: GlancePanel){
+abstract class BaseMinimap(protected val glancePanel: GlancePanel) : Disposable {
 	protected val editor
 		get() = glancePanel.editor
 	protected val config
@@ -16,20 +18,22 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel){
 	protected val rangeMap
 		get() = glancePanel.rangeMap
 	private val scaleBuffer = FloatArray(4)
-	var img = lazy(LazyThreadSafetyMode.NONE) { getBufferedImage() }
+	private var imgReference = MySoftReference.create(getBufferedImage(), useSoftReference())
 
 	abstract fun update()
 
+	fun getImage() : BufferedImage? {
+		return imgReference.get()
+	}
+
 	protected fun getMinimapImage() : BufferedImage? {
-		val lineCount = editor.document.lineCount
-		if (editor.isDisposed || lineCount <= 0) return null
-		var curImg = img.value
-		if (curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
-			curImg.flush()
+		var curImg = imgReference.get()
+		if (curImg == null || curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
+			curImg?.flush()
 			curImg = getBufferedImage()
-			img = lazyOf(curImg)
+			imgReference = MySoftReference.create(curImg, useSoftReference())
 		}
-		return curImg
+		return if (editor.isDisposed || editor.document.lineCount <= 0) return null else curImg
 	}
 
 	protected fun getHighlightColor(startOffset:Int,endOffset:Int):MutableList<RangeHighlightColor>{
@@ -128,6 +132,12 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel){
 		scaleBuffer[0] = red.toFloat()
 		scaleBuffer[1] = green.toFloat()
 		scaleBuffer[2] = blue.toFloat()
+	}
+
+	private fun useSoftReference() = EditorKind.MAIN_EDITOR != editor.editorKind
+
+	override fun dispose() {
+		imgReference.clear()
 	}
 
 	@Suppress("UndesirableClassUsage")
