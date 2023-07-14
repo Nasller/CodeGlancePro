@@ -62,7 +62,8 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 		var totalY = 0
 		var skipLine = 0
 		for ((index, it) in renderDataList.withIndex()) {
-			it!!.rebuildRange(index, totalY)
+			if(it == null) continue
+			it.rebuildRange(index, totalY)
 			totalY += it.aboveBlockLine
 			if(skipLine > 0){
 				if(it.aboveBlockLine > 0) skipLine -= skipLine - 2
