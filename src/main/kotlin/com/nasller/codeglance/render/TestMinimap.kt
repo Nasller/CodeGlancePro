@@ -104,7 +104,6 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 								curX = 0
 								curY += config.pixelsPerLine
 							}
-
 							else -> curX += 1
 						}
 						curImg.renderImage(curX, curY, char.code)
@@ -134,7 +133,6 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 		else renderDataList.subList(0, startVisualLine).sumOf { it?.y ?: 0 }
 		while (!visLinesIterator.atEnd()) {
 			val visualLine = visLinesIterator.getVisualLine()
-			val rangeList = lazy { mutableListOf<Range<Int>>() }
 			//BLOCK_INLAY
 			val aboveBlockLine = visLinesIterator.getBlockInlaysAbove().sumOf { (it.heightInPixels * scrollState.scale).toInt() }
 			//CUSTOM_FOLD
@@ -142,11 +140,8 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 			if(customFoldRegion != null){
 				val startOffset = customFoldRegion.startOffset
 				val endOffset = customFoldRegion.endOffset
-				val hlIter = editor.highlighter.createIterator(startOffset)
-				val color = runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() ?: defaultColor
 				//jump over the fold line
 				val heightLine = (customFoldRegion.heightInPixels * scrollState.scale).toInt()
-				rangeList.value.add(Range(curY,curY + heightLine + aboveBlockLine))
 				curY += heightLine + aboveBlockLine
 				//this is render document
 				val line = visLinesIterator.getStartLogicalLine() + (heightLine / config.pixelsPerLine)
@@ -154,7 +149,8 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 					val lineEndOffset = editor.document.getLineEndOffset(line)
 					if(endOffset < lineEndOffset) endOffset else lineEndOffset
 				}))
-				renderDataList[visualLine] = LineRenderData(emptyArray(), heightLine, aboveBlockLine, LineType.CUSTOM_FOLD, renderStr = renderStr, color = color)
+				renderDataList[visualLine] = LineRenderData(emptyArray(), heightLine, aboveBlockLine, LineType.CUSTOM_FOLD, renderStr = renderStr,
+					color = getHighlightColor(startOffset + 1, startOffset + 1).firstOrNull()?.foregroundColor ?: defaultColor)
 			}else{
 				val start = visLinesIterator.getVisualLineStartOffset()
 				//COMMENT
@@ -182,20 +178,29 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 					}
 					renderDataList[visualLine] = LineRenderData(xRenderDataList.toTypedArray(), config.pixelsPerLine, aboveBlockLine)
 				}
-				if(aboveBlockLine > 0) rangeList.value.add(Range(curY, curY + config.pixelsPerLine + aboveBlockLine))
 				curY += config.pixelsPerLine + aboveBlockLine
 			}
-			if(rangeList.isInitialized()) rangeMap[visualLine] = rangeList.value
 			if(endVisualLine == 0 || visualLine <= endVisualLine) visLinesIterator.advance()
 			else break
 		}
 		glancePanel.updateImage()
 	}
 
+//	private fun ArrayList<LineRenderData?>.rebuildRange(){
+//		var curY = 0
+//		for ((index, renderData) in this.withIndex()) {
+//			if(renderData != null){
+//				val list by lazy(LazyThreadSafetyMode.NONE) { ArrayList<LineRenderData>(2) }
+//				if(renderData.aboveBlockLine > 0) renderData.range = Range(curY, curY + renderData.aboveBlockLine)
+//
+//				curY = renderData.y + renderData.aboveBlockLine
+//			}
+//		}
+//	}
+
 	private fun resetRenderData(){
 		renderDataList.clear()
 		renderDataList.addAll(Collections.nCopies(editor.visibleLineCount, null))
-		rangeMap.clear()
 	}
 
 	/** FoldingListener */
@@ -290,7 +295,6 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 					Collections.nCopies(endVisualLine - myDocumentChangeOldEndLine, null))
 			}else if(myDocumentChangeOldEndLine > endVisualLine) {
 				renderDataList.subList(endVisualLine + 1, myDocumentChangeOldEndLine + 1).clear()
-				(endVisualLine + 1..myDocumentChangeOldEndLine + 1).forEach{ rangeMap.remove(it) }
 			}
 			refreshRenderData(startVisualLine, endVisualLine)
 		}finally {
@@ -315,7 +319,8 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 }
 
 private data class LineRenderData(val renderX: Array<XRenderData>, val y: Int,val aboveBlockLine: Int, val lineType: LineType = LineType.CODE,
-                          val renderStr: String? = null, val color: Color? = null, val commentHighlighterEx: RangeHighlighterEx? = null) {
+                                  val renderStr: String? = null, val color: Color? = null, val commentHighlighterEx: RangeHighlighterEx? = null,
+                                  var range: List<Range<Int>>? = null) {
 	override fun equals(other: Any?): Boolean {
 		if (this === other) return true
 		if (javaClass != other?.javaClass) return false
@@ -324,19 +329,23 @@ private data class LineRenderData(val renderX: Array<XRenderData>, val y: Int,va
 
 		if (!renderX.contentEquals(other.renderX)) return false
 		if (y != other.y) return false
+		if (aboveBlockLine != other.aboveBlockLine) return false
 		if (lineType != other.lineType) return false
 		if (renderStr != other.renderStr) return false
 		if (color != other.color) return false
-		return commentHighlighterEx == other.commentHighlighterEx
+		if (commentHighlighterEx != other.commentHighlighterEx) return false
+		return range == other.range
 	}
 
 	override fun hashCode(): Int {
 		var result = renderX.contentHashCode()
 		result = 31 * result + y
+		result = 31 * result + aboveBlockLine
 		result = 31 * result + lineType.hashCode()
 		result = 31 * result + (renderStr?.hashCode() ?: 0)
 		result = 31 * result + (color?.hashCode() ?: 0)
 		result = 31 * result + (commentHighlighterEx?.hashCode() ?: 0)
+		result = 31 * result + (range?.hashCode() ?: 0)
 		return result
 	}
 }

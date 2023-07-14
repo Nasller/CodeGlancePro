@@ -2,7 +2,7 @@ package com.nasller.codeglance.render
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.EditorKind
-import com.intellij.util.Range
+import com.intellij.openapi.util.Disposer
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MySoftReference
 import java.awt.Color
@@ -15,8 +15,6 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : Disposable 
 		get() = glancePanel.config
 	protected val scrollState
 		get() = glancePanel.scrollState
-	protected val rangeMap
-		get() = glancePanel.rangeMap
 	private val scaleBuffer = FloatArray(4)
 	private var imgReference = MySoftReference.create(getBufferedImage(), useSoftReference())
 
@@ -24,6 +22,14 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : Disposable 
 
 	fun getImage() : BufferedImage? {
 		return imgReference.get()
+	}
+
+	open fun getMyRenderVisualLine(y: Int): Int {
+		return 0
+	}
+
+	open fun getMyRenderLine(lineStart: Int, lineEnd: Int): Pair<Int, Int> {
+		return 0 to 0
 	}
 
 	protected fun getMinimapImage() : BufferedImage? {
@@ -44,13 +50,6 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : Disposable 
 			return@processRangeHighlightersOverlappingWith true
 		}
 		return list
-	}
-
-	protected fun mergeRangeList(list: MutableList<Range<Int>>?): Range<Int>.() -> MutableList<Range<Int>> = {
-		if (list != null) {
-			list.add(this)
-			list
-		} else mutableListOf(this)
 	}
 
 	protected fun BufferedImage.renderImage(x: Int, y: Int, char: Int, consumer: (() -> Unit)? = null) {
@@ -137,6 +136,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : Disposable 
 	private fun useSoftReference() = EditorKind.MAIN_EDITOR != editor.editorKind
 
 	override fun dispose() {
+		Disposer.dispose(this)
 		imgReference.clear()
 	}
 

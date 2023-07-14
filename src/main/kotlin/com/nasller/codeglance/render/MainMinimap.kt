@@ -22,10 +22,11 @@ import kotlin.math.roundToInt
 
 class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	private val isLogFile = editor.virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
+	private val rangeList = mutableListOf<Pair<Int,Range<Int>>>()
 
 	override fun update() {
 		val curImg = getMinimapImage() ?: return
-		if(rangeMap.size > 0) rangeMap.clear()
+		if(rangeList.size > 0) rangeList.clear()
 		val text = editor.document.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val hlIter = editor.highlighter.createIterator(0).run {
@@ -82,9 +83,8 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 					val heightLine = (region.heightInPixels * scrollState.scale).toInt()
 					skipY -= (foldLine + 1) * config.pixelsPerLine - heightLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
-					rangeMap.compute(editor.offsetToVisualLine(endOffset)) { _,list ->
-						Range(y, editor.document.getLineNumber(hlIter.start) * config.pixelsPerLine + skipY).run(mergeRangeList(list))
-					}
+					rangeList.add(Pair(editor.offsetToVisualLine(endOffset),
+						Range(y,editor.document.getLineNumber(hlIter.start) * config.pixelsPerLine + skipY)))
 					//this is render document
 					val line = startLineNumber - 1 + (heightLine / config.pixelsPerLine)
 					text.subSequence(start, if(DocumentUtil.isValidLine(line,editor.document)){
@@ -115,8 +115,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 									.filter { it.placement == Inlay.Placement.ABOVE_LINE }
 									.sumOf { (it.heightInPixels * scrollState.scale).toInt() }
 								if (sumBlock > 0) {
-									rangeMap.compute(editor.offsetToVisualLine(startOffset) - 1){ _,list ->
-										Range(y, y + sumBlock).run(mergeRangeList(list)) }
+									rangeList.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
 									y += sumBlock
 									skipY += sumBlock
 									commentData.jumpEndOffset = lineEndOffset
@@ -141,8 +140,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 									.filter { it.placement == Inlay.Placement.ABOVE_LINE }
 									.sumOf { (it.heightInPixels * scrollState.scale).toInt() }
 								if (sumBlock > 0) {
-									rangeMap.compute(editor.offsetToVisualLine(startOffset) - 1){ _,list ->
-										Range(y, y + sumBlock).run(mergeRangeList(list)) }
+									rangeList.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
 									y += sumBlock
 									skipY += sumBlock
 								}
@@ -158,6 +156,33 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 			}
 		}
 		g.dispose()
+	}
+
+	override fun getMyRenderVisualLine(y: Int): Int {
+		var minus = 0
+		for (pair in rangeList) {
+			if (y in pair.second.from..pair.second.to) {
+				return pair.first
+			} else if (pair.second.to < y) {
+				minus += pair.second.to - pair.second.from
+			} else break
+		}
+		return (y - minus) / config.pixelsPerLine
+	}
+
+	override fun getMyRenderLine(lineStart: Int, lineEnd: Int): Pair<Int, Int> {
+		var startAdd = 0
+		var endAdd = 0
+		for (pair in rangeList) {
+			if (pair.first in (lineStart + 1) until lineEnd) {
+				endAdd += pair.second.to - pair.second.from
+			} else if (pair.first < lineStart) {
+				val i = pair.second.to - pair.second.from
+				startAdd += i
+				endAdd += i
+			} else break
+		}
+		return startAdd to endAdd
 	}
 
 	private fun makeMarkHighlight(text: CharSequence, graphics: Graphics2D):Map<Int,MarkCommentData>{
@@ -198,6 +223,11 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	}
 
 	private data class MarkCommentData(var jumpEndOffset: Int,val comment: String,val font: Font,val fontHeight:Int)
+
+	override fun dispose() {
+		super.dispose()
+		rangeList.clear()
+	}
 }
 
 private class IdeLogFileHighlightDelegate(private val document: Document, private val highlighterIterator: HighlighterIterator) : HighlighterIterator by highlighterIterator{

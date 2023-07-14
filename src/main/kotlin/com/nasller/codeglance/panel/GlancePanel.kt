@@ -36,7 +36,6 @@ import com.nasller.codeglance.render.BaseMinimap.Companion.getMinimap
 import com.nasller.codeglance.render.MarkCommentState
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
-import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
@@ -55,7 +54,6 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val hideScrollBarListener = HideScrollBarListener(this)
 	val scrollbar = ScrollBar(this)
 	var myVcsPanel: MyVcsPanel? = null
-	val rangeMap = TreeMap<Int, MutableList<Range<Int>>>(Int::compareTo)
 	val markCommentState = MarkCommentState(this)
 	private val lock = AtomicBoolean(false)
 	private val alarm = SingleAlarm({ updateImage(directUpdate = true) }, 500, this, ThreadToUse.SWING_THREAD,
@@ -133,20 +131,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		}
 	}
 
-	fun getMyRenderVisualLine(y: Int): Int {
-		var minus = 0
-		for (entry in rangeMap) {
-			if (entry.value.any {y in it.from..it.to}) {
-				return entry.key
-			} else {
-				val cur = entry.value.firstOrNull { it.to < y }
-				if (cur != null) {
-					minus += cur.to - cur.from
-				} else break
-			}
-		}
-		return (y - minus) / config.pixelsPerLine
-	}
+	fun getMyRenderVisualLine(y: Int) = minimap.getMyRenderVisualLine(y)
 
 	fun getVisibleRangeOffset(): Range<Int> {
 		var startOffset = 0
@@ -169,7 +154,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 			if (it.isThinErrorStripeMark) it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
 				val start = editor.offsetToVisualLine(it.startOffset)
 				val end = editor.offsetToVisualLine(it.endOffset)
-				val documentLine = getMyRenderLine(start, end)
+				val documentLine = minimap.getMyRenderLine(start, end)
 				val sY = start * config.pixelsPerLine + documentLine.first - scrollState.visibleStart
 				val eY = end * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
 				if (sY >= 0 || eY >= 0) {
@@ -192,7 +177,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 			val endByte = editor.selectionModel.blockSelectionEnds[index]
 			val start = editor.offsetToVisualPosition(startByte)
 			val end = editor.offsetToVisualPosition(endByte)
-			val documentLine = getMyRenderLine(start.line, end.line)
+			val documentLine = minimap.getMyRenderLine(start.line, end.line)
 
 			val sX = start.column
 			val sY = start.line * config.pixelsPerLine + documentLine.first - scrollState.visibleStart
@@ -222,7 +207,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		setGraphics2DInfo(srcOver, editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR))
 		editor.caretModel.allCarets.forEach {
 			val line = it.visualPosition.line
-			val documentLine = getMyRenderLine(line, line)
+			val documentLine = minimap.getMyRenderLine(line, line)
 			val start = line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
 			if (start >= 0) fillRect(0, start, width, config.pixelsPerLine)
 		}
@@ -264,7 +249,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	private fun Graphics2D.drawMarkupLine(it: RangeHighlightColor) {
 		val start = it.startVis
 		val end = it.endVis
-		val documentLine = getMyRenderLine(start.line, end.line)
+		val documentLine = minimap.getMyRenderLine(start.line, end.line)
 		var sX = if (start.column > width - minGap) width - minGap else start.column
 		val sY = start.line * config.pixelsPerLine + documentLine.first - scrollState.visibleStart
 		var eX = if (end.column > width - minGap) width else end.column
@@ -305,21 +290,6 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	private fun Graphics2D.setGraphics2DInfo(al: AlphaComposite, col: Color?) {
 		composite = al
 		color = col
-	}
-
-	private fun getMyRenderLine(lineStart: Int, lineEnd: Int): Pair<Int, Int> {
-		var startAdd = 0
-		var endAdd = 0
-		for (entry in rangeMap) {
-			if (entry.key in (lineStart + 1) until lineEnd) {
-				endAdd += entry.value.sumOf { it.to - it.from }
-			} else if (entry.key < lineStart) {
-				val i = entry.value.sumOf { it.to - it.from }
-				startAdd += i
-				endAdd += i
-			} else break
-		}
-		return startAdd to endAdd
 	}
 
 	fun getConfigSize(): Dimension{
