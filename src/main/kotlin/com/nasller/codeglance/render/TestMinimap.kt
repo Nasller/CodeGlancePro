@@ -61,12 +61,13 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 		var skipLine = 0
 		for (it in renderDataList) {
 			if(it == null) continue
+			totalY += it.aboveBlockLine
 			if(skipLine > 0){
 				if(it.aboveBlockLine > 0) skipLine -= skipLine - 2
 				else skipLine--
+				totalY += it.y
 				continue
 			}
-			totalY += it.aboveBlockLine
 			when(it.lineType){
 				LineType.CODE -> {
 					it.renderX.forEach { renderX ->
@@ -116,6 +117,7 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 	}
 
 	private fun refreshRenderData(startVisualLine: Int = 0, endVisualLine: Int = 0) {
+		if(editor.isDisposed) return
 		if(startVisualLine == 0 && endVisualLine == 0) resetRenderData()
 		val visLinesIterator = MyVisualLinesIterator(editor, startVisualLine)
 		if(visLinesIterator.atEnd()) return
@@ -129,8 +131,6 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 			}
 			return@processRangeHighlightersOverlappingWith true
 		}
-		var curY = if(renderDataList.isEmpty() || startVisualLine == 0) 0
-		else renderDataList.subList(0, startVisualLine).sumOf { it?.y ?: 0 }
 		while (!visLinesIterator.atEnd()) {
 			val visualLine = visLinesIterator.getVisualLine()
 			//BLOCK_INLAY
@@ -142,15 +142,14 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 				val endOffset = customFoldRegion.endOffset
 				//jump over the fold line
 				val heightLine = (customFoldRegion.heightInPixels * scrollState.scale).toInt()
-				curY += heightLine + aboveBlockLine
 				//this is render document
-				val line = visLinesIterator.getStartLogicalLine() + (heightLine / config.pixelsPerLine)
-				val renderStr = editor.document.getText(TextRange(startOffset, if(DocumentUtil.isValidLine(line,editor.document)) endOffset else {
+				val line = visLinesIterator.getStartLogicalLine() - 1 + (heightLine / config.pixelsPerLine)
+				val renderStr = editor.document.getText(TextRange(startOffset, if(DocumentUtil.isValidLine(line,editor.document)) {
 					val lineEndOffset = editor.document.getLineEndOffset(line)
 					if(endOffset < lineEndOffset) endOffset else lineEndOffset
-				}))
+				}else endOffset))
 				renderDataList[visualLine] = LineRenderData(emptyArray(), heightLine, aboveBlockLine, LineType.CUSTOM_FOLD, renderStr = renderStr,
-					color = getHighlightColor(startOffset + 1, startOffset + 1).firstOrNull()?.foregroundColor ?: defaultColor)
+					color = runCatching { editor.highlighter.createIterator(startOffset + 1).textAttributes.foregroundColor }.getOrNull() ?: defaultColor)
 			}else{
 				val start = visLinesIterator.getVisualLineStartOffset()
 				//COMMENT
@@ -178,29 +177,70 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 					}
 					renderDataList[visualLine] = LineRenderData(xRenderDataList.toTypedArray(), config.pixelsPerLine, aboveBlockLine)
 				}
-				curY += config.pixelsPerLine + aboveBlockLine
 			}
 			if(endVisualLine == 0 || visualLine <= endVisualLine) visLinesIterator.advance()
 			else break
 		}
+		renderDataList.rebuildRange()
 		glancePanel.updateImage()
 	}
 
-//	private fun ArrayList<LineRenderData?>.rebuildRange(){
-//		var curY = 0
-//		for ((index, renderData) in this.withIndex()) {
-//			if(renderData != null){
-//				val list by lazy(LazyThreadSafetyMode.NONE) { ArrayList<LineRenderData>(2) }
-//				if(renderData.aboveBlockLine > 0) renderData.range = Range(curY, curY + renderData.aboveBlockLine)
-//
-//				curY = renderData.y + renderData.aboveBlockLine
-//			}
-//		}
-//	}
+	private fun ArrayList<LineRenderData?>.rebuildRange(){
+		var curY = 0
+		for ((index, renderData) in this.withIndex()) {
+			if(renderData == null) continue
+			if(index > 0){
+				renderData.range = null
+				if(renderData.lineType == LineType.CUSTOM_FOLD){
+					Range(curY, curY + renderData.y - config.pixelsPerLine + renderData.aboveBlockLine).let{
+						renderData.range = renderData.range?.apply { add(it) } ?: mutableListOf(it)
+					}
+				}else if(renderData.aboveBlockLine > 0){
+					Range(curY, curY + renderData.aboveBlockLine).let{
+						this[index - 1]!!.apply { range = range?.apply { add(it) } ?: mutableListOf(it) }
+					}
+				}
+			}
+			curY += renderData.y + renderData.aboveBlockLine
+		}
+	}
 
 	private fun resetRenderData(){
 		renderDataList.clear()
 		renderDataList.addAll(Collections.nCopies(editor.visibleLineCount, null))
+	}
+
+	override fun getMyRenderVisualLine(y: Int): Int {
+		var minus = 0
+		for ((index, renderData) in renderDataList.withIndex()) {
+			val range = renderData?.range ?: continue
+			if (range.any {y in it.from..it.to }) {
+				return index
+			} else {
+				val sumOf = range.filter { it.to < y }.sumOf { it.to - it.from }
+				if(sumOf > 0) minus += sumOf
+				else break
+			}
+		}
+		return (y - minus) / config.pixelsPerLine
+	}
+
+	override fun getMyRenderLine(lineStart: Int, lineEnd: Int): Pair<Int, Int> {
+		var startAdd = 0
+		var endAdd = 0
+		for ((index, renderData) in renderDataList.withIndex()) {
+			val range = renderData?.range ?: continue
+			if (index in (lineStart + 1) until lineEnd) {
+				endAdd += range.sumOf { it.to - it.from }
+			}else if (index < lineStart) {
+				val i = range.sumOf { it.to - it.from }
+				startAdd += i
+				endAdd += i
+			}else if(index == lineStart && lineStart != lineEnd){
+				endAdd += range.sumOf { it.to - it.from }
+			} else break
+		}
+		return startAdd to endAdd
 	}
 
 	/** FoldingListener */
@@ -217,26 +257,18 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 	}
 
 	/** InlayModel.Listener */
-	override fun onAdded(inlay: Inlay<*>) {
-		if (checkinInlay(inlay)) return
+	override fun onAdded(inlay: Inlay<*>) = checkinInlayAndUpdate(inlay)
+
+	override fun onRemoved(inlay: Inlay<*>) = checkinInlayAndUpdate(inlay)
+
+	override fun onUpdated(inlay: Inlay<*>, changeFlags: Int) = checkinInlayAndUpdate(inlay, changeFlags)
+
+	private fun checkinInlayAndUpdate(inlay: Inlay<*>, changeFlags: Int? = null) {
+		if(editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || inlay.placement != Inlay.Placement.ABOVE_LINE
+			|| !inlay.isValid || (changeFlags != null && changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0)) return
 		val visualLine = editor.offsetToVisualLine(inlay.offset)
 		refreshRenderData(visualLine,visualLine)
 	}
-
-	override fun onRemoved(inlay: Inlay<*>) {
-		if (checkinInlay(inlay)) return
-		val visualLine = editor.offsetToVisualLine(inlay.offset)
-		refreshRenderData(visualLine,visualLine)
-	}
-
-	override fun onUpdated(inlay: Inlay<*>, changeFlags: Int) {
-		if (checkinInlay(inlay) || changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0) return
-		val visualLine = editor.offsetToVisualLine(inlay.offset)
-		refreshRenderData(visualLine,visualLine)
-	}
-
-	private fun checkinInlay(inlay: Inlay<*>) =
-		editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || inlay.placement != Inlay.Placement.ABOVE_LINE
 
 	override fun onBatchModeFinish(editor: Editor) {
 		if (editor.document.isInBulkUpdate) return
@@ -320,7 +352,7 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 
 private data class LineRenderData(val renderX: Array<XRenderData>, val y: Int,val aboveBlockLine: Int, val lineType: LineType = LineType.CODE,
                                   val renderStr: String? = null, val color: Color? = null, val commentHighlighterEx: RangeHighlighterEx? = null,
-                                  var range: List<Range<Int>>? = null) {
+                                  var range: MutableList<Range<Int>>? = null) {
 	override fun equals(other: Any?): Boolean {
 		if (this === other) return true
 		if (javaClass != other?.javaClass) return false
@@ -345,7 +377,7 @@ private data class LineRenderData(val renderX: Array<XRenderData>, val y: Int,va
 		result = 31 * result + (renderStr?.hashCode() ?: 0)
 		result = 31 * result + (color?.hashCode() ?: 0)
 		result = 31 * result + (commentHighlighterEx?.hashCode() ?: 0)
-		result = 31 * result + (range?.hashCode() ?: 0)
+		result = 31 * result + range.hashCode()
 		return result
 	}
 }

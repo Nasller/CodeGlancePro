@@ -180,6 +180,8 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 				val i = pair.second.to - pair.second.from
 				startAdd += i
 				endAdd += i
+			}else if(pair.first == lineStart && lineStart != lineEnd){
+				endAdd += pair.second.to - pair.second.from
 			} else break
 		}
 		return startAdd to endAdd

@@ -16,6 +16,7 @@ import java.awt.event.*
 import java.beans.PropertyChangeEvent
 import java.beans.PropertyChangeListener
 
+@Suppress("UnstableApiUsage")
 class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(), FoldingListener, MarkupModelListener,
 	SettingsChangeListener, CaretListener, PrioritizedDocumentListener, VisibleAreaListener, SelectionListener,
 	HierarchyBoundsListener, HierarchyListener, SoftWrapChangeListener, InlayModel.Listener, PropertyChangeListener, Disposable {
@@ -50,21 +51,15 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	}
 
 	/** InlayModel.Listener */
-	override fun onAdded(inlay: Inlay<*>) {
-		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode
-			|| inlay.placement != Placement.ABOVE_LINE) return
-		repaintOrRequest(true)
-	}
+	override fun onAdded(inlay: Inlay<*>) = checkinInlayAndUpdate(inlay)
 
-	override fun onRemoved(inlay: Inlay<*>) {
-		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode
-			|| inlay.placement != Placement.ABOVE_LINE) return
-		repaintOrRequest(true)
-	}
+	override fun onRemoved(inlay: Inlay<*>) = checkinInlayAndUpdate(inlay)
 
-	override fun onUpdated(inlay: Inlay<*>, changeFlags: Int) {
-		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode ||
-			inlay.placement != Placement.ABOVE_LINE || changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0) return
+	override fun onUpdated(inlay: Inlay<*>, changeFlags: Int) = checkinInlayAndUpdate(inlay, changeFlags)
+
+	private fun checkinInlayAndUpdate(inlay: Inlay<*>, changeFlags: Int? = null) {
+		if(editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || inlay.placement != Placement.ABOVE_LINE
+			|| !inlay.isValid || (changeFlags != null && changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0)) return
 		repaintOrRequest(true)
 	}
 
