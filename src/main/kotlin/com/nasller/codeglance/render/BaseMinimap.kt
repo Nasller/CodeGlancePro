@@ -2,7 +2,7 @@ package com.nasller.codeglance.render
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.EditorKind
-import com.intellij.openapi.util.Disposer
+import com.intellij.util.Range
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MySoftReference
 import java.awt.Color
@@ -15,6 +15,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : Disposable 
 		get() = glancePanel.config
 	protected val scrollState
 		get() = glancePanel.scrollState
+	protected val rangeList by lazy(LazyThreadSafetyMode.NONE) { mutableListOf<Pair<Int, Range<Int>>>() }
 	private val scaleBuffer = FloatArray(4)
 	private var imgReference = MySoftReference.create(getBufferedImage(), useSoftReference())
 
@@ -24,10 +25,33 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : Disposable 
 		return imgReference.get()
 	}
 
-	open fun getMyRenderVisualLine(y: Int) = y / config.pixelsPerLine
+	open fun getMyRenderVisualLine(y: Int): Int {
+		var minus = 0
+		for (pair in rangeList) {
+			if (y in pair.second.from..pair.second.to) {
+				return pair.first
+			} else if (pair.second.to < y) {
+				minus += pair.second.to - pair.second.from
+			} else break
+		}
+		return (y - minus) / config.pixelsPerLine
+	}
 
 	open fun getMyRenderLine(lineStart: Int, lineEnd: Int): Pair<Int, Int> {
-		return 0 to 0
+		var startAdd = 0
+		var endAdd = 0
+		for (pair in rangeList) {
+			if (pair.first in (lineStart + 1) until lineEnd) {
+				endAdd += pair.second.to - pair.second.from
+			} else if (pair.first < lineStart) {
+				val i = pair.second.to - pair.second.from
+				startAdd += i
+				endAdd += i
+			}else if(pair.first == lineStart && lineStart != lineEnd){
+				endAdd += pair.second.to - pair.second.from
+			} else break
+		}
+		return startAdd to endAdd
 	}
 
 	protected fun getMinimapImage() : BufferedImage? {
@@ -67,9 +91,9 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : Disposable 
 			else -> 0.4f
 		}
 		when (config.pixelsPerLine) {
-			// Can't show whitespace between lines anymore. This looks rather ugly...
+			// Can't show space between lines anymore. This looks rather ugly...
 			1 -> setPixel(x, y + 1, weight * 0.6f)
-			// Two lines we make the top line a little lighter to give the illusion of whitespace between lines.
+			// Two lines we make the top line a little lighter to give the illusion of space between lines.
 			2 -> {
 				setPixel(x, y, weight * 0.3f)
 				setPixel(x, y + 1, weight * 0.6f)
@@ -93,9 +117,9 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : Disposable 
 		val topWeight = getTopWeight(char)
 		val bottomWeight = getBottomWeight(char)
 		when (config.pixelsPerLine) {
-			// Can't show whitespace between lines anymore. This looks rather ugly...
+			// Can't show space between lines anymore. This looks rather ugly...
 			1 -> setPixel(x, y + 1, (topWeight + bottomWeight) / 2)
-			// Two lines we make the top line a little lighter to give the illusion of whitespace between lines.
+			// Two lines we make the top line a little lighter to give the illusion of space between lines.
 			2 -> {
 				setPixel(x, y, topWeight * 0.5f)
 				setPixel(x, y + 1, bottomWeight)
@@ -134,7 +158,6 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : Disposable 
 	private fun useSoftReference() = EditorKind.MAIN_EDITOR != editor.editorKind
 
 	override fun dispose() {
-		Disposer.dispose(this)
 		imgReference.clear()
 	}
 

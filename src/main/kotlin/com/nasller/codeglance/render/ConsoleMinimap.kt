@@ -71,4 +71,8 @@ class ConsoleMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		}
 		g.dispose()
 	}
+
+	override fun getMyRenderVisualLine(y: Int) = y / config.pixelsPerLine
+
+	override fun getMyRenderLine(lineStart: Int, lineEnd: Int) = 0 to 0
 }

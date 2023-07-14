@@ -22,7 +22,6 @@ import kotlin.math.roundToInt
 
 class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	private val isLogFile = editor.virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
-	private val rangeList = mutableListOf<Pair<Int,Range<Int>>>()
 
 	override fun update() {
 		val curImg = getMinimapImage() ?: return
@@ -156,35 +155,6 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 			}
 		}
 		g.dispose()
-	}
-
-	override fun getMyRenderVisualLine(y: Int): Int {
-		var minus = 0
-		for (pair in rangeList) {
-			if (y in pair.second.from..pair.second.to) {
-				return pair.first
-			} else if (pair.second.to < y) {
-				minus += pair.second.to - pair.second.from
-			} else break
-		}
-		return (y - minus) / config.pixelsPerLine
-	}
-
-	override fun getMyRenderLine(lineStart: Int, lineEnd: Int): Pair<Int, Int> {
-		var startAdd = 0
-		var endAdd = 0
-		for (pair in rangeList) {
-			if (pair.first in (lineStart + 1) until lineEnd) {
-				endAdd += pair.second.to - pair.second.from
-			} else if (pair.first < lineStart) {
-				val i = pair.second.to - pair.second.from
-				startAdd += i
-				endAdd += i
-			}else if(pair.first == lineStart && lineStart != lineEnd){
-				endAdd += pair.second.to - pair.second.from
-			} else break
-		}
-		return startAdd to endAdd
 	}
 
 	private fun makeMarkHighlight(text: CharSequence, graphics: Graphics2D):Map<Int,MarkCommentData>{
