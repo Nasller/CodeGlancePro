@@ -3,10 +3,11 @@ package com.nasller.codeglance.util
 import com.intellij.openapi.editor.CustomFoldRegion
 import com.intellij.openapi.editor.FoldRegion
 import com.intellij.openapi.editor.Inlay
+import com.intellij.openapi.editor.SoftWrap
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.impl.InlayModelImpl
 
-@Suppress("MemberVisibilityCanBePrivate","UnstableApiUsage")
+@Suppress("UnstableApiUsage")
 class MyVisualLinesIterator(private val myEditor: EditorImpl, startVisualLine: Int){
 	private val myDocument = myEditor.document
 	private val myFoldRegions = myEditor.foldingModel.fetchTopLevel() ?: FoldRegion.EMPTY_ARRAY
@@ -75,24 +76,23 @@ class MyVisualLinesIterator(private val myEditor: EditorImpl, startVisualLine: I
 		else myNextLocation!!.logicalLine - if (myNextLocation!!.softWrap == myLocation.softWrap) 2 else 1
 	}
 
-	fun getStartOrPrevWrapIndex(): Int {
-		checkEnd()
-		return myLocation.softWrap - 1
-	}
-
 	fun getStartFoldingIndex(): Int {
 		checkEnd()
 		return myLocation.foldRegion
 	}
 
-	fun startsWithSoftWrap(): Boolean {
+	fun getStartsWithSoftWrap(): SoftWrap? {
 		checkEnd()
-		return myLocation.softWrap > 0 && myLocation.softWrap <= mySoftWraps!!.size && mySoftWraps[myLocation.softWrap - 1]!!.start == myLocation.offset
+		if(myLocation.softWrap > 0 && myLocation.softWrap <= mySoftWraps.size){
+			val softWrap = mySoftWraps[myLocation.softWrap - 1]
+			return if(softWrap.start == myLocation.offset) softWrap else null
+		}
+		return null
 	}
 
 	fun endsWithSoftWrap(): Boolean {
 		checkEnd()
-		return myLocation.softWrap < mySoftWraps!!.size && mySoftWraps[myLocation.softWrap]!!.start == getVisualLineEndOffset()
+		return myLocation.softWrap < mySoftWraps.size && mySoftWraps[myLocation.softWrap].start == getVisualLineEndOffset()
 	}
 
 	fun getBlockInlaysAbove(): List<Inlay<*>> {

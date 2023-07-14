@@ -134,7 +134,6 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 		if(visLinesIterator.atEnd()) return
 
 		val defaultColor = editor.colorsScheme.defaultForeground
-		val softWraps = editor.softWrapModel.registeredSoftWraps
 		val markCommentMap = hashMapOf<Int,RangeHighlighterEx>()
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(visLinesIterator.getVisualLineStartOffset(), editor.document.textLength){
 			if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == it.textAttributesKey){
@@ -169,9 +168,7 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 					renderDataList[visualLine] = LineRenderData(emptyArray(), config.pixelsPerLine, aboveBlockLine,
 						LineType.COMMENT, commentHighlighterEx = commentData)
 				}else{
-					var x = if (visLinesIterator.startsWithSoftWrap()) {
-						softWraps[visLinesIterator.getStartOrPrevWrapIndex()].indentInColumns
-					}else 0
+					var x = visLinesIterator.getStartsWithSoftWrap()?.indentInColumns ?: 0
 					val end = visLinesIterator.getVisualLineEndOffset()
 					val hlIter = editor.highlighter.createIterator(start)
 					val xRenderDataList = mutableListOf<XRenderData>()
