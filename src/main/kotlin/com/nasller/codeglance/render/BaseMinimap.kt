@@ -24,9 +24,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : Disposable 
 		return imgReference.get()
 	}
 
-	open fun getMyRenderVisualLine(y: Int): Int {
-		return 0
-	}
+	open fun getMyRenderVisualLine(y: Int) = y / config.pixelsPerLine
 
 	open fun getMyRenderLine(lineStart: Int, lineEnd: Int): Pair<Int, Int> {
 		return 0 to 0
