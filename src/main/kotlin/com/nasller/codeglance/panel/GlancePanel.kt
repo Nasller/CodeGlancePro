@@ -116,6 +116,12 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		return Range(startOffset, endOffset)
 	}
 
+	fun RangeHighlighterEx.getMarkupColor() = getErrorStripeMarkColor(editor.colorsScheme) ?:
+	(if (isNotMainEditorKind() && textAttributesKey != CodeInsightColors.HYPERLINK_ATTRIBUTES) {
+		val attributes = getTextAttributes(editor.colorsScheme)
+		attributes?.foregroundColor ?: attributes?.backgroundColor
+	} else null)
+
 	fun Graphics2D.paintVcs(rangeOffset: Range<Int>,width:Int) {
 		if(config.showVcsHighlight.not()) return
 		composite = if (config.hideOriginalScrollBar) srcOver else srcOver0_4
@@ -198,11 +204,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	private fun Graphics2D.paintEditorMarkupModel(rangeOffset: Range<Int>,existLine: MutableSet<Int>) {
 		val map by lazy { hashMapOf<String, Int>() }
 		editor.markupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
-			(it.getErrorStripeMarkColor(editor.colorsScheme) ?:
-			(if (isNotMainEditorKind() && it.textAttributesKey != CodeInsightColors.HYPERLINK_ATTRIBUTES){
-				val attributes = it.getTextAttributes(editor.colorsScheme)
-				attributes?.foregroundColor ?: attributes?.backgroundColor
-			} else null))?.apply {
+			it.getMarkupColor()?.apply {
 				val highlightColor = RangeHighlightColor(it, this, config.showOtherFullLineHighlight, existLine)
 				map.compute("${highlightColor.startOffset}-${highlightColor.endOffset}") { _, layer ->
 					if (layer == null || layer < it.layer) {

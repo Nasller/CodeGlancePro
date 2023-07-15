@@ -83,7 +83,7 @@ class GlanceOtherListener(private val glancePanel: GlancePanel) : MarkupModelLis
 	override fun beforeRemoved(highlighter: RangeHighlighterEx) = repaint(highlighter)
 
 	private fun repaint(highlighter: RangeHighlighterEx) {
-		if (highlighter.getErrorStripeMarkColor(glancePanel.editor.colorsScheme) != null && glancePanel.checkVisible()) {
+		if (glancePanel.run { highlighter.getMarkupColor() } != null && glancePanel.checkVisible()) {
 			glancePanel.repaint()
 		}
 	}
