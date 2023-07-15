@@ -84,10 +84,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		}
 	}
 
-	fun dispose() {
-		alarm.dispose()
-		myEditorFragmentRenderer.clearHint()
-	}
+	fun clear() = myEditorFragmentRenderer.clearHint()
 
 	override fun mouseEntered(e: MouseEvent) {
 		hovering = true
@@ -118,9 +115,9 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			editor.editorKind.setWidth(newWidth.coerceIn(GlancePanel.minWidth, GlancePanel.maxWidth))
 			val diffViewer = editor.getUserData(CURRENT_EDITOR_DIFF_VIEW)
 			if(diffViewer != null){
-				diffViewer.editors.mapNotNull { it.getUserData(GlancePanel.CURRENT_GLANCE) }.forEach { it.refreshWithWidth() }
+				diffViewer.editors.mapNotNull { it.getUserData(GlancePanel.CURRENT_GLANCE) }.forEach { it.refreshWithWidth(directUpdate = true) }
 			}else {
-				glancePanel.refreshWithWidth()
+				glancePanel.refreshWithWidth(directUpdate = true)
 			}
 		} else if (dragging) {
 			val delta = (dragStartDelta + (e.y - dragStart)).toFloat()

@@ -4,7 +4,9 @@ import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.DocumentUtil
 import com.nasller.codeglance.panel.GlancePanel
 
-class ConsoleMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
+class TextMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
+	init { makeListener() }
+
 	override fun update() {
 		val curImg = getMinimapImage() ?: return
 		val text = editor.document.immutableCharSequence

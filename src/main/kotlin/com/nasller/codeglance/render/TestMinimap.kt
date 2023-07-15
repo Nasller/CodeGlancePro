@@ -1,14 +1,15 @@
 package com.nasller.codeglance.render
 
 import com.intellij.ide.ui.UISettings
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.editor.*
 import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.editor.event.DocumentEvent
-import com.intellij.openapi.editor.ex.*
+import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.editor.ex.FoldingListener
+import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
-import com.intellij.openapi.editor.impl.event.MarkupModelListener
-import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.TextRange
 import com.intellij.util.DocumentUtil
@@ -21,24 +22,14 @@ import org.jetbrains.kotlin.ir.descriptors.IrAbstractDescriptorBasedFunctionFact
 import java.awt.Color
 import java.awt.Font
 import java.beans.PropertyChangeEvent
-import java.beans.PropertyChangeListener
 import java.util.*
 import kotlin.collections.set
 import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
-class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingListener, MarkupModelListener,
-	PrioritizedDocumentListener, SoftWrapChangeListener, InlayModel.Listener, PropertyChangeListener {
+class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel){
 	private val renderDataList = ArrayList<LineRenderData?>(Collections.nCopies(editor.visibleLineCount, null))
-	private var softWrapEnabled = false
-	init {
-		editor.document.addDocumentListener(this, this)
-		editor.foldingModel.addListener(this, this)
-		editor.inlayModel.addListener(this, this)
-		editor.softWrapModel.addSoftWrapChangeListener(this)
-		editor.filteredDocumentMarkupModel.addMarkupModelListener(this, this)
-		editor.addPropertyChangeListener(this,this)
-	}
+	init { makeListener() }
 
 	override fun update() {
 		val curImg = getMinimapImage() ?: return
@@ -189,7 +180,12 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 			if(endVisualLine == 0 || visualLine <= endVisualLine) visLinesIterator.advance()
 			else break
 		}
-		glancePanel.updateImage()
+		updateImage()
+	}
+
+	override fun refreshImage(directUpdate: Boolean) {
+		if (directUpdate) refreshRenderData()
+		else invokeLater{ refreshRenderData() }
 	}
 
 	private fun resetRenderData(){
@@ -241,8 +237,6 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 		}
 	}
 
-	override fun recalculationEnds() = Unit
-
 	/** MarkupModelListener */
 	override fun afterAdded(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,false)
 
@@ -257,7 +251,7 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 			val visualLine = editor.offsetToVisualLine(highlighter.startOffset)
 			refreshRenderData(visualLine, visualLine)
 		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
-			glancePanel.repaint()
+			repaintOrRequest(false)
 		}
 	}
 
@@ -290,8 +284,6 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 
 	override fun bulkUpdateFinished(document: Document) = refreshRenderData()
 
-	override fun getPriority(): Int = 180 //EditorDocumentPriorities
-
 	/** PropertyChangeListener */
 	override fun propertyChange(evt: PropertyChangeEvent) {
 		if (EditorEx.PROP_HIGHLIGHTER != evt.propertyName || evt.newValue is EmptyEditorHighlighter) return
@@ -300,7 +292,6 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), FoldingL
 
 	override fun dispose() {
 		super.dispose()
-		Disposer.dispose(this)
 		renderDataList.clear()
 		rangeList.clear()
 	}

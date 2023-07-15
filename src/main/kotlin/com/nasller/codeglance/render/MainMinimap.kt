@@ -22,6 +22,7 @@ import kotlin.math.roundToInt
 
 class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	private val isLogFile = editor.virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
+	init { makeListener() }
 
 	override fun update() {
 		val curImg = getMinimapImage() ?: return
@@ -181,10 +182,9 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 						UIUtil.getFontWithFallback(font).deriveFont(attributes.fontType, font.size2D)
 					} else font
 					val line = editor.document.getLineNumber(textRange.startOffset) + (config.markersScaleFactor.toInt() - 1)
-					val jumpEndOffset = if (lineCount <= line) text.length else {
-						editor.document.getLineEndOffset(line)
-					}
-					map[textRange.startOffset] = MarkCommentData(jumpEndOffset, commentText, textFont, (graphics.getFontMetrics(textFont).height / 1.5).roundToInt())
+					val jumpEndOffset = if (lineCount <= line) text.length else editor.document.getLineEndOffset(line)
+					map[textRange.startOffset] = MarkCommentData(jumpEndOffset, commentText, textFont,
+						(graphics.getFontMetrics(textFont).height / 1.5).roundToInt())
 				}
 			}
 			graphics.color = attributes.foregroundColor ?: editor.colorsScheme.defaultForeground
@@ -194,20 +194,21 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		} else return emptyMap()
 	}
 
-	private data class MarkCommentData(var jumpEndOffset: Int,val comment: String,val font: Font,val fontHeight:Int)
-
 	override fun dispose() {
 		super.dispose()
 		rangeList.clear()
 	}
-}
 
-private class IdeLogFileHighlightDelegate(private val document: Document, private val highlighterIterator: HighlighterIterator) : HighlighterIterator by highlighterIterator{
-	private val length = document.textLength
+	private data class MarkCommentData(var jumpEndOffset: Int,val comment: String,val font: Font,val fontHeight:Int)
 
-	override fun getEnd(): Int {
-		val end = highlighterIterator.end
-		return if(DocumentUtil.isAtLineEnd(end,document) && end + 1 < length) end + 1
-		else end
+	private class IdeLogFileHighlightDelegate(private val document: Document, private val highlighterIterator: HighlighterIterator)
+		: HighlighterIterator by highlighterIterator{
+		private val length = document.textLength
+
+		override fun getEnd(): Int {
+			val end = highlighterIterator.end
+			return if(DocumentUtil.isAtLineEnd(end,document) && end + 1 < length) end + 1
+			else end
+		}
 	}
 }

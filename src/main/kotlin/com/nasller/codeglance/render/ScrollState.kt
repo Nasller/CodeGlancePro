@@ -28,7 +28,7 @@ class ScrollState {
         val oldScale = scale
         scale = config.pixelsPerLine.toFloat() / editor.lineHeight
         documentHeight = (editor.contentComponent.height * scale).toInt()
-        if(oldScale > 0 && oldScale != scale) updateImage()
+        if(oldScale > 0 && oldScale != scale) refresh()
     }
 
     fun recomputeVisible(visibleArea: Rectangle) {

@@ -20,7 +20,7 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 	private val editor
 		get() = glancePanel.editor
 	init{
-		Disposer.register(editor.disposable, MyVcsListener(this))
+		Disposer.register(glancePanel, MyVcsListener(this))
 		val mouseHandler = MouseHandler()
 		addMouseListener(mouseHandler)
 		addMouseWheelListener(mouseHandler)

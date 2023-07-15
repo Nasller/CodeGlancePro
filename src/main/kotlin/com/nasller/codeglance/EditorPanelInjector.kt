@@ -49,15 +49,15 @@ class DiffEditorPanelInjector : DiffExtension(){
 class GlobalSettingsChangeListener : SettingsChangeListener{
     override fun onGlobalChanged() {
         processAllGlanceEditor { oldGlance, info ->
-            val oldGlancePanel = oldGlance?.apply { Disposer.dispose(this) }
+            oldGlance?.apply { Disposer.dispose(this) }
             if(info.editor.isDisableExtensionFile() || !CodeGlanceConfigService.getConfig().editorKinds.contains(info.editor.editorKind)) {
-                oldGlancePanel?.changeOriginScrollBarWidth(false)
+                oldGlance?.changeOriginScrollBarWidth(false)
             } else {
                 if(info.editor.editorKind == EditorKind.DIFF) {
                     info.editor.getUserData(CURRENT_EDITOR_DIFF_VIEW)?.apply { diffEditorInjector() }
                 } else {
                     setMyPanel(info).apply {
-                        oldGlancePanel?.let{ glancePanel -> originalScrollbarWidth = glancePanel.originalScrollbarWidth }
+                        oldGlance?.let{ originalScrollbarWidth = it.originalScrollbarWidth }
                         changeOriginScrollBarWidth()
                     }
                 }

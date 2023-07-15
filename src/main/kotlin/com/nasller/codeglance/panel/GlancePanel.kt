@@ -1,17 +1,12 @@
 package com.nasller.codeglance.panel
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
-import com.intellij.execution.impl.ConsoleViewUtil
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.ModalityState
-import com.intellij.openapi.application.invokeLater
-import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.colors.CodeInsightColors
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
-import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.HighlighterLayer
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
@@ -21,9 +16,7 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
-import com.intellij.util.Alarm.ThreadToUse
 import com.intellij.util.Range
-import com.intellij.util.SingleAlarm
 import com.nasller.codeglance.EditorInfo
 import com.nasller.codeglance.config.CodeGlanceConfig.Companion.getWidth
 import com.nasller.codeglance.config.CodeGlanceConfigService
@@ -33,10 +26,10 @@ import com.nasller.codeglance.panel.scroll.CustomScrollBarPopup
 import com.nasller.codeglance.panel.scroll.ScrollBar
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import com.nasller.codeglance.render.BaseMinimap.Companion.getMinimap
+import com.nasller.codeglance.render.MainMinimap
 import com.nasller.codeglance.render.MarkCommentState
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
-import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
 
@@ -55,11 +48,8 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val scrollbar = ScrollBar(this)
 	var myVcsPanel: MyVcsPanel? = null
 	val markCommentState = MarkCommentState(this)
-	private val lock = AtomicBoolean(false)
-	private val alarm = SingleAlarm({ updateImage(directUpdate = true) }, 500, this, ThreadToUse.SWING_THREAD,
-		if(isNotMainEditorKind()) ModalityState.any() else ModalityState.NON_MODAL)
+	private var isReleased = false
 	private val minimap = editor.editorKind.getMinimap(this)
-
 	init {
 		Disposer.register(editor.disposable, this)
 		Disposer.register(this, GlanceListener(this))
@@ -73,36 +63,15 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		refreshWithWidth()
 	}
 
-	fun refreshWithWidth(refreshImage: Boolean = true) {
+	fun refreshWithWidth(refreshImage: Boolean = true, directUpdate: Boolean = false) {
 		preferredSize = if(!config.hoveringToShowScrollBar) getConfigSize() else Dimension(0,0)
-		refresh(refreshImage)
+		refresh(refreshImage, directUpdate)
 	}
 
 	fun refresh(refreshImage: Boolean = true, directUpdate: Boolean = false) {
 		revalidate()
-		if (refreshImage) updateImage(directUpdate)
+		if (refreshImage) minimap.refreshImage(directUpdate)
 		else repaint()
-	}
-
-	fun updateImage(directUpdate: Boolean = false, updateScroll: Boolean = false) =
-		if (checkVisible() && (isNotMainEditorKind() || runReadAction{ editor.highlighter !is EmptyEditorHighlighter }) &&
-			lock.compareAndSet(false,true)) {
-			psiDocumentManager.performForCommittedDocument(editor.document) {
-				if (directUpdate) updateImgTask(updateScroll)
-				else invokeLater{ updateImgTask(updateScroll) }
-			}
-		} else Unit
-
-	fun delayUpdateImage() = alarm.cancelAndRequest()
-
-	private fun updateImgTask(updateScroll: Boolean = false) {
-		try {
-			if(updateScroll) updateScrollState()
-			minimap.update()
-		} finally {
-			lock.set(false)
-			repaint()
-		}
 	}
 
 	fun updateScrollState() = scrollState.run {
@@ -114,7 +83,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 
 	fun getPlaceIndex() = editor.getUserData(CURRENT_GLANCE_PLACE_INDEX) ?: PlaceIndex.Right
 
-	fun isNotMainEditorKind() = ConsoleViewUtil.isConsoleViewEditor(editor) || editor.editorKind == EditorKind.UNTYPED
+	fun isNotMainEditorKind() = minimap !is MainMinimap || editor.editorKind == EditorKind.UNTYPED
 
 	fun isInSplitter() = if(editor.editorKind == EditorKind.MAIN_EDITOR){
 		(SwingUtilities.getAncestorOfClass(EditorsSplitters::class.java, editor.component) as? EditorsSplitters)?.
@@ -230,9 +199,10 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		val map by lazy { hashMapOf<String, Int>() }
 		editor.markupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
 			(it.getErrorStripeMarkColor(editor.colorsScheme) ?:
-			(if (ConsoleViewUtil.isConsoleViewEditor(editor) && it.textAttributesKey != CodeInsightColors.HYPERLINK_ATTRIBUTES)
-				it.getTextAttributes(editor.colorsScheme)?.foregroundColor
-			else null))?.apply {
+			(if (isNotMainEditorKind() && it.textAttributesKey != CodeInsightColors.HYPERLINK_ATTRIBUTES){
+				val attributes = it.getTextAttributes(editor.colorsScheme)
+				attributes?.foregroundColor ?: attributes?.backgroundColor
+			} else null))?.apply {
 				val highlightColor = RangeHighlightColor(it, this, config.showOtherFullLineHighlight, existLine)
 				map.compute("${highlightColor.startOffset}-${highlightColor.endOffset}") { _, layer ->
 					if (layer == null || layer < it.layer) {
@@ -306,7 +276,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		if(editor.isDisposed) return
 		val img = minimap.getImage()
 		if(img == null) {
-			updateImage()
+			minimap.refreshImage()
 			return
 		}
 		with(gfx as Graphics2D){
@@ -332,14 +302,14 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	}
 
 	override fun dispose() {
+		if(isReleased) return
 		editor.putUserData(CURRENT_GLANCE, null)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, null)
 		editor.component.remove(this.parent)
 		hideScrollBarListener.removeHideScrollBarListener(true)
-		alarm.dispose()
-		minimap.dispose()
-		scrollbar.dispose()
+		scrollbar.clear()
 		markCommentState.clear()
+		isReleased = true
 	}
 
 	private inner class RangeHighlightColor(val startOffset: Int, val endOffset: Int, val color: Color, var fullLine: Boolean, val fullLineWithActualHighlight: Boolean) {

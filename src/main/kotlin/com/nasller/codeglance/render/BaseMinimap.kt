@@ -1,14 +1,30 @@
 package com.nasller.codeglance.render
 
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.editor.EditorKind
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.editor.*
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.ex.*
+import com.intellij.openapi.editor.ex.util.EditorUtil
+import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
+import com.intellij.openapi.editor.impl.event.MarkupModelListener
+import com.intellij.openapi.util.Disposer
+import com.intellij.util.Alarm
 import com.intellij.util.Range
+import com.intellij.util.SingleAlarm
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MySoftReference
 import java.awt.Color
 import java.awt.image.BufferedImage
+import java.beans.PropertyChangeEvent
+import java.beans.PropertyChangeListener
+import java.util.concurrent.atomic.AtomicBoolean
 
-abstract class BaseMinimap(protected val glancePanel: GlancePanel) : Disposable {
+@Suppress("UnstableApiUsage")
+abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyChangeListener,PrioritizedDocumentListener,
+	FoldingListener, MarkupModelListener, SoftWrapChangeListener, InlayModel.Listener, Disposable {
 	protected val editor
 		get() = glancePanel.editor
 	protected val config
@@ -16,7 +32,11 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : Disposable 
 	protected val scrollState
 		get() = glancePanel.scrollState
 	protected val rangeList by lazy(LazyThreadSafetyMode.NONE) { mutableListOf<Pair<Int, Range<Int>>>() }
+	protected var softWrapEnabled = false
 	private val scaleBuffer = FloatArray(4)
+	private val lock = AtomicBoolean(false)
+	private val alarm = SingleAlarm({ updateImage(true) }, 500, glancePanel, Alarm.ThreadToUse.SWING_THREAD,
+		if(glancePanel.isNotMainEditorKind()) ModalityState.any() else ModalityState.NON_MODAL)
 	private var imgReference = MySoftReference.create(getBufferedImage(), useSoftReference())
 
 	abstract fun update()
@@ -157,6 +177,122 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : Disposable 
 
 	private fun useSoftReference() = EditorKind.MAIN_EDITOR != editor.editorKind
 
+	protected fun makeListener(){
+		Disposer.register(glancePanel,this)
+		editor.addPropertyChangeListener(this,this)
+		editor.document.addDocumentListener(this, this)
+		editor.foldingModel.addListener(this, this)
+		editor.inlayModel.addListener(this, this)
+		editor.softWrapModel.addSoftWrapChangeListener(this)
+		editor.filteredDocumentMarkupModel.addMarkupModelListener(this, this)
+	}
+
+	open fun refreshImage(directUpdate: Boolean = false) = updateImage(directUpdate)
+
+	protected fun updateImage(directUpdate: Boolean = false){
+		if (glancePanel.checkVisible() && (glancePanel.isNotMainEditorKind() || runReadAction{ editor.highlighter !is EmptyEditorHighlighter }) &&
+			lock.compareAndSet(false,true)) {
+			glancePanel.psiDocumentManager.performForCommittedDocument(editor.document) {
+				if (directUpdate) updateImgTask()
+				else invokeLater{ updateImgTask() }
+			}
+		} else Unit
+	}
+
+	private fun updateImgTask() {
+		try {
+			update()
+		} finally {
+			lock.set(false)
+			glancePanel.repaint()
+		}
+	}
+
+	/** FoldingListener */
+	override fun onFoldProcessingEnd() {
+		if (editor.document.isInBulkUpdate) return
+		updateImage()
+	}
+
+	override fun onCustomFoldRegionPropertiesChange(region: CustomFoldRegion, flags: Int) {
+		if (flags and FoldingListener.ChangeFlags.HEIGHT_CHANGED != 0 && !editor.document.isInBulkUpdate) repaintOrRequest()
+	}
+
+	/** InlayModel.Listener */
+	override fun onAdded(inlay: Inlay<*>) = checkinInlayAndUpdate(inlay)
+
+	override fun onRemoved(inlay: Inlay<*>) = checkinInlayAndUpdate(inlay)
+
+	override fun onUpdated(inlay: Inlay<*>, changeFlags: Int) = checkinInlayAndUpdate(inlay, changeFlags)
+
+	private fun checkinInlayAndUpdate(inlay: Inlay<*>, changeFlags: Int? = null) {
+		if(editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || inlay.placement != Inlay.Placement.ABOVE_LINE
+			|| !inlay.isValid || (changeFlags != null && changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0)) return
+		repaintOrRequest()
+	}
+
+	override fun onBatchModeFinish(editor: Editor) {
+		if (editor.document.isInBulkUpdate) return
+		updateImage()
+	}
+
+	/** SoftWrapChangeListener */
+	override fun softWrapsChanged() {
+		val enabled = editor.softWrapModel.isSoftWrappingEnabled
+		if (enabled && !softWrapEnabled) {
+			softWrapEnabled = true
+			updateImage()
+		} else if (!enabled && softWrapEnabled) {
+			softWrapEnabled = false
+			updateImage()
+		}
+	}
+
+	override fun recalculationEnds() = Unit
+
+	/** MarkupModelListener */
+	override fun afterAdded(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,false)
+
+	override fun beforeRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,true)
+
+	private fun updateRangeHighlight(highlighter: RangeHighlighterEx, remove: Boolean) {
+		//如果开启隐藏滚动条则忽略Vcs高亮
+		val highlightChange = glancePanel.markCommentState.markCommentHighlightChange(highlighter, remove)
+		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation
+			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark)) return
+		if(highlightChange || EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) {
+			repaintOrRequest()
+		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
+			repaintOrRequest(false)
+		}
+	}
+
+	/** PrioritizedDocumentListener */
+	override fun documentChanged(event: DocumentEvent) {
+		if (event.document.isInBulkUpdate) return
+		//console delay update
+		if (editor.editorKind == EditorKind.CONSOLE || event.document.lineCount > glancePanel.config.moreThanLineDelay) {
+			repaintOrRequest()
+		} else updateImage()
+	}
+
+	override fun bulkUpdateFinished(document: Document) = updateImage()
+
+	override fun getPriority(): Int = 170 //EditorDocumentPriorities
+
+	/** PropertyChangeListener */
+	override fun propertyChange(evt: PropertyChangeEvent) {
+		if (EditorEx.PROP_HIGHLIGHTER != evt.propertyName || evt.newValue is EmptyEditorHighlighter) return
+		updateImage()
+	}
+
+	protected fun repaintOrRequest(request: Boolean = true) {
+		if (glancePanel.checkVisible()) {
+			if (request) alarm.cancelAndRequest()
+			else glancePanel.repaint()
+		}
+	}
+
 	override fun dispose() {
 		imgReference.clear()
 	}
@@ -167,9 +303,9 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : Disposable 
 	protected data class RangeHighlightColor(val startOffset: Int,val endOffset: Int,val foregroundColor: Color)
 
 	companion object{
-		fun EditorKind.getMinimap(glancePanel: GlancePanel): BaseMinimap = when(this){
-			EditorKind.CONSOLE -> ConsoleMinimap(glancePanel)
-			else -> MainMinimap(glancePanel)
+		fun EditorKind.getMinimap(glancePanel: GlancePanel): BaseMinimap {
+			return if(this == EditorKind.CONSOLE || glancePanel.editor.virtualFile == null) TextMinimap(glancePanel)
+			else MainMinimap(glancePanel)
 		}
 	}
 }
