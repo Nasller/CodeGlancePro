@@ -41,8 +41,10 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyCha
 
 	abstract fun update()
 
-	fun getImage() : BufferedImage? {
-		return imgReference.get()
+	fun getImageOrUpdate() : BufferedImage? {
+		val img = imgReference.get()
+		if(img == null) updateImage()
+		return img
 	}
 
 	open fun getMyRenderVisualLine(y: Int): Int {
@@ -187,7 +189,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyCha
 		editor.filteredDocumentMarkupModel.addMarkupModelListener(this, this)
 	}
 
-	open fun refreshImage(directUpdate: Boolean = false) = updateImage(directUpdate)
+	open fun rebuildDataAndImage(directUpdate: Boolean = false) = updateImage(directUpdate)
 
 	protected fun updateImage(directUpdate: Boolean = false){
 		if (glancePanel.checkVisible() && (glancePanel.isNotMainEditorKind() || runReadAction{ editor.highlighter !is EmptyEditorHighlighter }) &&
@@ -196,7 +198,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyCha
 				if (directUpdate) updateImgTask()
 				else invokeLater{ updateImgTask() }
 			}
-		} else Unit
+		}
 	}
 
 	private fun updateImgTask() {
@@ -294,7 +296,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyCha
 	}
 
 	override fun dispose() {
-		imgReference.clear()
+		imgReference.clear{ flush() }
 	}
 
 	@Suppress("UndesirableClassUsage")

@@ -115,9 +115,9 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			editor.editorKind.setWidth(newWidth.coerceIn(GlancePanel.minWidth, GlancePanel.maxWidth))
 			val diffViewer = editor.getUserData(CURRENT_EDITOR_DIFF_VIEW)
 			if(diffViewer != null){
-				diffViewer.editors.mapNotNull { it.getUserData(GlancePanel.CURRENT_GLANCE) }.forEach { it.refreshWithWidth(directUpdate = true) }
+				diffViewer.editors.mapNotNull { it.getUserData(GlancePanel.CURRENT_GLANCE) }.forEach { it.refresh(directUpdate = true) }
 			}else {
-				glancePanel.refreshWithWidth(directUpdate = true)
+				glancePanel.refresh(directUpdate = true)
 			}
 		} else if (dragging) {
 			val delta = (dragStartDelta + (e.y - dragStart)).toFloat()
@@ -286,7 +286,6 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		private const val DRAG_ALPHA = 0.35f
 		val PREVIEW_LINES = max(2, min(25, Integer.getInteger("preview.lines", 5)))
 
-		@JvmStatic
 		private fun createHint(me: MouseEvent): HintHint = HintHint(me)
 			.setAwtTooltip(true)
 			.setPreferredPosition(Balloon.Position.atLeft)
@@ -294,7 +293,6 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			.setShowImmediately(true)
 			.setAnimationEnabled(false)
 
-		@JvmStatic
 		private fun getBorderShape(y: Int, width: Int, height: Int, thickness: Int): Shape? {
 			if (width <= 0 || height <= 0 || thickness <= 0) return null
 			val outer = RoundRectangle2D.Float(0f, y.toFloat(), width.toFloat(), height.toFloat(), 5f, 5f)

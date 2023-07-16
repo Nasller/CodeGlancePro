@@ -30,13 +30,10 @@ class CodeGlanceColorsPage : ColorSettingsPage, DisplayPrioritySortable {
 	override fun getPriority(): DisplayPriority = DisplayPriority.OTHER_SETTINGS
 
 	companion object {
-		private const val CODE_GLANCE_PRO_GROUP = "CodeGlance Pro"
-		@JvmStatic
 		val MARK_COMMENT_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_COMMENT_ATTRIBUTES")
-		@JvmStatic
+		private const val CODE_GLANCE_PRO_GROUP = "CodeGlance Pro"
 		private val ADDITIONAL_HIGHLIGHT_DESCRIPTORS = mutableMapOf(Pair("mark_comment",MARK_COMMENT_ATTRIBUTES))
 
-		@JvmStatic
 		private val CODE_GLANCE_PRO_ATTRIBUTES = arrayOf(
 			AttributesDescriptor(message("settings.color.descriptor.mark.comment"), MARK_COMMENT_ATTRIBUTES)
 		)

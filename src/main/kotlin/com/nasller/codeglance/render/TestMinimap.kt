@@ -183,7 +183,7 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel){
 		updateImage()
 	}
 
-	override fun refreshImage(directUpdate: Boolean) {
+	override fun rebuildDataAndImage(directUpdate: Boolean) {
 		if (directUpdate) refreshRenderData()
 		else invokeLater{ refreshRenderData() }
 	}

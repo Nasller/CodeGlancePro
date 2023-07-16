@@ -88,7 +88,6 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 		myEditorPreviewHint = null
 	}
 
-	@Suppress("INACCESSIBLE_TYPE")
 	private inner class EditorFragmentPreviewPanel(private val myContentInsets:Int,
 	                                               private val myHighlighters:MutableList<RangeHighlighterEx>):JPanel() {
 

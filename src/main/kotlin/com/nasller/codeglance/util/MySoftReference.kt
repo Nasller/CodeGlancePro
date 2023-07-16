@@ -7,6 +7,11 @@ interface MySoftReference<T> {
 
 	fun clear()
 
+	fun clear(action: T.() -> Unit) {
+		if(this is NoSoftReference) get()?.apply(action)
+		clear()
+	}
+
 	companion object{
 		fun <T> create(referent: T?,useSoft: Boolean): MySoftReference<T> =
 			if(useSoft) WithSoftReference(referent) else NoSoftReference(referent)

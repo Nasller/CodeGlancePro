@@ -32,12 +32,10 @@ class MarkCommentVisitor : MyRainbowVisitor() {
 	override fun clone(): HighlightVisitor = MarkCommentVisitor()
 
 	companion object{
-		@JvmStatic
 		val markRegex = AtomicReference(CodeGlanceConfigService.getConfig().markRegex.run {
 			if(isNotBlank()) Regex(this) else null
 		})
 
-		@JvmStatic
 		private fun getLanguageBlockCommentSuffix(language: Language) : String?{
 			return when(language.displayName){
 				"C#" -> "*/"

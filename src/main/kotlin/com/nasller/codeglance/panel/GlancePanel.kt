@@ -60,17 +60,13 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		editor.putUserData(CURRENT_GLANCE, this)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, if (info.place == BorderLayout.LINE_START) PlaceIndex.Left else PlaceIndex.Right)
 		updateScrollState()
-		refreshWithWidth()
-	}
-
-	fun refreshWithWidth(refreshImage: Boolean = true, directUpdate: Boolean = false) {
-		preferredSize = if(!config.hoveringToShowScrollBar) getConfigSize() else Dimension(0,0)
-		refresh(refreshImage, directUpdate)
+		refresh()
 	}
 
 	fun refresh(refreshImage: Boolean = true, directUpdate: Boolean = false) {
+		preferredSize = if(!config.hoveringToShowScrollBar) getConfigSize() else Dimension(0,0)
 		revalidate()
-		if (refreshImage) minimap.refreshImage(directUpdate)
+		if (refreshImage) minimap.rebuildDataAndImage(directUpdate)
 		else repaint()
 	}
 
@@ -79,7 +75,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		recomputeVisible(editor.scrollingModel.visibleArea)
 	}
 
-	fun checkVisible() = !((!config.hoveringToShowScrollBar && !isVisible) || editor.isDisposed)
+	fun checkVisible() = !((!config.hoveringToShowScrollBar && !isVisible) || isReleased)
 
 	fun getPlaceIndex() = editor.getUserData(CURRENT_GLANCE_PLACE_INDEX) ?: PlaceIndex.Right
 
@@ -275,12 +271,8 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	}
 
 	override fun paintComponent(gfx: Graphics) {
-		if(editor.isDisposed) return
-		val img = minimap.getImage()
-		if(img == null) {
-			minimap.refreshImage()
-			return
-		}
+		if(isReleased) return
+		val img = minimap.getImageOrUpdate() ?: return
 		with(gfx as Graphics2D){
 			setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
 			paintSomething()
@@ -305,13 +297,13 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 
 	override fun dispose() {
 		if(isReleased) return
+		isReleased = true
 		editor.putUserData(CURRENT_GLANCE, null)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, null)
 		editor.component.remove(this.parent)
 		hideScrollBarListener.removeHideScrollBarListener(true)
 		scrollbar.clear()
 		markCommentState.clear()
-		isReleased = true
 	}
 
 	private inner class RangeHighlightColor(val startOffset: Int, val endOffset: Int, val color: Color, var fullLine: Boolean, val fullLineWithActualHighlight: Boolean) {
@@ -340,7 +332,6 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		val CURRENT_GLANCE = Key<GlancePanel>("CURRENT_GLANCE")
 		val CURRENT_GLANCE_PLACE_INDEX = Key<PlaceIndex>("CURRENT_GLANCE_PLACE_INDEX")
 
-		@JvmStatic
 		fun fitLineToEditor(editor: EditorImpl, visualLine: Int): Int {
 			val lineCount = editor.visibleLineCount
 			var shift = 0

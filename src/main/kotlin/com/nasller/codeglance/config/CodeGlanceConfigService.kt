@@ -10,9 +10,8 @@ import com.intellij.openapi.components.Storage
 @State(name = "CodeGlance Pro", storages = [Storage("CodeGlancePro.xml")])
 class CodeGlanceConfigService : SimplePersistentStateComponent<CodeGlanceConfig>(CodeGlanceConfig()) {
 	companion object {
-		@JvmStatic
 		private val ConfigInstance = ApplicationManager.getApplication().getService(CodeGlanceConfigService::class.java)
-		@JvmStatic
+
 		fun getConfig(): CodeGlanceConfig = ConfigInstance.state
 	}
 }
