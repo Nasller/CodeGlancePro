@@ -14,9 +14,7 @@ group = properties("pluginGroup")
 version = properties("pluginVersion") + if(env.getOrDefault("snapshots","") == "true") "-SNAPSHOT" else ""
 
 kotlin {
-	jvmToolchain {
-		languageVersion.set(JavaLanguageVersion.of(properties("javaVersion")))
-	}
+	jvmToolchain(properties("javaVersion").toInt())
 }
 
 intellij {
