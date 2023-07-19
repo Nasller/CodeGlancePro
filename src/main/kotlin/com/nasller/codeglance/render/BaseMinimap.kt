@@ -305,9 +305,11 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyCha
 	protected data class RangeHighlightColor(val startOffset: Int,val endOffset: Int,val foregroundColor: Color)
 
 	companion object{
-		fun EditorKind.getMinimap(glancePanel: GlancePanel): BaseMinimap {
-			return if(this == EditorKind.CONSOLE || glancePanel.editor.virtualFile == null) TextMinimap(glancePanel)
-			else MainMinimap(glancePanel)
+		fun EditorKind.getMinimap(glancePanel: GlancePanel): BaseMinimap = glancePanel.run {
+			val visualFile = editor.virtualFile ?: psiDocumentManager.getPsiFile(glancePanel.editor.document)?.virtualFile
+			if(this@getMinimap == EditorKind.CONSOLE || visualFile == null) {
+				TextMinimap(this)
+			}else MainMinimap(this,visualFile)
 		}
 	}
 }

@@ -1,9 +1,12 @@
+
 import com.intellij.codeHighlighting.RainbowHighlighter
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightVisitor
 import com.intellij.codeInsight.daemon.impl.analysis.HighlightInfoHolder
+import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.psi.PsiFile
+import com.intellij.psi.util.PsiEditorUtil
 import com.nasller.codeglance.config.CodeGlanceConfigService
 
 /**
@@ -14,9 +17,13 @@ abstract class MyRainbowVisitor : HighlightVisitor {
 	private var myHolder: HighlightInfoHolder? = null
 
 	override fun suitableForFile(file: PsiFile): Boolean {
+		val editor = PsiEditorUtil.findEditor(file) ?: return false
 		val config = CodeGlanceConfigService.getConfig()
-		return config.enableMarker && (file.fileType.defaultExtension.isBlank() || config.disableLanguageSuffix
+		val fileExtension = config.enableMarker && (file.fileType.defaultExtension.isBlank() || config.disableLanguageSuffix
 			.split(",").toSet().contains(file.fileType.defaultExtension).not())
+		val editorKind = config.editorKinds.contains(editor.editorKind) &&
+				editor.editorKind != EditorKind.CONSOLE && editor.editorKind != EditorKind.UNTYPED
+		return fileExtension && editorKind
 	}
 
 	override fun analyze(file: PsiFile, updateWholeFile: Boolean, holder: HighlightInfoHolder, action: Runnable): Boolean {

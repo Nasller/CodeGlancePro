@@ -8,6 +8,7 @@ import com.intellij.openapi.editor.highlighter.HighlighterIterator
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiComment
 import com.intellij.psi.util.findParentOfType
 import com.intellij.util.DocumentUtil
@@ -20,8 +21,8 @@ import java.awt.Graphics2D
 import java.awt.RenderingHints
 import kotlin.math.roundToInt
 
-class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
-	private val isLogFile = editor.virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
+class MainMinimap(glancePanel: GlancePanel, visualFile: VirtualFile): BaseMinimap(glancePanel){
+	private val isLogFile = visualFile.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
 	init { makeListener() }
 
 	override fun update() {
