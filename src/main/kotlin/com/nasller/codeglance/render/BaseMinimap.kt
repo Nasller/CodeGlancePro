@@ -33,10 +33,10 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyCha
 		get() = glancePanel.scrollState
 	protected val rangeList by lazy(LazyThreadSafetyMode.NONE) { mutableListOf<Pair<Int, Range<Int>>>() }
 	protected var softWrapEnabled = false
+	protected val modalityState
+		get() = if (glancePanel.isNotMainEditorKind()) ModalityState.any() else ModalityState.NON_MODAL
 	private val scaleBuffer = FloatArray(4)
 	private val lock = AtomicBoolean(false)
-	private val modalityState
-		get() = if (glancePanel.isNotMainEditorKind()) ModalityState.any() else ModalityState.NON_MODAL
 	private val alarm = SingleAlarm({ updateImage(true) }, 500, glancePanel, Alarm.ThreadToUse.SWING_THREAD, modalityState)
 	private var imgReference = MySoftReference.create(getBufferedImage(), useSoftReference())
 
