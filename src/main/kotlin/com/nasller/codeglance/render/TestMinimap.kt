@@ -14,6 +14,7 @@ import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.TextRange
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.config.CodeGlanceColorsPage
 import com.nasller.codeglance.panel.GlancePanel
@@ -118,6 +119,7 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel){
 		}
 	}
 
+	@RequiresEdt
 	private fun refreshRenderData(startVisualLine: Int = 0, endVisualLine: Int = 0) {
 		if(editor.isDisposed) return
 		if(startVisualLine == 0 && endVisualLine == 0) resetRenderData()
