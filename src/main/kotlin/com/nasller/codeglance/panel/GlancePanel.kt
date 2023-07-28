@@ -218,17 +218,17 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		val start = it.startVis
 		val end = it.endVis
 		val documentLine = minimap.getMyRenderLine(start.line, end.line)
-		var sX = if (start.column > width - minGap) width - minGap else start.column
+		var sX = if (start.column > width - MIN_GAP) width - MIN_GAP else start.column
 		val sY = start.line * config.pixelsPerLine + documentLine.first - scrollState.visibleStart
-		var eX = if (end.column > width - minGap) width else end.column
+		var eX = if (end.column > width - MIN_GAP) width else end.column
 		val eY = end.line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
 		if (sY >= 0 || eY >= 0) {
 			setGraphics2DInfo(if (it.fullLine && it.fullLineWithActualHighlight) srcOver0_6 else srcOver, it.color)
 			val collapsed = editor.foldingModel.getCollapsedRegionAtOffset(it.startOffset)
 			if (sY == eY && collapsed == null) {
-				if (it.fullLineWithActualHighlight && eX - sX < minGap) {
-					if(eX == width) sX = width - minGap
-					else eX += minGap - (eX - sX)
+				if (it.fullLineWithActualHighlight && eX - sX < MIN_GAP) {
+					if(eX == width) sX = width - MIN_GAP
+					else eX += MIN_GAP - (eX - sX)
 				}
 				drawMarkOneLine(it, sY, sX, eX)
 			} else if (collapsed != null) {
@@ -321,9 +321,9 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	}
 
 	companion object {
-		const val minGap = 15
-		const val minWidth = 30
-		const val maxWidth = 250
+		const val MIN_GAP = 15
+		const val MIN_WIDTH = 30
+		const val MAX_WIDTH = 250
 		val CLEAR: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.CLEAR)
 		val srcOver0_4: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.40f)
 		val srcOver0_6: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.60f)

@@ -163,7 +163,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 				widthList.forEachIndexed { index, it ->
 					row {
 						for (kind in it) {
-							spinner(GlancePanel.minWidth..GlancePanel.maxWidth, 5).label(kind.getMessageWidth())
+							spinner(GlancePanel.MIN_WIDTH..GlancePanel.MAX_WIDTH, 5).label(kind.getMessageWidth())
 								.bindIntValue({ kind.getWidth() }, { kind.setWidth(it) })
 								.accessibleName(kind.getMessageWidth())
 								.applyToComponent {

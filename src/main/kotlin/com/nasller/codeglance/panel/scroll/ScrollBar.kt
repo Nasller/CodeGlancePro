@@ -112,7 +112,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			val newWidth = if(editor.getUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX) == GlancePanel.PlaceIndex.Left)
 				widthStart + e.xOnScreen - resizeStart
 			else widthStart + resizeStart - e.xOnScreen
-			editor.editorKind.setWidth(newWidth.coerceIn(GlancePanel.minWidth, GlancePanel.maxWidth))
+			editor.editorKind.setWidth(newWidth.coerceIn(GlancePanel.MIN_WIDTH, GlancePanel.MAX_WIDTH))
 			val diffViewer = editor.getUserData(CURRENT_EDITOR_DIFF_VIEW)
 			if(diffViewer != null){
 				diffViewer.editors.mapNotNull { it.getUserData(GlancePanel.CURRENT_GLANCE) }.forEach { it.refresh(directUpdate = true) }
