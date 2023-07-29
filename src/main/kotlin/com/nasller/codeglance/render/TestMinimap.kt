@@ -12,6 +12,7 @@ import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.concurrency.annotations.RequiresEdt
@@ -19,7 +20,6 @@ import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.config.CodeGlanceColorsPage
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MyVisualLinesIterator
-import org.jetbrains.kotlin.ir.descriptors.IrAbstractDescriptorBasedFunctionFactory.Companion.offset
 import java.awt.Color
 import java.awt.Font
 import java.beans.PropertyChangeEvent
@@ -35,8 +35,10 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel){
 	override fun update() {
 		val curImg = getMinimapImage() ?: return
 		if(rangeList.size > 0) rangeList.clear()
-		val markAttributes = editor.colorsScheme.getAttributes(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES)
-		val font by lazy {
+		val markAttributes by lazy(LazyThreadSafetyMode.NONE) {
+			editor.colorsScheme.getAttributes(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES)
+		}
+		val font by lazy(LazyThreadSafetyMode.NONE) {
 			editor.colorsScheme.getFont(
 				when (markAttributes.fontType) {
 					Font.ITALIC -> EditorFontType.ITALIC
@@ -46,35 +48,47 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel){
 				}
 			).deriveFont(config.markersScaleFactor * config.pixelsPerLine)
 		}
-		val text = editor.document.immutableCharSequence
+		val text by lazy(LazyThreadSafetyMode.NONE) { editor.document.immutableCharSequence }
 		val graphics = curImg.createGraphics()
 		graphics.composite = GlancePanel.CLEAR
 		graphics.fillRect(0, 0, curImg.width, curImg.height)
 		UISettings.setupAntialiasing(graphics)
 		var totalY = 0
-		var skipLine = 0
+		var skipY = 0
 		for ((index, it) in renderDataList.withIndex()) {
 			if(it == null) continue
 			it.rebuildRange(index, totalY)
-			totalY += it.aboveBlockLine
-			if(skipLine > 0){
-				if(it.aboveBlockLine > 0) skipLine -= skipLine - 2
-				else skipLine--
-				totalY += it.y
-				continue
+			if(skipY > 0){
+				if(skipY in 1 .. it.aboveBlockLine){
+					totalY += it.aboveBlockLine
+					skipY = 0
+				}else {
+					val curY = it.aboveBlockLine + it.y
+					totalY += curY
+					skipY -= curY
+					continue
+				}
+			}else {
+				totalY += it.aboveBlockLine
+			}
+			var curX = it.startX
+			var curY = totalY
+			val renderCharAction = { char: Char ->
+				when (char.code) {
+					9 -> curX += 4 //TAB
+					10 -> {//ENTER
+						curX = 0
+						curY += config.pixelsPerLine
+					}
+					else -> curX += 1
+				}
+				curImg.renderImage(curX, curY, char.code)
 			}
 			when(it.lineType){
 				LineType.CODE -> {
-					it.renderX.forEach { renderX ->
-						renderX.color.setColorRgba()
-						var curX = renderX.xStart
-						text.subSequence(renderX.xStart, renderX.xEnd).forEach { char ->
-							curX += when (char.code) {
-								9 -> 4 //TAB
-								else -> 1
-							}
-							curImg.renderImage(curX, totalY, char.code)
-						}
+					it.renderData.forEach { renderData ->
+						renderData.color.setColorRgba()
+						renderData.renderStr.forEach(renderCharAction)
 					}
 				}
 				LineType.COMMENT -> {
@@ -85,25 +99,12 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel){
 						UIUtil.getFontWithFallback(font).deriveFont(markAttributes.fontType, font.size2D)
 					} else font
 					graphics.font = textFont
-					graphics.drawString(commentText,2,totalY + (graphics.getFontMetrics(textFont).height / 1.5).roundToInt())
-					//skip line
-					skipLine = config.markersScaleFactor.toInt() - 1 - (if(it.y > config.pixelsPerLine) it.y - config.pixelsPerLine else 0)
+					graphics.drawString(commentText, curX,curY + (graphics.getFontMetrics(textFont).height / 1.5).roundToInt())
+					skipY = (config.markersScaleFactor.toInt() - 1) * config.pixelsPerLine
 				}
 				LineType.CUSTOM_FOLD -> {
 					it.color!!.setColorRgba()
-					var curX = 0
-					var curY = totalY
-					it.renderStr!!.forEach {char ->
-						when (char.code) {
-							9 -> curX += 4 //TAB
-							10 -> {//ENTER
-								curX = 0
-								curY += config.pixelsPerLine
-							}
-							else -> curX += 1
-						}
-						curImg.renderImage(curX, curY, char.code)
-					}
+					it.renderStr!!.forEach(renderCharAction)
 				}
 			}
 			totalY += it.y
@@ -126,6 +127,7 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel){
 		val visLinesIterator = MyVisualLinesIterator(editor, startVisualLine)
 		if(visLinesIterator.atEnd()) return
 
+		val text = editor.document.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val markCommentMap = hashMapOf<Int,RangeHighlighterEx>()
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(visLinesIterator.getVisualLineStartOffset(), editor.document.textLength){
@@ -136,47 +138,62 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel){
 		}
 		while (!visLinesIterator.atEnd()) {
 			val visualLine = visLinesIterator.getVisualLine()
+			val start = visLinesIterator.getVisualLineStartOffset()
 			//BLOCK_INLAY
 			val aboveBlockLine = visLinesIterator.getBlockInlaysAbove().sumOf { (it.heightInPixels * scrollState.scale).toInt() }
 			//CUSTOM_FOLD
-			val customFoldRegion = visLinesIterator.getCustomFoldRegion()
-			if(customFoldRegion != null){
-				val startOffset = customFoldRegion.startOffset
-				val endOffset = customFoldRegion.endOffset
+			var foldRegion = visLinesIterator.getCurrentFoldRegion()
+			var foldStartOffset = foldRegion?.startOffset ?: -1
+			if(foldRegion is CustomFoldRegion && foldStartOffset == start){
+				val foldEndOffset = foldRegion.endOffset
 				//jump over the fold line
-				val heightLine = (customFoldRegion.heightInPixels * scrollState.scale).toInt()
+				val heightLine = (foldRegion.heightInPixels * scrollState.scale).toInt()
 				//this is render document
-				val line = visLinesIterator.getStartLogicalLine() - 1 + (heightLine / config.pixelsPerLine)
-				val renderStr = editor.document.getText(TextRange(startOffset, if(DocumentUtil.isValidLine(line,editor.document)) {
+				val line = editor.document.getLineNumber(foldStartOffset) - 1 + (heightLine / config.pixelsPerLine)
+				val renderStr = editor.document.getText(TextRange(foldStartOffset, if(DocumentUtil.isValidLine(line,editor.document)) {
 					val lineEndOffset = editor.document.getLineEndOffset(line)
-					if(endOffset < lineEndOffset) endOffset else lineEndOffset
-				}else endOffset))
-				renderDataList[visualLine] = LineRenderData(emptyArray(), heightLine, aboveBlockLine, LineType.CUSTOM_FOLD, renderStr = renderStr,
-					color = runCatching { editor.highlighter.createIterator(endOffset - 1).textAttributes.foregroundColor }.getOrNull() ?: defaultColor)
+					if(foldEndOffset < lineEndOffset) foldEndOffset else lineEndOffset
+				}else foldEndOffset))
+				renderDataList[visualLine] = LineRenderData(emptyArray(),0, heightLine, aboveBlockLine, LineType.CUSTOM_FOLD, renderStr = renderStr,
+					color = editor.colorsScheme.getAttributes(DefaultLanguageHighlighterColors.DOC_COMMENT)?.foregroundColor ?: defaultColor)
 			}else{
-				val start = visLinesIterator.getVisualLineStartOffset()
 				//COMMENT
 				val commentData = markCommentMap[start]
 				if(commentData != null){
-					renderDataList[visualLine] = LineRenderData(emptyArray(), config.pixelsPerLine, aboveBlockLine,
+					renderDataList[visualLine] = LineRenderData(emptyArray(), 2, config.pixelsPerLine, aboveBlockLine,
 						LineType.COMMENT, commentHighlighterEx = commentData)
 				}else{
-					var x = visLinesIterator.getStartsWithSoftWrap()?.indentInColumns ?: 0
 					val end = visLinesIterator.getVisualLineEndOffset()
+					var foldLineIndex = visLinesIterator.getStartFoldingIndex()
 					val hlIter = editor.highlighter.createIterator(start)
-					val xRenderDataList = mutableListOf<XRenderData>()
+					val renderList = mutableListOf<RenderData>()
 					while (!hlIter.atEnd() && hlIter.end <= end){
-						val curStart = hlIter.start
+						val curStart = if(start >= hlIter.start) start else hlIter.start
 						val curEnd = hlIter.end
-						val xEnd = x + (curEnd - curStart)
-						val highlightList = if(config.syntaxHighlight) getHighlightColor(curStart, curEnd) else emptyList()
-						xRenderDataList.add(XRenderData(x, xEnd, (highlightList.firstOrNull {
-							offset >= it.startOffset && offset < it.endOffset
-						}?.foregroundColor ?: runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() ?: defaultColor)))
-						x = xEnd + 1
-						hlIter.advance()
+						if(curStart == foldStartOffset){
+							val foldEndOffset = foldRegion!!.endOffset
+							renderList.add(RenderData(StringUtil.replace(foldRegion.placeholderText, "\n", " "),
+								editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor))
+							do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < foldEndOffset)
+							foldRegion = visLinesIterator.getFoldRegion(++foldLineIndex)
+							foldStartOffset = foldRegion?.startOffset ?: -1
+						}else{
+							var highlight: RangeHighlightColor? = null
+							if(config.syntaxHighlight) editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(curStart,curEnd) {
+								val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
+								return@processRangeHighlightersOverlappingWith if (foregroundColor != null) {
+									highlight = RangeHighlightColor(it.startOffset,it.endOffset,foregroundColor)
+									false
+								}else true
+							}
+							renderList.add(RenderData(text.substring(curStart,curEnd), highlight?.foregroundColor
+								?: runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() ?: defaultColor))
+							hlIter.advance()
+						}
 					}
-					renderDataList[visualLine] = LineRenderData(xRenderDataList.toTypedArray(), config.pixelsPerLine, aboveBlockLine)
+					renderDataList[visualLine] = LineRenderData(renderList.toTypedArray(),
+						visLinesIterator.getStartsWithSoftWrap()?.indentInColumns ?: 0,
+						config.pixelsPerLine, aboveBlockLine)
 				}
 			}
 			if(endVisualLine == 0 || visualLine <= endVisualLine) visLinesIterator.advance()
@@ -298,23 +315,26 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel){
 		rangeList.clear()
 	}
 
-	private data class LineRenderData(val renderX: Array<XRenderData>, val y: Int,val aboveBlockLine: Int, val lineType: LineType = LineType.CODE,
-	                                  val renderStr: String? = null, val color: Color? = null, val commentHighlighterEx: RangeHighlighterEx? = null) {
+	private data class LineRenderData(val renderData: Array<RenderData>, val startX: Int, val y: Int, val aboveBlockLine: Int, val lineType: LineType = LineType.CODE,
+									  val renderStr: String? = null, val color: Color? = null, val commentHighlighterEx: RangeHighlighterEx? = null) {
 		override fun equals(other: Any?): Boolean {
 			if (this === other) return true
 			if (javaClass != other?.javaClass) return false
 			other as LineRenderData
-			if (!renderX.contentEquals(other.renderX)) return false
+			if (!renderData.contentEquals(other.renderData)) return false
+			if (startX != other.startX) return false
 			if (y != other.y) return false
 			if (aboveBlockLine != other.aboveBlockLine) return false
 			if (lineType != other.lineType) return false
 			if (renderStr != other.renderStr) return false
 			if (color != other.color) return false
-			return commentHighlighterEx == other.commentHighlighterEx
+			if (commentHighlighterEx != other.commentHighlighterEx) return false
+			return true
 		}
 
 		override fun hashCode(): Int {
-			var result = renderX.contentHashCode()
+			var result = renderData.contentHashCode()
+			result = 31 * result + startX
 			result = 31 * result + y
 			result = 31 * result + aboveBlockLine
 			result = 31 * result + lineType.hashCode()
@@ -325,7 +345,7 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel){
 		}
 	}
 
-	private data class XRenderData(val xStart: Int, val xEnd: Int, val color: Color)
+	private data class RenderData(val renderStr: String, val color: Color)
 
 	private enum class LineType{ CODE, COMMENT, CUSTOM_FOLD}
 }

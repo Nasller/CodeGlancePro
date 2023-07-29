@@ -198,7 +198,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	}
 
 	private fun Graphics2D.paintEditorMarkupModel(rangeOffset: Range<Int>,existLine: MutableSet<Int>) {
-		val map by lazy { hashMapOf<String, Int>() }
+		val map by lazy((LazyThreadSafetyMode.NONE)){ hashMapOf<String, Int>() }
 		editor.markupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
 			it.getMarkupColor()?.apply {
 				val highlightColor = RangeHighlightColor(it, this, config.showOtherFullLineHighlight, existLine)
@@ -288,7 +288,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	private fun Graphics2D.paintSomething() {
 		val rangeOffset = getVisibleRangeOffset()
 		if (!config.hideOriginalScrollBar) paintVcs(rangeOffset,width)
-		val existLine by lazy { mutableSetOf<Int>() }
+		val existLine by lazy((LazyThreadSafetyMode.NONE)) { mutableSetOf<Int>() }
 		if (editor.selectionModel.hasSelection()) paintSelection(existLine)
 		else paintCaretPosition()
 		if(config.showFilterMarkupHighlight) paintEditorFilterMarkupModel(rangeOffset,existLine)
@@ -316,8 +316,8 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 			}
 		}
 
-		val startVis by lazy { editor.offsetToVisualPosition(startOffset) }
-		val endVis by lazy { editor.offsetToVisualPosition(endOffset) }
+		val startVis by lazy(LazyThreadSafetyMode.NONE) { editor.offsetToVisualPosition(startOffset) }
+		val endVis by lazy(LazyThreadSafetyMode.NONE) { editor.offsetToVisualPosition(endOffset) }
 	}
 
 	companion object {

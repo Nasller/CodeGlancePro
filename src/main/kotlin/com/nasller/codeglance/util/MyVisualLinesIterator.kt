@@ -1,13 +1,11 @@
 package com.nasller.codeglance.util
 
-import com.intellij.openapi.editor.CustomFoldRegion
 import com.intellij.openapi.editor.FoldRegion
 import com.intellij.openapi.editor.Inlay
 import com.intellij.openapi.editor.SoftWrap
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.impl.InlayModelImpl
 
-@Suppress("UnstableApiUsage")
 class MyVisualLinesIterator(private val myEditor: EditorImpl, startVisualLine: Int){
 	private val myDocument = myEditor.document
 	private val myFoldRegions = myEditor.foldingModel.fetchTopLevel() ?: FoldRegion.EMPTY_ARRAY
@@ -52,30 +50,6 @@ class MyVisualLinesIterator(private val myEditor: EditorImpl, startVisualLine: I
 		else myNextLocation!!.offset
 	}
 
-	fun getDisplayedLogicalLine(): Int {
-		checkEnd()
-		val foldIndex = myLocation.foldRegion
-		if (foldIndex < myFoldRegions.size) {
-			val foldRegion = myFoldRegions[foldIndex]
-			if (foldRegion.placeholderText.isEmpty() && foldRegion.startOffset == myLocation.offset) {
-				return myDocument.getLineNumber(foldRegion.endOffset)
-			}
-		}
-		return myLocation.logicalLine - 1
-	}
-
-	fun getStartLogicalLine(): Int {
-		checkEnd()
-		return myLocation.logicalLine - 1
-	}
-
-	fun getEndLogicalLine(): Int {
-		checkEnd()
-		setNextLocation()
-		return if (myNextLocation!!.atEnd()) 0.coerceAtLeast(myDocument.lineCount - 1)
-		else myNextLocation!!.logicalLine - if (myNextLocation!!.softWrap == myLocation.softWrap) 2 else 1
-	}
-
 	fun getStartFoldingIndex(): Int {
 		checkEnd()
 		return myLocation.foldRegion
@@ -90,25 +64,25 @@ class MyVisualLinesIterator(private val myEditor: EditorImpl, startVisualLine: I
 		return null
 	}
 
-	fun endsWithSoftWrap(): Boolean {
-		checkEnd()
-		return myLocation.softWrap < mySoftWraps.size && mySoftWraps[myLocation.softWrap].start == getVisualLineEndOffset()
-	}
-
 	fun getBlockInlaysAbove(): List<Inlay<*>> {
 		checkEnd()
 		setInlays()
 		return myInlaysAbove
 	}
 
-	fun getCustomFoldRegion(): CustomFoldRegion? {
+	fun getCurrentFoldRegion(): FoldRegion? {
 		checkEnd()
 		val foldIndex = myLocation.foldRegion
 		if (foldIndex < myFoldRegions.size) {
-			val foldRegion = myFoldRegions[foldIndex]
-			if (foldRegion is CustomFoldRegion && foldRegion.getStartOffset() == myLocation.offset) {
-				return foldRegion
-			}
+			return myFoldRegions[foldIndex]
+		}
+		return null
+	}
+
+	fun getFoldRegion(foldIndex: Int): FoldRegion? {
+		checkEnd()
+		if (foldIndex < myFoldRegions.size) {
+			return myFoldRegions[foldIndex]
 		}
 		return null
 	}
