@@ -184,12 +184,14 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 							foldStartOffset = foldRegion?.startOffset ?: -1
 						}else{
 							var highlight: RangeHighlightColor? = null
-							if(config.syntaxHighlight) editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(curStart,curEnd) {
-								val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
-								return@processRangeHighlightersOverlappingWith if (foregroundColor != null) {
-									highlight = RangeHighlightColor(it.startOffset,it.endOffset,foregroundColor)
-									false
-								}else true
+							if(config.syntaxHighlight && hlIter !is OneLineHighlightDelegate) {
+								editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(curStart,curEnd) {
+									val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
+									return@processRangeHighlightersOverlappingWith if (foregroundColor != null) {
+										highlight = RangeHighlightColor(it.startOffset,it.endOffset,foregroundColor)
+										false
+									}else true
+								}
 							}
 							renderList.add(RenderData(text.substring(curStart,curEnd), highlight?.foregroundColor
 								?: runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() ?: defaultColor))
@@ -272,7 +274,7 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 		//如果开启隐藏滚动条则忽略Vcs高亮
 		val highlightChange = glancePanel.markCommentState.markCommentHighlightChange(highlighter, remove)
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation
-			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark)) return
+			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark) || editor.editorKind == EditorKind.CONSOLE) return
 		if(highlightChange || EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) {
 			val visualLine = editor.offsetToVisualLine(highlighter.startOffset)
 			refreshRenderData(visualLine, visualLine)
