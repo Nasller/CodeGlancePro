@@ -24,7 +24,6 @@ import java.awt.Color
 import java.awt.Font
 import java.beans.PropertyChangeEvent
 import java.util.*
-import kotlin.collections.set
 import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
@@ -129,17 +128,12 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 
 		val text = editor.document.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground
-		val markCommentMap = hashMapOf<Int,RangeHighlighterEx>()
-		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(visLinesIterator.getVisualLineStartOffset(), editor.document.textLength){
-			if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == it.textAttributesKey){
-				markCommentMap[DocumentUtil.getLineStartOffset(it.startOffset,editor.document)] = it
-			}
-			return@processRangeHighlightersOverlappingWith true
-		}
+		val markCommentMap = glancePanel.markCommentState.markCommentMap.values
+			.associateBy { DocumentUtil.getLineStartOffset(it.startOffset, editor.document) }
 		while (!visLinesIterator.atEnd()) {
-			val visualLine = visLinesIterator.getVisualLine()
 			val start = visLinesIterator.getVisualLineStartOffset()
 			if (start >= text.length) break
+			val visualLine = visLinesIterator.getVisualLine()
 			//BLOCK_INLAY
 			val aboveBlockLine = visLinesIterator.getBlockInlaysAbove().sumOf { (it.heightInPixels * scrollState.scale).toInt() }
 			//CUSTOM_FOLD
@@ -159,11 +153,10 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 					color = editor.colorsScheme.getAttributes(DefaultLanguageHighlighterColors.DOC_COMMENT)?.foregroundColor ?: defaultColor)
 			}else{
 				//COMMENT
-				val commentData = markCommentMap[start]
-				if(commentData != null){
+				if(markCommentMap.containsKey(start)) {
 					renderDataList[visualLine] = LineRenderData(emptyArray(), 2, config.pixelsPerLine, aboveBlockLine,
-						LineType.COMMENT, commentHighlighterEx = commentData)
-				}else{
+						LineType.COMMENT, commentHighlighterEx = markCommentMap[start])
+				}else {
 					val end = visLinesIterator.getVisualLineEndOffset()
 					var foldLineIndex = visLinesIterator.getStartFoldingIndex()
 					val hlIter = editor.highlighter.run {
@@ -184,7 +177,7 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 							foldStartOffset = foldRegion?.startOffset ?: -1
 						}else{
 							var highlight: RangeHighlightColor? = null
-							if(config.syntaxHighlight && hlIter !is OneLineHighlightDelegate) {
+							if(config.syntaxHighlight) {
 								editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(curStart,curEnd) {
 									val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
 									return@processRangeHighlightersOverlappingWith if (foregroundColor != null) {
@@ -274,7 +267,8 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 		//如果开启隐藏滚动条则忽略Vcs高亮
 		val highlightChange = glancePanel.markCommentState.markCommentHighlightChange(highlighter, remove)
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation
-			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark) || editor.editorKind == EditorKind.CONSOLE) return
+			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark) ||
+			(editor.editorKind == EditorKind.CONSOLE && remove)) return
 		if(highlightChange || EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) {
 			val visualLine = editor.offsetToVisualLine(highlighter.startOffset)
 			refreshRenderData(visualLine, visualLine)
