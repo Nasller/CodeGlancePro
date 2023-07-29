@@ -236,29 +236,29 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyCha
 		}
 	}
 
-	protected class OneLineHighlightDelegate(start: Int, private val lineIterator: LineIterator) : HighlighterIterator{
-		private var end = false
+	protected class OneLineHighlightDelegate(private val startOffset: Int, private val endOffset: Int, private val lineIterator: LineIterator) : HighlighterIterator{
+		private var advance = false
 		init {
-		    lineIterator.start(start)
+		    lineIterator.start(startOffset)
 		}
 		override fun getTextAttributes(): TextAttributes = TextAttributes.ERASE_MARKER
 
-		override fun getStart() = lineIterator.start
+		override fun getStart() = if(startOffset < lineIterator.start) startOffset else lineIterator.start
 
 		override fun getEnd(): Int {
-			val end = lineIterator.end
-			return if(end - 1 >= start) end - 1 else end
+			val end = lineIterator.end.run { if(endOffset - 1 >= getStart()) endOffset - 1 else endOffset }
+			return if(end > endOffset) endOffset else end
 		}
 
 		override fun getTokenType(): IElementType = IElementType.find(IElementType.FIRST_TOKEN_INDEX)
 
 		override fun advance() {
-			end = true
+			advance = true
 		}
 
 		override fun retreat() = throw UnsupportedOperationException()
 
-		override fun atEnd() = lineIterator.atEnd() || end
+		override fun atEnd() = lineIterator.atEnd() || advance
 
 		override fun getDocument() = throw UnsupportedOperationException()
 	}

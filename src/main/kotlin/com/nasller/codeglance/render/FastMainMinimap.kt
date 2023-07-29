@@ -139,6 +139,7 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 		while (!visLinesIterator.atEnd()) {
 			val visualLine = visLinesIterator.getVisualLine()
 			val start = visLinesIterator.getVisualLineStartOffset()
+			if (start >= text.length) break
 			//BLOCK_INLAY
 			val aboveBlockLine = visLinesIterator.getBlockInlaysAbove().sumOf { (it.heightInPixels * scrollState.scale).toInt() }
 			//CUSTOM_FOLD
@@ -166,7 +167,7 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 					val end = visLinesIterator.getVisualLineEndOffset()
 					var foldLineIndex = visLinesIterator.getStartFoldingIndex()
 					val hlIter = editor.highlighter.run {
-						if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(start,editor.document.createLineIterator())
+						if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(start,end,editor.document.createLineIterator())
 						else if(isLogFile) IdeLogFileHighlightDelegate(editor.document,this.createIterator(start))
 						else this.createIterator(start)
 					}
