@@ -1,14 +1,17 @@
 package com.nasller.codeglance.render
 
 import com.intellij.ide.ui.UISettings
-import com.intellij.openapi.editor.Document
-import com.intellij.openapi.editor.Inlay
+import com.intellij.openapi.editor.*
 import com.intellij.openapi.editor.colors.EditorFontType
-import com.intellij.openapi.editor.highlighter.HighlighterIterator
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.editor.ex.FoldingListener
+import com.intellij.openapi.editor.ex.RangeHighlighterEx
+import com.intellij.openapi.editor.ex.util.EditorUtil
+import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.text.StringUtil
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiComment
 import com.intellij.psi.util.findParentOfType
 import com.intellij.util.DocumentUtil
@@ -19,10 +22,11 @@ import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Font
 import java.awt.Graphics2D
 import java.awt.RenderingHints
+import java.beans.PropertyChangeEvent
 import kotlin.math.roundToInt
 
-class MainMinimap(glancePanel: GlancePanel, visualFile: VirtualFile): BaseMinimap(glancePanel){
-	private val isLogFile = visualFile.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
+@Suppress("UnstableApiUsage")
+class MainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean): BaseMinimap(glancePanel){
 	init { makeListener() }
 
 	override fun update() {
@@ -195,21 +199,87 @@ class MainMinimap(glancePanel: GlancePanel, visualFile: VirtualFile): BaseMinima
 		} else return emptyMap()
 	}
 
+	/** FoldingListener */
+	override fun onFoldProcessingEnd() {
+		if (editor.document.isInBulkUpdate) return
+		updateImage()
+	}
+
+	override fun onCustomFoldRegionPropertiesChange(region: CustomFoldRegion, flags: Int) {
+		if (flags and FoldingListener.ChangeFlags.HEIGHT_CHANGED != 0 && !editor.document.isInBulkUpdate) repaintOrRequest()
+	}
+
+	/** InlayModel.Listener */
+	override fun onAdded(inlay: Inlay<*>) = checkinInlayAndUpdate(inlay)
+
+	override fun onRemoved(inlay: Inlay<*>) = checkinInlayAndUpdate(inlay)
+
+	override fun onUpdated(inlay: Inlay<*>, changeFlags: Int) = checkinInlayAndUpdate(inlay, changeFlags)
+
+	private fun checkinInlayAndUpdate(inlay: Inlay<*>, changeFlags: Int? = null) {
+		if(editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || inlay.placement != Inlay.Placement.ABOVE_LINE
+			|| !inlay.isValid || (changeFlags != null && changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0)) return
+		repaintOrRequest()
+	}
+
+	override fun onBatchModeFinish(editor: Editor) {
+		if (editor.document.isInBulkUpdate) return
+		updateImage()
+	}
+
+	/** SoftWrapChangeListener */
+	override fun softWrapsChanged() {
+		val enabled = editor.softWrapModel.isSoftWrappingEnabled
+		if (enabled && !softWrapEnabled) {
+			softWrapEnabled = true
+			updateImage()
+		} else if (!enabled && softWrapEnabled) {
+			softWrapEnabled = false
+			updateImage()
+		}
+	}
+
+	override fun recalculationEnds() = Unit
+
+	/** MarkupModelListener */
+	override fun afterAdded(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,false)
+
+	override fun beforeRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,true)
+
+	private fun updateRangeHighlight(highlighter: RangeHighlighterEx, remove: Boolean) {
+		//如果开启隐藏滚动条则忽略Vcs高亮
+		val highlightChange = glancePanel.markCommentState.markCommentHighlightChange(highlighter, remove)
+		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation
+			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark)) return
+		if(highlightChange || EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) {
+			repaintOrRequest()
+		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
+			repaintOrRequest(false)
+		}
+	}
+
+	/** PrioritizedDocumentListener */
+	override fun documentChanged(event: DocumentEvent) {
+		if (event.document.isInBulkUpdate) return
+		if (event.document.lineCount > glancePanel.config.moreThanLineDelay) {
+			repaintOrRequest()
+		} else updateImage()
+	}
+
+	override fun bulkUpdateFinished(document: Document) = updateImage()
+
+	override fun getPriority(): Int = 170 //EditorDocumentPriorities
+
+	/** PropertyChangeListener */
+	override fun propertyChange(evt: PropertyChangeEvent) {
+		if (EditorEx.PROP_HIGHLIGHTER != evt.propertyName || evt.newValue is EmptyEditorHighlighter) return
+		updateImage()
+	}
+
 	override fun dispose() {
 		super.dispose()
 		rangeList.clear()
 	}
 
 	private data class MarkCommentData(var jumpEndOffset: Int,val comment: String,val font: Font,val fontHeight:Int)
-
-	private class IdeLogFileHighlightDelegate(private val document: Document, private val highlighterIterator: HighlighterIterator)
-		: HighlighterIterator by highlighterIterator{
-		private val length = document.textLength
-
-		override fun getEnd(): Int {
-			val end = highlighterIterator.end
-			return if(DocumentUtil.isAtLineEnd(end,document) && end + 1 < length) end + 1
-			else end
-		}
-	}
 }

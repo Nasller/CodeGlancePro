@@ -28,6 +28,7 @@
 		<ul>
 			<li>fix ModalityState alarm</li>
 			<li>fix console diff error</li>
+			<li>make a new fast minimap render,experiments run on the console</li>
 		</ul>
 		<h3>1.6.7</h3>
 		<ul>

@@ -12,7 +12,7 @@ class MyVisualLinesIterator(private val myEditor: EditorImpl, startVisualLine: I
 	private val mySoftWraps = myEditor.softWrapModel.registeredSoftWraps
 
 	private val myInlaysAbove = ArrayList<Inlay<*>>()
-	private var myInlaysSet = false
+	private var myInlaySet = false
 
 	private var myLocation = Location(startVisualLine)
 	private var myNextLocation: Location? = null
@@ -29,7 +29,7 @@ class MyVisualLinesIterator(private val myEditor: EditorImpl, startVisualLine: I
 			myLocation = myNextLocation!!
 			myNextLocation = null
 		}
-		myInlaysSet = false
+		myInlaySet = false
 	}
 
 	fun getVisualLine(): Int {
@@ -99,8 +99,8 @@ class MyVisualLinesIterator(private val myEditor: EditorImpl, startVisualLine: I
 	}
 
 	private fun setInlays() {
-		if (myInlaysSet) return
-		myInlaysSet = true
+		if (myInlaySet) return
+		myInlaySet = true
 		myInlaysAbove.clear()
 		setNextLocation()
 		val inlays = myEditor.inlayModel
@@ -119,7 +119,7 @@ class MyVisualLinesIterator(private val myEditor: EditorImpl, startVisualLine: I
 		var offset = 0 // start offset of the current visual line
 		var logicalLine = 1 // 1 + start logical line of the current visual line
 		var foldRegion = 0 // index of the first folding region on current or following visual lines
-		var softWrap = 0 // index of the first soft wrap after the start of current visual line
+		var softWrap = 0 // index of the first soft wrap after the start of the current visual line
 
 		init {
 			if (startVisualLine < 0 || startVisualLine >= myEditor.visibleLineCount) {

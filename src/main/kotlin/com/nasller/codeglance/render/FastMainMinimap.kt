@@ -28,7 +28,7 @@ import kotlin.collections.set
 import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
-class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel){
+class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) : BaseMinimap(glancePanel){
 	private val renderDataList = ArrayList<LineRenderData?>(Collections.nCopies(editor.visibleLineCount, null))
 	init { makeListener() }
 
@@ -165,7 +165,11 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel){
 				}else{
 					val end = visLinesIterator.getVisualLineEndOffset()
 					var foldLineIndex = visLinesIterator.getStartFoldingIndex()
-					val hlIter = editor.highlighter.createIterator(start)
+					val hlIter = editor.highlighter.run {
+						if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(start,editor.document.createLineIterator())
+						else if(isLogFile) IdeLogFileHighlightDelegate(editor.document,this.createIterator(start))
+						else this.createIterator(start)
+					}
 					val renderList = mutableListOf<RenderData>()
 					while (!hlIter.atEnd() && hlIter.end <= end){
 						val curStart = if(start >= hlIter.start) start else hlIter.start
@@ -256,6 +260,8 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel){
 		}
 	}
 
+	override fun recalculationEnds() = Unit
+
 	/** MarkupModelListener */
 	override fun afterAdded(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,false)
 
@@ -302,6 +308,8 @@ class TestMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel){
 	}
 
 	override fun bulkUpdateFinished(document: Document) = refreshRenderData()
+
+	override fun getPriority(): Int = 170 //EditorDocumentPriorities
 
 	/** PropertyChangeListener */
 	override fun propertyChange(evt: PropertyChangeEvent) {
