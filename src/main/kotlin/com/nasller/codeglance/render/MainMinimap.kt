@@ -286,10 +286,5 @@ class MainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean): Bas
 		updateImage()
 	}
 
-	override fun dispose() {
-		super.dispose()
-		rangeList.clear()
-	}
-
 	private data class MarkCommentData(var jumpEndOffset: Int,val comment: String,val font: Font,val fontHeight:Int)
 }

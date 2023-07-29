@@ -217,6 +217,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyCha
 
 	override fun dispose() {
 		imgReference.clear{ flush() }
+		rangeList.clear()
 	}
 
 	@Suppress("UndesirableClassUsage")
