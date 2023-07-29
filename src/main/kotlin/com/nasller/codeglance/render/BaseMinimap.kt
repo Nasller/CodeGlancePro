@@ -36,13 +36,15 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyCha
 		get() = glancePanel.config
 	protected val scrollState
 		get() = glancePanel.scrollState
-	protected val rangeList by lazy(LazyThreadSafetyMode.NONE) { mutableListOf<Pair<Int, Range<Int>>>() }
 	protected var softWrapEnabled = false
 	protected val modalityState
 		get() = if (glancePanel.isNotMainEditorKind()) ModalityState.any() else ModalityState.NON_MODAL
+	protected val rangeList by lazy(LazyThreadSafetyMode.NONE) { mutableListOf<Pair<Int, Range<Int>>>() }
 	private val scaleBuffer = FloatArray(4)
 	private val lock = AtomicBoolean(false)
-	private val alarm = SingleAlarm({ updateImage(true) }, 500, glancePanel, Alarm.ThreadToUse.SWING_THREAD, modalityState)
+	private val alarm by lazy(LazyThreadSafetyMode.NONE) {
+		SingleAlarm({ updateImage(true) }, 500, this, Alarm.ThreadToUse.SWING_THREAD, modalityState)
+	}
 	private var imgReference = MySoftReference.create(getBufferedImage(), useSoftReference())
 
 	abstract fun update()
@@ -52,6 +54,8 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyCha
 		if(img == null) updateImage()
 		return img
 	}
+
+	open fun rebuildDataAndImage(directUpdate: Boolean = false) = updateImage(directUpdate)
 
 	open fun getMyRenderVisualLine(y: Int): Int {
 		var minus = 0
@@ -92,14 +96,10 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyCha
 		return if (editor.isDisposed || editor.document.lineCount <= 0) return null else curImg
 	}
 
-	protected fun getHighlightColor(startOffset:Int,endOffset:Int):MutableList<RangeHighlightColor>{
-		val list = mutableListOf<RangeHighlightColor>()
-		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(startOffset,endOffset) {
-			val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
-			if (foregroundColor != null) list.add(RangeHighlightColor(it.startOffset,it.endOffset,foregroundColor))
-			return@processRangeHighlightersOverlappingWith true
-		}
-		return list
+	protected fun Color.setColorRgba() {
+		scaleBuffer[0] = red.toFloat()
+		scaleBuffer[1] = green.toFloat()
+		scaleBuffer[2] = blue.toFloat()
 	}
 
 	protected fun BufferedImage.renderImage(x: Int, y: Int, char: Int, consumer: (() -> Unit)? = null) {
@@ -177,12 +177,6 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyCha
 		raster.setPixel(x, y, scaleBuffer)
 	}
 
-	protected fun Color.setColorRgba() {
-		scaleBuffer[0] = red.toFloat()
-		scaleBuffer[1] = green.toFloat()
-		scaleBuffer[2] = blue.toFloat()
-	}
-
 	private fun useSoftReference() = EditorKind.MAIN_EDITOR != editor.editorKind
 
 	protected fun makeListener(){
@@ -194,8 +188,6 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyCha
 		editor.softWrapModel.addSoftWrapChangeListener(this)
 		editor.filteredDocumentMarkupModel.addMarkupModelListener(this, this)
 	}
-
-	open fun rebuildDataAndImage(directUpdate: Boolean = false) = updateImage(directUpdate)
 
 	protected fun updateImage(directUpdate: Boolean = false){
 		if (glancePanel.checkVisible() && (glancePanel.isNotMainEditorKind() || runReadAction{ editor.highlighter !is EmptyEditorHighlighter }) &&
