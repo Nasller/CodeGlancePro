@@ -202,10 +202,7 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 		updateImage()
 	}
 
-	override fun rebuildDataAndImage(directUpdate: Boolean) {
-		if (directUpdate) refreshRenderData()
-		else invokeLater(modalityState){ refreshRenderData() }
-	}
+	override fun rebuildDataAndImage() = invokeLater(modalityState){ refreshRenderData() }
 
 	private fun resetRenderData(){
 		renderDataList.clear()

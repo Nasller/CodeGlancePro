@@ -209,6 +209,8 @@ class MainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean): Bas
 		} else return emptyMap()
 	}
 
+	override fun rebuildDataAndImage() = updateImage(false)
+
 	/** FoldingListener */
 	override fun onFoldProcessingEnd() {
 		if (editor.document.isInBulkUpdate) return

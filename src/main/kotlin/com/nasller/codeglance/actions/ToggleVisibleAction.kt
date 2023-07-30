@@ -33,7 +33,7 @@ class ToggleVisibleAction : DumbAwareToggleAction(), CustomComponentAction {
         e.applyToGlance{
             if(!config.hoveringToShowScrollBar){
                 isVisible = state
-                if(isVisible) refresh(directUpdate = true)
+                if(isVisible) refreshDataAndImage()
                 changeOriginScrollBarWidth(isVisible)
             }
         }

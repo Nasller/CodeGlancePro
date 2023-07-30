@@ -44,7 +44,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	override fun onHoveringOriginalScrollBarChanged(value: Boolean) = if (value) glancePanel.hideScrollBarListener.addHideScrollBarListener()
 	else glancePanel.hideScrollBarListener.removeHideScrollBarListener()
 
-	override fun refresh(refreshImage: Boolean) = glancePanel.refresh(refreshImage)
+	override fun refreshDataAndImage() = glancePanel.refreshDataAndImage()
 
 	/** VisibleAreaListener */
 	override fun visibleAreaChanged(e: VisibleAreaEvent) {
@@ -57,14 +57,14 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
 	override fun ancestorResized(e: HierarchyEvent) {
 		if (checkWithGlance {config.autoCalWidthInSplitterMode && !config.hoveringToShowScrollBar}){
-			glancePanel.refresh(refreshImage = false)
+			glancePanel.refresh()
 		}
 	}
 
 	/** HierarchyListener */
 	override fun hierarchyChanged(e: HierarchyEvent) {
 		if (checkWithGlance {config.autoCalWidthInSplitterMode && !config.hoveringToShowScrollBar} &&
-			e.changeFlags and HierarchyEvent.PARENT_CHANGED.toLong() != 0L) glancePanel.refresh(refreshImage = false)
+			e.changeFlags and HierarchyEvent.PARENT_CHANGED.toLong() != 0L) glancePanel.refresh()
 	}
 
 	private fun repaint() = if (checkWithGlance()) glancePanel.repaint() else Unit

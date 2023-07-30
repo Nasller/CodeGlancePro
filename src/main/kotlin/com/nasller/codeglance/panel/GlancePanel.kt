@@ -59,14 +59,20 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		editor.putUserData(CURRENT_GLANCE, this)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, if (info.place == BorderLayout.LINE_START) PlaceIndex.Left else PlaceIndex.Right)
 		updateScrollState()
-		refresh()
+		refreshDataAndImage()
 	}
 
-	fun refresh(refreshImage: Boolean = true, directUpdate: Boolean = false) {
+	fun refresh(refreshImage: Boolean = false) {
 		preferredSize = if(!config.hoveringToShowScrollBar) getConfigSize() else Dimension(0,0)
 		revalidate()
-		if (refreshImage) minimap.rebuildDataAndImage(directUpdate)
+		if (refreshImage) minimap.updateImage(false)
 		else repaint()
+	}
+
+	fun refreshDataAndImage() {
+		preferredSize = if(!config.hoveringToShowScrollBar) getConfigSize() else Dimension(0,0)
+		revalidate()
+		minimap.rebuildDataAndImage()
 	}
 
 	fun updateScrollState() = scrollState.run {

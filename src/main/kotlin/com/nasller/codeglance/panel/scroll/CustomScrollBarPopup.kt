@@ -55,7 +55,7 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
                 override fun setSelected(e: AnActionEvent, state: Boolean) {
                     config.autoCalWidthInSplitterMode = state
                     if(!config.hoveringToShowScrollBar) {
-                        SettingsChangePublisher.refresh(true)
+                        SettingsChangePublisher.refreshDataAndImage()
                     }
                 }
                 override fun getActionUpdateThread() = ActionUpdateThread.BGT

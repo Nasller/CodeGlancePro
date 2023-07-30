@@ -49,13 +49,32 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyCha
 
 	abstract fun update()
 
+	abstract fun rebuildDataAndImage()
+
 	fun getImageOrUpdate() : BufferedImage? {
 		val img = imgReference.get()
 		if(img == null) updateImage()
 		return img
 	}
 
-	open fun rebuildDataAndImage(directUpdate: Boolean = false) = updateImage(directUpdate)
+	fun updateImage(directUpdate: Boolean = false){
+		if (glancePanel.checkVisible() && (glancePanel.isNotMainEditorKind() || runReadAction{ editor.highlighter !is EmptyEditorHighlighter }) &&
+			lock.compareAndSet(false,true)) {
+			glancePanel.psiDocumentManager.performForCommittedDocument(editor.document) {
+				if (directUpdate) updateImgTask()
+				else invokeLater(modalityState){ updateImgTask() }
+			}
+		}
+	}
+
+	private fun updateImgTask() {
+		try {
+			update()
+		} finally {
+			lock.set(false)
+			glancePanel.repaint()
+		}
+	}
 
 	open fun getMyRenderVisualLine(y: Int): Int {
 		var minus = 0
@@ -187,25 +206,6 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyCha
 		editor.inlayModel.addListener(this, this)
 		editor.softWrapModel.addSoftWrapChangeListener(this)
 		editor.filteredDocumentMarkupModel.addMarkupModelListener(this, this)
-	}
-
-	protected fun updateImage(directUpdate: Boolean = false){
-		if (glancePanel.checkVisible() && (glancePanel.isNotMainEditorKind() || runReadAction{ editor.highlighter !is EmptyEditorHighlighter }) &&
-			lock.compareAndSet(false,true)) {
-			glancePanel.psiDocumentManager.performForCommittedDocument(editor.document) {
-				if (directUpdate) updateImgTask()
-				else invokeLater(modalityState){ updateImgTask() }
-			}
-		}
-	}
-
-	private fun updateImgTask() {
-		try {
-			update()
-		} finally {
-			lock.set(false)
-			glancePanel.repaint()
-		}
 	}
 
 	protected fun repaintOrRequest(request: Boolean = true) {

@@ -70,7 +70,7 @@ class GlobalLafManagerListener : LafManagerListener {
     private var isFirstSetup = true
 
     override fun lookAndFeelChanged(source: LafManager) = if(isFirstSetup) isFirstSetup = false else {
-        processAllGlanceEditor { oldGlance, _ -> oldGlance?.apply{ refresh() } }
+        processAllGlanceEditor { oldGlance, _ -> oldGlance?.apply{ refreshDataAndImage() } }
     }
 }
 

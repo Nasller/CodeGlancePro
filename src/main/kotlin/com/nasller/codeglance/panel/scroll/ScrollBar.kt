@@ -113,12 +113,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 				widthStart + e.xOnScreen - resizeStart
 			else widthStart + resizeStart - e.xOnScreen
 			editor.editorKind.setWidth(newWidth.coerceIn(GlancePanel.MIN_WIDTH, GlancePanel.MAX_WIDTH))
-			val diffViewer = editor.getUserData(CURRENT_EDITOR_DIFF_VIEW)
-			if(diffViewer != null){
-				diffViewer.editors.mapNotNull { it.getUserData(GlancePanel.CURRENT_GLANCE) }.forEach { it.refresh(directUpdate = true) }
-			}else {
-				glancePanel.refresh(directUpdate = true)
-			}
+			resizeGlancePanel(false)
 		} else if (dragging) {
 			val delta = (dragStartDelta + (e.y - dragStart)).toFloat()
 			val newPos = if (scrollState.documentHeight < scrollState.visibleHeight)
@@ -136,6 +131,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 
 	override fun mouseReleased(e: MouseEvent) {
 		val action = {
+			resizeGlancePanel(true)
 			updateAlpha(e.y)
 			dragging = false
 			resizing = false
@@ -176,6 +172,26 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			MouseEventAdapter.redispatch(e,editor.contentComponent)
 		}
 	}
+
+	private fun resizeGlancePanel(refreshImage: Boolean) {
+		if(!resizing) return
+		val action = {it: GlancePanel->
+			if(refreshImage){
+				if (it.editor.softWrapModel.isSoftWrappingEnabled) {
+					it.refreshDataAndImage()
+				} else {
+					it.refresh(true)
+				}
+			}else it.refresh()
+		}
+		val diffViewer = editor.getUserData(CURRENT_EDITOR_DIFF_VIEW)
+		if (diffViewer != null) {
+			diffViewer.editors.mapNotNull { it.getUserData(GlancePanel.CURRENT_GLANCE) }.forEach(action)
+		} else {
+			action(glancePanel)
+		}
+	}
+
 
 	private fun dragMove(y: Int) {
 		dragging = true
