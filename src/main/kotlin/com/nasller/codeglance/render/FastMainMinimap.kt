@@ -2,6 +2,7 @@ package com.nasller.codeglance.render
 
 import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.diagnostic.Attachment
 import com.intellij.openapi.editor.*
 import com.intellij.openapi.editor.colors.EditorFontType
@@ -35,6 +36,7 @@ import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
 class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) : BaseMinimap(glancePanel){
+	private val myDocument = editor.document
 	private val renderDataList = ObjectArrayList.wrap<LineRenderData>(arrayOfNulls(editor.visibleLineCount))
 	private val mySoftWrapChangeListener = Proxy.newProxyInstance(platformClassLoader, softWrapListenerClass) { _, method, args ->
 		return@newProxyInstance if("onRecalculationEnd" == method.name && args?.isNotEmpty() == true && args[0] is IncrementalCacheUpdateEvent){
@@ -59,7 +61,7 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 				}
 			).deriveFont(config.markersScaleFactor * config.pixelsPerLine)
 		}
-		val text by lazy(LazyThreadSafetyMode.NONE) { editor.document.immutableCharSequence }
+		val text by lazy(LazyThreadSafetyMode.NONE) { myDocument.immutableCharSequence }
 		val graphics = curImg.createGraphics()
 		graphics.composite = GlancePanel.CLEAR
 		graphics.fillRect(0, 0, curImg.width, curImg.height)
@@ -138,10 +140,10 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 		val visLinesIterator = MyVisualLinesIterator(editor, startVisualLine)
 		if(visLinesIterator.atEnd()) return
 
-		val text = editor.document.immutableCharSequence
+		val text = myDocument.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val markCommentMap = glancePanel.markCommentState.markCommentMap.values
-			.associateBy { DocumentUtil.getLineStartOffset(it.startOffset, editor.document) }
+			.associateBy { DocumentUtil.getLineStartOffset(it.startOffset, myDocument) }
 		while (!visLinesIterator.atEnd()) {
 			val start = visLinesIterator.getVisualLineStartOffset()
 			if (start >= text.length) break
@@ -156,9 +158,9 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 				//jump over the fold line
 				val heightLine = (foldRegion.heightInPixels * scrollState.scale).toInt()
 				//this is render document
-				val line = editor.document.getLineNumber(foldStartOffset) - 1 + (heightLine / config.pixelsPerLine)
-				val renderStr = editor.document.getText(TextRange(foldStartOffset, if(DocumentUtil.isValidLine(line,editor.document)) {
-					val lineEndOffset = editor.document.getLineEndOffset(line)
+				val line = myDocument.getLineNumber(foldStartOffset) - 1 + (heightLine / config.pixelsPerLine)
+				val renderStr = myDocument.getText(TextRange(foldStartOffset, if(DocumentUtil.isValidLine(line,myDocument)) {
+					val lineEndOffset = myDocument.getLineEndOffset(line)
 					if(foldEndOffset < lineEndOffset) foldEndOffset else lineEndOffset
 				}else foldEndOffset))
 				renderDataList[visualLine] = LineRenderData(emptyArray(),0, heightLine, aboveBlockLine, LineType.CUSTOM_FOLD, renderStr = renderStr,
@@ -173,8 +175,8 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 					val end = visLinesIterator.getVisualLineEndOffset()
 					var foldLineIndex = visLinesIterator.getStartFoldingIndex()
 					val hlIter = editor.highlighter.run {
-						if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(start,end,editor.document.createLineIterator())
-						else if(isLogFile) IdeLogFileHighlightDelegate(editor.document,this.createIterator(start))
+						if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(start,end,myDocument.createLineIterator())
+						else if(isLogFile) IdeLogFileHighlightDelegate(myDocument,this.createIterator(start))
 						else this.createIterator(start)
 					}
 					val renderList = mutableListOf<RenderData>()
@@ -211,24 +213,62 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 	}
 
 	private fun resetRenderData(){
-		doInvalidateRange(0, editor.document.textLength,false)
+		doInvalidateRange(0, myDocument.textLength,false)
 	}
 
 	private var myDirty = false
-	/** FoldingListener */
 	private var myFoldingChangeStartOffset = Int.MAX_VALUE
 	private var myFoldingChangeEndOffset = Int.MIN_VALUE
+	private var myDuringDocumentUpdate = false
+	private var myDocumentChangeStartOffset = 0
+	private var myDocumentChangeEndOffset = 0
+	/** PrioritizedDocumentListener */
+	override fun beforeDocumentChange(event: DocumentEvent) {
+		assertValidState()
+		myDuringDocumentUpdate = true
+		if (event.document.isInBulkUpdate) return
+		val offset = event.offset
+		val moveOffset = if (DocumentEventUtil.isMoveInsertion(event)) event.moveOffset else offset
+		myDocumentChangeStartOffset = min(offset, moveOffset)
+		myDocumentChangeEndOffset = max(offset, moveOffset) + event.newLength
+	}
 
+	override fun documentChanged(event: DocumentEvent) {
+		myDuringDocumentUpdate = false
+		if (event.document.isInBulkUpdate) return
+		doInvalidateRange(myDocumentChangeStartOffset, myDocumentChangeEndOffset)
+		assertValidState()
+	}
+
+	override fun bulkUpdateFinished(document: Document) = refreshRenderData()
+
+	override fun getPriority(): Int = 170 //EditorDocumentPriorities
+
+	/** FoldingListener */
 	override fun onFoldRegionStateChange(region: FoldRegion) {
-		if (editor.document.isInBulkUpdate) return
+		if (myDocument.isInBulkUpdate) return
 		if(region.isValid) {
 			myFoldingChangeStartOffset = min(myFoldingChangeStartOffset, region.startOffset)
 			myFoldingChangeEndOffset = max(myFoldingChangeEndOffset, region.endOffset)
 		}
 	}
 
+	override fun beforeFoldRegionDisposed(region: FoldRegion) {
+		if (!myDuringDocumentUpdate || myDocument.isInBulkUpdate || region !is CustomFoldRegion) return
+		myDocumentChangeStartOffset = min(myDocumentChangeStartOffset, region.getStartOffset())
+		myDocumentChangeEndOffset = max(myDocumentChangeEndOffset, region.getEndOffset())
+	}
+
+	override fun onCustomFoldRegionPropertiesChange(region: CustomFoldRegion, flags: Int) {
+		if (flags and FoldingListener.ChangeFlags.WIDTH_CHANGED == 0 || myDocument.isInBulkUpdate || checkDirty()) return
+		val startOffset = region.startOffset
+		if (editor.foldingModel.getCollapsedRegionAtOffset(startOffset) !== region) return
+		val visualLine = editor.offsetToVisualLine(startOffset)
+		refreshRenderData(visualLine, visualLine)
+	}
+
 	override fun onFoldProcessingEnd() {
-		if (editor.document.isInBulkUpdate) return
+		if (myDocument.isInBulkUpdate) return
 		if (myFoldingChangeStartOffset <= myFoldingChangeEndOffset) {
 			doInvalidateRange(myFoldingChangeStartOffset, myFoldingChangeEndOffset)
 		}
@@ -237,24 +277,16 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 		assertValidState()
 	}
 
-	override fun onCustomFoldRegionPropertiesChange(region: CustomFoldRegion, flags: Int) {
-		if (flags and FoldingListener.ChangeFlags.WIDTH_CHANGED == 0 || editor.document.isInBulkUpdate || checkDirty()) return
-		val startOffset = region.startOffset
-		if (editor.foldingModel.getCollapsedRegionAtOffset(startOffset) !== region) return
-		val visualLine = editor.offsetToVisualLine(startOffset)
-		refreshRenderData(visualLine, visualLine)
-	}
-
 	/** InlayModel.SimpleAdapter */
 	override fun onUpdated(inlay: Inlay<*>, changeFlags: Int) {
-		if(editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || inlay.placement != Inlay.Placement.ABOVE_LINE
+		if(myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || inlay.placement != Inlay.Placement.ABOVE_LINE
 			|| !inlay.isValid || changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0) return
 		val visualLine = editor.offsetToVisualLine(inlay.offset)
 		refreshRenderData(visualLine,visualLine)
 	}
 
 	override fun onBatchModeFinish(editor: Editor) {
-		if (editor.document.isInBulkUpdate) return
+		if (myDocument.isInBulkUpdate) return
 		refreshRenderData()
 	}
 
@@ -273,16 +305,21 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 	override fun recalculationEnds() = Unit
 
 	private fun onSoftWrapRecalculationEnd(event: IncrementalCacheUpdateEvent) {
-		if (editor.document.isInBulkUpdate) return
+		if (myDocument.isInBulkUpdate) return
+		var invalidate = true
 		if (editor.foldingModel.isInBatchFoldingOperation) {
 			myFoldingChangeStartOffset = min(myFoldingChangeStartOffset, event.startOffset)
 			myFoldingChangeEndOffset = max(myFoldingChangeEndOffset, event.actualEndOffset)
+			invalidate = false
 		}
 		if (myDuringDocumentUpdate) {
 			myDocumentChangeStartOffset = min(myDocumentChangeStartOffset, event.startOffset)
 			myDocumentChangeEndOffset = max(myDocumentChangeEndOffset, event.actualEndOffset)
+			invalidate = false
 		}
-		doInvalidateRange(event.startOffset, event.actualEndOffset)
+		if (invalidate) {
+			doInvalidateRange(event.startOffset, event.actualEndOffset)
+		}
 	}
 
 	/** MarkupModelListener */
@@ -305,8 +342,8 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 	private fun updateRangeHighlight(highlighter: RangeHighlighterEx,remove: Boolean) {
 		//如果开启隐藏滚动条则忽略Vcs高亮
 		val highlightChange = glancePanel.markCommentState.markCommentHighlightChange(highlighter, remove)
-		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation
-			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark)) return
+		if (myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation
+			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark) || myDuringDocumentUpdate || checkDirty()) return
 		if(highlightChange || EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) {
 			highlighterChangeList.add(highlighter)
 			highlightAlarm.cancelAndRequest()
@@ -314,32 +351,6 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 			glancePanel.repaint()
 		}
 	}
-
-	/** PrioritizedDocumentListener */
-	private var myDuringDocumentUpdate = false
-	private var myDocumentChangeStartOffset = 0
-	private var myDocumentChangeEndOffset = 0
-
-	override fun beforeDocumentChange(event: DocumentEvent) {
-		assertValidState()
-		myDuringDocumentUpdate = true
-		if (event.document.isInBulkUpdate) return
-		val offset = event.offset
-		val moveOffset = if (DocumentEventUtil.isMoveInsertion(event)) event.moveOffset else offset
-		myDocumentChangeStartOffset = min(offset, moveOffset)
-		myDocumentChangeEndOffset = max(offset, moveOffset) + event.newLength
-	}
-
-	override fun documentChanged(event: DocumentEvent) {
-		myDuringDocumentUpdate = false
-		if (event.document.isInBulkUpdate) return
-		doInvalidateRange(myDocumentChangeStartOffset, myDocumentChangeEndOffset)
-		assertValidState()
-	}
-
-	override fun bulkUpdateFinished(document: Document) = refreshRenderData()
-
-	override fun getPriority(): Int = 170 //EditorDocumentPriorities
 
 	/** PropertyChangeListener */
 	override fun propertyChange(evt: PropertyChangeEvent) {
@@ -366,14 +377,14 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 			return true
 		}
 		return if (myDirty) {
-			refreshRenderData()
+			runInEdt(modalityState){ refreshRenderData() }
 			myDirty = false
 			true
 		}else false
 	}
 
 	private fun assertValidState() {
-		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || !glancePanel.checkVisible()) return
+		if (myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || !glancePanel.checkVisible()) return
 		if (editor.visibleLineCount != renderDataList.size) {
 			LOG.error("Inconsistent state {}", Attachment("glance.txt", editor.dumpState()))
 		}
