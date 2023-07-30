@@ -40,7 +40,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val psiDocumentManager: PsiDocumentManager = PsiDocumentManager.getInstance(project)
 	val config = CodeGlanceConfigService.getConfig()
 	val scrollState = ScrollState()
-	val isDisabled
+	val isDefaultDisable
 		get() = config.disabled || editor.document.lineCount > config.maxLinesCount
 	val myPopHandler = CustomScrollBarPopup(this)
 	val hideScrollBarListener = HideScrollBarListener(this)
@@ -54,7 +54,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		Disposer.register(this, GlanceListener(this))
 		isOpaque = false
 		editor.component.isOpaque = false
-		isVisible = !isDisabled
+		isVisible = !isDefaultDisable
 		markCommentState.refreshMarkCommentHighlight(editor)
 		editor.putUserData(CURRENT_GLANCE, this)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, if (info.place == BorderLayout.LINE_START) PlaceIndex.Left else PlaceIndex.Right)
@@ -80,7 +80,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		recomputeVisible(editor.scrollingModel.visibleArea)
 	}
 
-	fun checkVisible() = !((!config.hoveringToShowScrollBar && !isVisible) || isReleased)
+	fun checkVisible() = !isReleased && !editor.isDisposed && (config.hoveringToShowScrollBar || isVisible)
 
 	fun getPlaceIndex() = editor.getUserData(CURRENT_GLANCE_PLACE_INDEX) ?: PlaceIndex.Right
 
@@ -92,7 +92,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	}else false
 
 	fun changeOriginScrollBarWidth(control: Boolean = true) {
-		if (config.hideOriginalScrollBar && control && (!isDisabled || isVisible)) {
+		if (config.hideOriginalScrollBar && control && (!isDefaultDisable || isVisible)) {
 			myVcsPanel?.apply { isVisible = true }
 			editor.scrollPane.verticalScrollBar.apply { preferredSize = Dimension(0, preferredSize.height) }
 		} else {

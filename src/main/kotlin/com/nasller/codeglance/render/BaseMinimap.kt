@@ -59,14 +59,15 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 	}
 
 	fun updateImage(directUpdate: Boolean = false){
-		if (glancePanel.checkVisible() && (glancePanel.isNotMainEditorKind() || runReadAction{ editor.highlighter !is EmptyEditorHighlighter }) &&
-			lock.compareAndSet(false,true)) {
+		if (glancePanel.checkVisible() && hasHighlighterOrNotMain() && lock.compareAndSet(false,true)) {
 			glancePanel.psiDocumentManager.performForCommittedDocument(editor.document) {
 				if (directUpdate) updateImgTask()
 				else invokeLater(modalityState){ updateImgTask() }
 			}
 		}
 	}
+
+	protected fun hasHighlighterOrNotMain() = (glancePanel.isNotMainEditorKind() || runReadAction { editor.highlighter !is EmptyEditorHighlighter })
 
 	private fun updateImgTask() {
 		try {
@@ -268,7 +269,8 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 		fun EditorKind.getMinimap(glancePanel: GlancePanel): BaseMinimap = glancePanel.run {
 			val visualFile = editor.virtualFile ?: psiDocumentManager.getPsiFile(glancePanel.editor.document)?.virtualFile
 			val isLogFile = visualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
-			if(this@getMinimap == EditorKind.CONSOLE || visualFile == null || CodeGlanceConfigService.getConfig().useFastMinimapForMain) {
+			if(this@getMinimap == EditorKind.CONSOLE || visualFile == null ||
+				(this@getMinimap == EditorKind.MAIN_EDITOR && CodeGlanceConfigService.getConfig().useFastMinimapForMain)) {
 				FastMainMinimap(this, isLogFile)
 			}else MainMinimap(this, isLogFile)
 		}

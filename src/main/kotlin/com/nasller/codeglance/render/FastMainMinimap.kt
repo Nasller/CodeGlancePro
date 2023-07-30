@@ -125,7 +125,7 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 
 	@RequiresEdt
 	private fun refreshRenderData(startVisualLine: Int = 0, endVisualLine: Int = 0) {
-		if(editor.isDisposed) return
+		if(!glancePanel.checkVisible()) return
 		if(startVisualLine == 0 && endVisualLine == 0) resetRenderData()
 		val visLinesIterator = MyVisualLinesIterator(editor, startVisualLine)
 		if(visLinesIterator.atEnd()) return
@@ -207,7 +207,11 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 		updateImage()
 	}
 
-	override fun rebuildDataAndImage() = invokeLater(modalityState){ refreshRenderData() }
+	override fun rebuildDataAndImage() {
+		if(glancePanel.checkVisible() && hasHighlighterOrNotMain()) {
+			invokeLater(modalityState){ refreshRenderData() }
+		}
+	}
 
 	private fun resetRenderData(){
 		renderDataList.clear()
@@ -332,7 +336,7 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 	}
 
 	private fun assertValidState() {
-		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode) return
+		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || !glancePanel.checkVisible()) return
 		if (editor.visibleLineCount != renderDataList.size) {
 			LOG.error("Inconsistent state {}", Attachment("glance.txt", editor.dumpState()))
 			rebuildDataAndImage()
