@@ -41,7 +41,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 	protected val rangeList by lazy(LazyThreadSafetyMode.NONE) { mutableListOf<Pair<Int, Range<Int>>>() }
 	private val scaleBuffer = FloatArray(4)
 	private val lock = AtomicBoolean(false)
-	private var imgReference = MySoftReference.create(getBufferedImage(), EditorKind.MAIN_EDITOR != editor.editorKind)
+	private var imgReference = MySoftReference.create(getBufferedImage(), editor.editorKind != EditorKind.MAIN_EDITOR)
 
 	abstract fun update()
 
@@ -108,7 +108,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 		if (curImg == null || curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
 			curImg?.flush()
 			curImg = getBufferedImage()
-			imgReference = MySoftReference.create(curImg, EditorKind.MAIN_EDITOR != editor.editorKind)
+			imgReference = MySoftReference.create(curImg, editor.editorKind != EditorKind.MAIN_EDITOR)
 		}
 		return if (editor.isDisposed || editor.document.lineCount <= 0) return null else curImg
 	}
