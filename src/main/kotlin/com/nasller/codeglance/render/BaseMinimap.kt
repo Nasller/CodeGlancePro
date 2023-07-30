@@ -58,7 +58,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 		return img
 	}
 
-	fun updateImage(canUpdate: Boolean = canUpdate(), directUpdate: Boolean = false){
+	fun updateImage(canUpdate: Boolean = glancePanel.checkVisible(), directUpdate: Boolean = false){
 		if (canUpdate && lock.compareAndSet(false,true)) {
 			glancePanel.psiDocumentManager.performForCommittedDocument(editor.document) {
 				if (directUpdate) updateImgTask()

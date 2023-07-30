@@ -199,7 +199,7 @@ class MainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean): Bas
 		} else return emptyMap()
 	}
 
-	override fun rebuildDataAndImage() = updateImage()
+	override fun rebuildDataAndImage() = updateImage(canUpdate = canUpdate())
 
 	/** FoldingListener */
 	override fun onFoldProcessingEnd() {
