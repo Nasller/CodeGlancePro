@@ -84,8 +84,6 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 
 	fun getPlaceIndex() = editor.getUserData(CURRENT_GLANCE_PLACE_INDEX) ?: PlaceIndex.Right
 
-	fun isNotMainEditorKind() = editor.editorKind != EditorKind.MAIN_EDITOR
-
 	fun isInSplitter() = if(editor.editorKind == EditorKind.MAIN_EDITOR){
 		(SwingUtilities.getAncestorOfClass(EditorsSplitters::class.java, editor.component) as? EditorsSplitters)?.
 		currentWindow?.run { inSplitter() }?: false
@@ -118,7 +116,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	}
 
 	fun RangeHighlighterEx.getMarkupColor() = getErrorStripeMarkColor(editor.colorsScheme) ?:
-	(if (isNotMainEditorKind() && textAttributesKey != CodeInsightColors.HYPERLINK_ATTRIBUTES) {
+	(if (editor.editorKind == EditorKind.CONSOLE && textAttributesKey != CodeInsightColors.HYPERLINK_ATTRIBUTES) {
 		val attributes = getTextAttributes(editor.colorsScheme)
 		attributes?.foregroundColor ?: attributes?.backgroundColor
 	} else null)

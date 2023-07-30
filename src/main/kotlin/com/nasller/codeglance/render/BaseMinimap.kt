@@ -37,7 +37,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 		get() = glancePanel.scrollState
 	protected var softWrapEnabled = false
 	protected val modalityState
-		get() = if (glancePanel.isNotMainEditorKind()) ModalityState.any() else ModalityState.NON_MODAL
+		get() = if (editor.editorKind != EditorKind.MAIN_EDITOR) ModalityState.any() else ModalityState.NON_MODAL
 	protected val rangeList by lazy(LazyThreadSafetyMode.NONE) { mutableListOf<Pair<Int, Range<Int>>>() }
 	private val scaleBuffer = FloatArray(4)
 	private val lock = AtomicBoolean(false)
@@ -101,7 +101,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 	}
 
 	protected fun canUpdate() = glancePanel.checkVisible() &&
-			(glancePanel.isNotMainEditorKind() || runReadAction { editor.highlighter !is EmptyEditorHighlighter })
+			(editor.editorKind == EditorKind.CONSOLE || runReadAction { editor.highlighter !is EmptyEditorHighlighter })
 
 	protected fun getMinimapImage() : BufferedImage? {
 		var curImg = imgReference.get()
