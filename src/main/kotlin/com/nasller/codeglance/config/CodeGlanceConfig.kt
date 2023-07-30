@@ -9,7 +9,7 @@ import com.nasller.codeglance.config.enums.MouseJumpEnum
 
 class CodeGlanceConfig : BaseState() {
 	var pixelsPerLine by property(4)
-	var maxLinesCount by property(500000)
+	var maxLinesCount by property(100000)
 	var moreThanLineDelay by property(3000)
 	var disabled by property(false)
 	var singleFileVisibleButton by property(true)
