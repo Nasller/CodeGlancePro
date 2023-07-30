@@ -117,6 +117,17 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 		return if (editor.isDisposed || editor.document.lineCount <= 0) return null else curImg
 	}
 
+	protected fun getHighlightColor(startOffset:Int,endOffset:Int):MutableList<RangeHighlightColor>{
+		val list = mutableListOf<RangeHighlightColor>()
+		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(startOffset,endOffset) {
+			val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
+			if (foregroundColor != null) list.add(RangeHighlightColor(it.startOffset,it.endOffset,foregroundColor))
+			return@processRangeHighlightersOverlappingWith true
+		}
+		return list
+	}
+
+
 	protected fun Color.setColorRgba() {
 		scaleBuffer[0] = red.toFloat()
 		scaleBuffer[1] = green.toFloat()

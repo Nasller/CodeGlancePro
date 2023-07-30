@@ -183,19 +183,10 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 							foldRegion = visLinesIterator.getFoldRegion(++foldLineIndex)
 							foldStartOffset = foldRegion?.startOffset ?: -1
 						}else{
-							var highlight: RangeHighlightColor? = null
-							if(config.syntaxHighlight) {
-								editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(curStart,curEnd) {
-									if(!it.isValid) return@processRangeHighlightersOverlappingWith true
-									val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
-									return@processRangeHighlightersOverlappingWith if (foregroundColor != null) {
-										highlight = RangeHighlightColor(it.startOffset,it.endOffset,foregroundColor)
-										false
-									}else true
-								}
-							}
-							renderList.add(RenderData(text.substring(curStart,curEnd), highlight?.foregroundColor
-								?: runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() ?: defaultColor))
+							val highlightList = if(config.syntaxHighlight) getHighlightColor(curStart, curEnd) else emptyList()
+							renderList.add(RenderData(text.substring(curStart,curEnd), (highlightList.firstOrNull {
+								curStart >= it.startOffset && curEnd <= it.endOffset
+							}?.foregroundColor ?: runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() ?: defaultColor)))
 							hlIter.advance()
 						}
 					}while (!hlIter.atEnd() && hlIter.start < end)
