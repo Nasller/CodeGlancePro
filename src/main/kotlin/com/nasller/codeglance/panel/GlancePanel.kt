@@ -65,7 +65,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	fun refresh(refreshImage: Boolean = false) {
 		preferredSize = if(!config.hoveringToShowScrollBar) getConfigSize() else Dimension(0,0)
 		revalidate()
-		if (refreshImage) minimap.updateImage(false)
+		if (refreshImage) minimap.updateImage()
 		else repaint()
 	}
 

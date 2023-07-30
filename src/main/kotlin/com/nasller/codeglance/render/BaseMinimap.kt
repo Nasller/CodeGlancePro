@@ -44,7 +44,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 	private val scaleBuffer = FloatArray(4)
 	private val lock = AtomicBoolean(false)
 	private val alarm by lazy(LazyThreadSafetyMode.NONE) {
-		SingleAlarm({ updateImage(true) }, 500, this, Alarm.ThreadToUse.SWING_THREAD, modalityState)
+		SingleAlarm({ updateImage(directUpdate = true) }, 500, this, Alarm.ThreadToUse.SWING_THREAD, modalityState)
 	}
 	private var imgReference = MySoftReference.create(getBufferedImage(), useSoftReference())
 
@@ -58,8 +58,8 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 		return img
 	}
 
-	fun updateImage(directUpdate: Boolean = false){
-		if (glancePanel.checkVisible() && hasHighlighterOrNotMain() && lock.compareAndSet(false,true)) {
+	fun updateImage(canUpdate: Boolean = canUpdate(), directUpdate: Boolean = false){
+		if (canUpdate && lock.compareAndSet(false,true)) {
 			glancePanel.psiDocumentManager.performForCommittedDocument(editor.document) {
 				if (directUpdate) updateImgTask()
 				else invokeLater(modalityState){ updateImgTask() }
@@ -67,7 +67,8 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 		}
 	}
 
-	protected fun hasHighlighterOrNotMain() = (glancePanel.isNotMainEditorKind() || runReadAction { editor.highlighter !is EmptyEditorHighlighter })
+	protected fun canUpdate() = glancePanel.checkVisible() &&
+		(glancePanel.isNotMainEditorKind() || runReadAction { editor.highlighter !is EmptyEditorHighlighter })
 
 	private fun updateImgTask() {
 		try {

@@ -197,13 +197,11 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 			if(endVisualLine == 0 || visualLine <= endVisualLine) visLinesIterator.advance()
 			else break
 		}
-		updateImage()
+		updateImage(canUpdate = true)
 	}
 
 	override fun rebuildDataAndImage() {
-		if(glancePanel.checkVisible() && hasHighlighterOrNotMain()) {
-			invokeLater(modalityState){ refreshRenderData() }
-		}
+		if(canUpdate()) invokeLater(modalityState){ refreshRenderData() }
 	}
 
 	private fun resetRenderData(){
