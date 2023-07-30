@@ -14,8 +14,10 @@ import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.util.Alarm
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
+import com.intellij.util.SingleAlarm
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.config.CodeGlanceColorsPage
@@ -285,6 +287,17 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 	override fun recalculationEnds() = Unit
 
 	/** MarkupModelListener */
+	private val highlighterChangeList = mutableListOf<RangeHighlighterEx>()
+	private val highlightAlarm = SingleAlarm({
+		val highlighterExes = highlighterChangeList.filter { it.isValid }
+		if (highlighterExes.isNotEmpty()) {
+			val startLine = editor.offsetToVisualLine(highlighterExes.minOf { it.startOffset })
+			val endLine = editor.offsetToVisualLine(highlighterExes.maxOf { it.endOffset })
+			refreshRenderData(startLine, endLine)
+		}
+		highlighterChangeList.clear()
+	}, 500, this, Alarm.ThreadToUse.SWING_THREAD, modalityState)
+
 	override fun afterAdded(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,false)
 
 	override fun beforeRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,true)
@@ -295,8 +308,8 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation
 			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark)) return
 		if(highlightChange || EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) {
-			val visualLine = editor.offsetToVisualLine(highlighter.startOffset)
-			refreshRenderData(visualLine, visualLine)
+			highlighterChangeList.add(highlighter)
+			highlightAlarm.cancelAndRequest()
 		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
 			repaintOrRequest(false)
 		}
