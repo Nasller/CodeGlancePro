@@ -14,8 +14,10 @@ import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiComment
 import com.intellij.psi.util.findParentOfType
+import com.intellij.util.Alarm
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
+import com.intellij.util.SingleAlarm
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.config.CodeGlanceColorsPage
 import com.nasller.codeglance.panel.GlancePanel
@@ -27,6 +29,9 @@ import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
 class MainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean): BaseMinimap(glancePanel){
+	private val alarm by lazy(LazyThreadSafetyMode.NONE) {
+		SingleAlarm({ updateImage(directUpdate = true) }, 500, this, Alarm.ThreadToUse.SWING_THREAD, modalityState)
+	}
 	init { makeListener() }
 
 	override fun update() {
@@ -270,6 +275,13 @@ class MainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean): Bas
 	override fun propertyChange(evt: PropertyChangeEvent) {
 		if (EditorEx.PROP_HIGHLIGHTER != evt.propertyName || evt.newValue is EmptyEditorHighlighter) return
 		updateImage()
+	}
+
+	private fun repaintOrRequest(request: Boolean = true) {
+		if (glancePanel.checkVisible()) {
+			if (request) alarm.cancelAndRequest()
+			else glancePanel.repaint()
+		}
 	}
 
 	private data class MarkCommentData(var jumpEndOffset: Int,val comment: String,val font: Font,val fontHeight:Int)

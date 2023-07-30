@@ -299,8 +299,8 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 		if(highlightChange || EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) {
 			highlighterChangeList.add(highlighter)
 			highlightAlarm.cancelAndRequest()
-		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
-			repaintOrRequest(false)
+		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null && glancePanel.checkVisible()){
+			glancePanel.repaint()
 		}
 	}
 

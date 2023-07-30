@@ -17,10 +17,8 @@ import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
 import com.intellij.psi.tree.IElementType
-import com.intellij.util.Alarm
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
-import com.intellij.util.SingleAlarm
 import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MySoftReference
@@ -43,10 +41,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 	protected val rangeList by lazy(LazyThreadSafetyMode.NONE) { mutableListOf<Pair<Int, Range<Int>>>() }
 	private val scaleBuffer = FloatArray(4)
 	private val lock = AtomicBoolean(false)
-	private val alarm by lazy(LazyThreadSafetyMode.NONE) {
-		SingleAlarm({ updateImage(directUpdate = true) }, 500, this, Alarm.ThreadToUse.SWING_THREAD, modalityState)
-	}
-	private var imgReference = MySoftReference.create(getBufferedImage(), useSoftReference())
+	private var imgReference = MySoftReference.create(getBufferedImage(), EditorKind.MAIN_EDITOR != editor.editorKind)
 
 	abstract fun update()
 
@@ -67,9 +62,6 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 		}
 	}
 
-	protected fun canUpdate() = glancePanel.checkVisible() &&
-		(glancePanel.isNotMainEditorKind() || runReadAction { editor.highlighter !is EmptyEditorHighlighter })
-
 	private fun updateImgTask() {
 		try {
 			update()
@@ -79,7 +71,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 		}
 	}
 
-	open fun getMyRenderVisualLine(y: Int): Int {
+	fun getMyRenderVisualLine(y: Int): Int {
 		var minus = 0
 		for (pair in rangeList) {
 			if (y in pair.second.from..pair.second.to) {
@@ -91,7 +83,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 		return (y - minus) / config.pixelsPerLine
 	}
 
-	open fun getMyRenderLine(lineStart: Int, lineEnd: Int): Pair<Int, Int> {
+	fun getMyRenderLine(lineStart: Int, lineEnd: Int): Pair<Int, Int> {
 		var startAdd = 0
 		var endAdd = 0
 		for (pair in rangeList) {
@@ -108,12 +100,15 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 		return startAdd to endAdd
 	}
 
+	protected fun canUpdate() = glancePanel.checkVisible() &&
+			(glancePanel.isNotMainEditorKind() || runReadAction { editor.highlighter !is EmptyEditorHighlighter })
+
 	protected fun getMinimapImage() : BufferedImage? {
 		var curImg = imgReference.get()
 		if (curImg == null || curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
 			curImg?.flush()
 			curImg = getBufferedImage()
-			imgReference = MySoftReference.create(curImg, useSoftReference())
+			imgReference = MySoftReference.create(curImg, EditorKind.MAIN_EDITOR != editor.editorKind)
 		}
 		return if (editor.isDisposed || editor.document.lineCount <= 0) return null else curImg
 	}
@@ -127,7 +122,6 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 		}
 		return list
 	}
-
 
 	protected fun Color.setColorRgba() {
 		scaleBuffer[0] = red.toFloat()
@@ -210,8 +204,6 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 		raster.setPixel(x, y, scaleBuffer)
 	}
 
-	private fun useSoftReference() = EditorKind.MAIN_EDITOR != editor.editorKind
-
 	protected fun makeListener(){
 		Disposer.register(glancePanel,this)
 		editor.addPropertyChangeListener(this,this)
@@ -220,13 +212,6 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 		editor.inlayModel.addListener(this, this)
 		editor.softWrapModel.addSoftWrapChangeListener(this)
 		editor.filteredDocumentMarkupModel.addMarkupModelListener(this, this)
-	}
-
-	protected fun repaintOrRequest(request: Boolean = true) {
-		if (glancePanel.checkVisible()) {
-			if (request) alarm.cancelAndRequest()
-			else glancePanel.repaint()
-		}
 	}
 
 	override fun dispose() {
