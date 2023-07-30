@@ -12,6 +12,7 @@ import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiComment
 import com.intellij.psi.util.findParentOfType
 import com.intellij.util.Alarm
@@ -28,7 +29,7 @@ import java.beans.PropertyChangeEvent
 import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
-class MainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean): BaseMinimap(glancePanel){
+class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMinimap(glancePanel,virtualFile){
 	private val alarm by lazy(LazyThreadSafetyMode.NONE) {
 		SingleAlarm({ updateImage(directUpdate = true) }, 500, this, Alarm.ThreadToUse.SWING_THREAD, modalityState)
 	}

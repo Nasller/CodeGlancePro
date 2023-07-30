@@ -16,6 +16,7 @@ import com.intellij.openapi.editor.highlighter.HighlighterIterator
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.tree.IElementType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
@@ -27,7 +28,7 @@ import java.awt.image.BufferedImage
 import java.beans.PropertyChangeListener
 import java.util.concurrent.atomic.AtomicBoolean
 
-abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.SimpleAdapter(), PropertyChangeListener,
+abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val virtualFile: VirtualFile?): InlayModel.SimpleAdapter(), PropertyChangeListener,
 	PrioritizedDocumentListener, FoldingListener, MarkupModelListener, SoftWrapChangeListener, Disposable {
 	protected val editor
 		get() = glancePanel.editor
@@ -39,6 +40,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 	protected val modalityState
 		get() = if (editor.editorKind != EditorKind.MAIN_EDITOR) ModalityState.any() else ModalityState.NON_MODAL
 	protected val rangeList by lazy(LazyThreadSafetyMode.NONE) { mutableListOf<Pair<Int, Range<Int>>>() }
+	protected val isLogFile = virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
 	private val scaleBuffer = FloatArray(4)
 	private val lock = AtomicBoolean(false)
 	private var imgReference = MySoftReference.create(getBufferedImage(), editor.editorKind != EditorKind.MAIN_EDITOR)
@@ -100,8 +102,8 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 		return startAdd to endAdd
 	}
 
-	protected fun canUpdate() = glancePanel.checkVisible() &&
-			(editor.editorKind == EditorKind.CONSOLE || runReadAction { editor.highlighter !is EmptyEditorHighlighter })
+	protected fun canUpdate() = glancePanel.checkVisible() && (editor.editorKind == EditorKind.CONSOLE || virtualFile == null
+			|| runReadAction { editor.highlighter !is EmptyEditorHighlighter })
 
 	protected fun getMinimapImage() : BufferedImage? {
 		var curImg = imgReference.get()
@@ -265,11 +267,10 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.S
 	companion object{
 		fun EditorKind.getMinimap(glancePanel: GlancePanel): BaseMinimap = glancePanel.run {
 			val visualFile = editor.virtualFile ?: psiDocumentManager.getPsiFile(glancePanel.editor.document)?.virtualFile
-			val isLogFile = visualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
 			if(this@getMinimap == EditorKind.CONSOLE || visualFile == null ||
 				(this@getMinimap == EditorKind.MAIN_EDITOR && CodeGlanceConfigService.getConfig().useFastMinimapForMain)) {
-				FastMainMinimap(this, isLogFile)
-			}else MainMinimap(this, isLogFile)
+				FastMainMinimap(this, visualFile)
+			}else MainMinimap(this, visualFile)
 		}
 	}
 }

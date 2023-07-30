@@ -18,6 +18,7 @@ import com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapApplianceManage
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.*
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
@@ -35,7 +36,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
-class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) : BaseMinimap(glancePanel){
+class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : BaseMinimap(glancePanel, virtualFile){
 	private val myDocument = editor.document
 	private val renderDataList = ObjectArrayList.wrap<LineRenderData>(arrayOfNulls(editor.visibleLineCount))
 	private val mySoftWrapChangeListener = Proxy.newProxyInstance(platformClassLoader, softWrapListenerClass) { _, method, args ->
