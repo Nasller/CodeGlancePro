@@ -350,6 +350,7 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 	override fun dispose() {
 		super.dispose()
 		renderDataList.clear()
+		highlighterChangeList.clear()
 	}
 
 	private data class LineRenderData(val renderData: Array<RenderData>, val startX: Int, val y: Int, val aboveBlockLine: Int, val lineType: LineType = LineType.CODE,
