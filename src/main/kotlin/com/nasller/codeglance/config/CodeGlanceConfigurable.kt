@@ -223,6 +223,10 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 					checkBox(message("settings.three.sides.middle.diff"))
 						.bindSelected(config::diffThreeSideMiddle)
 						.gap(RightGap.SMALL)
+				},{
+					checkBox(message("settings.experiment.use.fast.minimap.for.main"))
+						.bindSelected(config::useFastMinimapForMain)
+						.gap(RightGap.SMALL)
 				})
 			}
 			row {

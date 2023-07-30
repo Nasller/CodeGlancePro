@@ -21,6 +21,7 @@ import com.intellij.util.Alarm
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.SingleAlarm
+import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MySoftReference
 import java.awt.Color
@@ -28,8 +29,8 @@ import java.awt.image.BufferedImage
 import java.beans.PropertyChangeListener
 import java.util.concurrent.atomic.AtomicBoolean
 
-abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyChangeListener,PrioritizedDocumentListener,
-	FoldingListener, MarkupModelListener, SoftWrapChangeListener, InlayModel.Listener, Disposable {
+abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.SimpleAdapter(), PropertyChangeListener,
+	PrioritizedDocumentListener, FoldingListener, MarkupModelListener, SoftWrapChangeListener, Disposable {
 	protected val editor
 		get() = glancePanel.editor
 	protected val config
@@ -267,7 +268,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel) : PropertyCha
 		fun EditorKind.getMinimap(glancePanel: GlancePanel): BaseMinimap = glancePanel.run {
 			val visualFile = editor.virtualFile ?: psiDocumentManager.getPsiFile(glancePanel.editor.document)?.virtualFile
 			val isLogFile = visualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
-			if(this@getMinimap == EditorKind.CONSOLE || visualFile == null) {
+			if(this@getMinimap == EditorKind.CONSOLE || visualFile == null || CodeGlanceConfigService.getConfig().useFastMinimapForMain) {
 				FastMainMinimap(this, isLogFile)
 			}else MainMinimap(this, isLogFile)
 		}

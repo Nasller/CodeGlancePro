@@ -2,6 +2,7 @@ package com.nasller.codeglance.render
 
 import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.diagnostic.Attachment
 import com.intellij.openapi.editor.*
 import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.editor.event.DocumentEvent
@@ -20,15 +21,18 @@ import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.config.CodeGlanceColorsPage
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MyVisualLinesIterator
+import it.unimi.dsi.fastutil.objects.ObjectArrayList
+import org.slf4j.LoggerFactory
 import java.awt.Color
 import java.awt.Font
 import java.beans.PropertyChangeEvent
-import java.util.*
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
 class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) : BaseMinimap(glancePanel){
-	private val renderDataList = ArrayList<LineRenderData?>(Collections.nCopies(editor.visibleLineCount, null))
+	private val renderDataList = ObjectArrayList.wrap<LineRenderData>(arrayOfNulls(editor.visibleLineCount))
 	init { makeListener() }
 
 	override fun update() {
@@ -157,6 +161,7 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 					renderDataList[visualLine] = LineRenderData(emptyArray(), 2, config.pixelsPerLine, aboveBlockLine,
 						LineType.COMMENT, commentHighlighterEx = markCommentMap[start])
 				}else {
+					//CODE
 					val end = visLinesIterator.getVisualLineEndOffset()
 					var foldLineIndex = visLinesIterator.getStartFoldingIndex()
 					val hlIter = editor.highlighter.run {
@@ -165,9 +170,9 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 						else this.createIterator(start)
 					}
 					val renderList = mutableListOf<RenderData>()
-					while (!hlIter.atEnd() && hlIter.end <= end){
-						val curStart = if(start >= hlIter.start) start else hlIter.start
+					do {
 						val curEnd = hlIter.end
+						val curStart = if(start > hlIter.start && start < curEnd) start else hlIter.start
 						if(curStart == foldStartOffset){
 							val foldEndOffset = foldRegion!!.endOffset
 							renderList.add(RenderData(StringUtil.replace(foldRegion.placeholderText, "\n", " "),
@@ -179,6 +184,7 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 							var highlight: RangeHighlightColor? = null
 							if(config.syntaxHighlight) {
 								editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(curStart,curEnd) {
+									if(!it.isValid) return@processRangeHighlightersOverlappingWith true
 									val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
 									return@processRangeHighlightersOverlappingWith if (foregroundColor != null) {
 										highlight = RangeHighlightColor(it.startOffset,it.endOffset,foregroundColor)
@@ -190,10 +196,9 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 								?: runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() ?: defaultColor))
 							hlIter.advance()
 						}
-					}
+					}while (!hlIter.atEnd() && hlIter.start < end)
 					renderDataList[visualLine] = LineRenderData(renderList.toTypedArray(),
-						visLinesIterator.getStartsWithSoftWrap()?.indentInColumns ?: 0,
-						config.pixelsPerLine, aboveBlockLine)
+						visLinesIterator.getStartsWithSoftWrap()?.indentInColumns ?: 0, config.pixelsPerLine, aboveBlockLine)
 				}
 			}
 			if(endVisualLine == 0 || visualLine <= endVisualLine) visLinesIterator.advance()
@@ -206,32 +211,52 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 
 	private fun resetRenderData(){
 		renderDataList.clear()
-		renderDataList.addAll(Collections.nCopies(editor.visibleLineCount, null))
+		renderDataList.addAll(ObjectArrayList.wrap(arrayOfNulls(editor.visibleLineCount)))
 	}
 
 	/** FoldingListener */
+	private var myFoldingChangeStartOffset = Int.MAX_VALUE
+	private var myFoldingChangeEndOffset = Int.MIN_VALUE
+
+	override fun onFoldRegionStateChange(region: FoldRegion) {
+		if (editor.document.isInBulkUpdate) return
+		if(region.isValid) {
+			myFoldingChangeStartOffset = min(myFoldingChangeStartOffset, region.startOffset)
+			myFoldingChangeEndOffset = max(myFoldingChangeEndOffset, region.endOffset)
+		}
+	}
+
 	override fun onFoldProcessingEnd() {
 		if (editor.document.isInBulkUpdate) return
-		refreshRenderData()
+		if (myFoldingChangeStartOffset <= myFoldingChangeEndOffset) {
+			val startLine = editor.offsetToVisualLine(myFoldingChangeStartOffset)
+			val endLine = editor.offsetToVisualLine(myFoldingChangeEndOffset)
+			val lineDiff = editor.visibleLineCount - renderDataList.size
+			if (lineDiff > 0) {
+				renderDataList.addAll(startLine, ObjectArrayList.wrap(arrayOfNulls(lineDiff)))
+			} else if (lineDiff < 0) {
+				renderDataList.removeElements(startLine, startLine - lineDiff)
+			}
+			refreshRenderData(startLine, endLine)
+		}
+		myFoldingChangeStartOffset = Int.MAX_VALUE
+		myFoldingChangeEndOffset = Int.MIN_VALUE
+		assertValidState()
 	}
 
 	override fun onCustomFoldRegionPropertiesChange(region: CustomFoldRegion, flags: Int) {
 		if (flags and FoldingListener.ChangeFlags.HEIGHT_CHANGED != 0 && !editor.document.isInBulkUpdate) {
-			val visualLine = editor.offsetToVisualLine(region.startOffset)
+			val startOffset = region.startOffset
+			if (editor.foldingModel.getCollapsedRegionAtOffset(startOffset) !== region) return
+			val visualLine = editor.offsetToVisualLine(startOffset)
 			refreshRenderData(visualLine, visualLine)
 		}
 	}
 
-	/** InlayModel.Listener */
-	override fun onAdded(inlay: Inlay<*>) = checkinInlayAndUpdate(inlay)
-
-	override fun onRemoved(inlay: Inlay<*>) = checkinInlayAndUpdate(inlay)
-
-	override fun onUpdated(inlay: Inlay<*>, changeFlags: Int) = checkinInlayAndUpdate(inlay, changeFlags)
-
-	private fun checkinInlayAndUpdate(inlay: Inlay<*>, changeFlags: Int? = null) {
+	/** InlayModel.SimpleAdapter */
+	override fun onUpdated(inlay: Inlay<*>, changeFlags: Int) {
 		if(editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || inlay.placement != Inlay.Placement.ABOVE_LINE
-			|| !inlay.isValid || (changeFlags != null && changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0)) return
+			|| !inlay.isValid || changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0) return
 		val visualLine = editor.offsetToVisualLine(inlay.offset)
 		refreshRenderData(visualLine,visualLine)
 	}
@@ -264,8 +289,7 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 		//如果开启隐藏滚动条则忽略Vcs高亮
 		val highlightChange = glancePanel.markCommentState.markCommentHighlightChange(highlighter, remove)
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation
-			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark) ||
-			(editor.editorKind == EditorKind.CONSOLE && remove)) return
+			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark)) return
 		if(highlightChange || EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) {
 			val visualLine = editor.offsetToVisualLine(highlighter.startOffset)
 			refreshRenderData(visualLine, visualLine)
@@ -275,30 +299,26 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 	}
 
 	/** PrioritizedDocumentListener */
-	private var myUpdateInProgress: Boolean = false
 	private var myDocumentChangeOldEndLine = 0
 
 	override fun beforeDocumentChange(event: DocumentEvent) {
+		assertValidState()
 		if (event.document.isInBulkUpdate) return
-		myUpdateInProgress = true
 		myDocumentChangeOldEndLine = editor.offsetToVisualLine(event.offset + event.oldLength)
 	}
 
 	override fun documentChanged(event: DocumentEvent) {
-		try {
-			if (event.document.isInBulkUpdate) return
-			val startVisualLine = editor.offsetToVisualLine(event.offset)
-			val endVisualLine = editor.offsetToVisualLine(event.offset + event.newLength)
-			if(myDocumentChangeOldEndLine < endVisualLine) {
-				renderDataList.addAll(myDocumentChangeOldEndLine + 1,
-					Collections.nCopies(endVisualLine - myDocumentChangeOldEndLine, null))
-			}else if(myDocumentChangeOldEndLine > endVisualLine) {
-				renderDataList.subList(endVisualLine + 1, myDocumentChangeOldEndLine + 1).clear()
-			}
-			refreshRenderData(startVisualLine, endVisualLine)
-		}finally {
-			myUpdateInProgress = false
+		if (event.document.isInBulkUpdate) return
+		val startVisualLine = editor.offsetToVisualLine(event.offset)
+		val endVisualLine = editor.offsetToVisualLine(event.offset + event.newLength)
+		if(myDocumentChangeOldEndLine < endVisualLine) {
+			renderDataList.addAll(myDocumentChangeOldEndLine + 1,
+				ObjectArrayList.wrap(arrayOfNulls(endVisualLine - myDocumentChangeOldEndLine)))
+		}else if(myDocumentChangeOldEndLine > endVisualLine) {
+			renderDataList.removeElements(endVisualLine + 1, myDocumentChangeOldEndLine + 1)
 		}
+		refreshRenderData(startVisualLine, endVisualLine)
+		assertValidState()
 	}
 
 	override fun bulkUpdateFinished(document: Document) = refreshRenderData()
@@ -309,6 +329,14 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 	override fun propertyChange(evt: PropertyChangeEvent) {
 		if (EditorEx.PROP_HIGHLIGHTER != evt.propertyName || evt.newValue is EmptyEditorHighlighter) return
 		refreshRenderData()
+	}
+
+	private fun assertValidState() {
+		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode) return
+		if (editor.visibleLineCount != renderDataList.size) {
+			LOG.error("Inconsistent state {}", Attachment("glance.txt", editor.dumpState()))
+			rebuildDataAndImage()
+		}
 	}
 
 	override fun dispose() {
@@ -349,4 +377,8 @@ class FastMainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean) 
 	private data class RenderData(val renderStr: String, val color: Color)
 
 	private enum class LineType{ CODE, COMMENT, CUSTOM_FOLD}
+
+	private companion object{
+		private val LOG = LoggerFactory.getLogger(FastMainMinimap::class.java)
+	}
 }

@@ -221,16 +221,10 @@ class MainMinimap(glancePanel: GlancePanel, private val isLogFile: Boolean): Bas
 		if (flags and FoldingListener.ChangeFlags.HEIGHT_CHANGED != 0 && !editor.document.isInBulkUpdate) repaintOrRequest()
 	}
 
-	/** InlayModel.Listener */
-	override fun onAdded(inlay: Inlay<*>) = checkinInlayAndUpdate(inlay)
-
-	override fun onRemoved(inlay: Inlay<*>) = checkinInlayAndUpdate(inlay)
-
-	override fun onUpdated(inlay: Inlay<*>, changeFlags: Int) = checkinInlayAndUpdate(inlay, changeFlags)
-
-	private fun checkinInlayAndUpdate(inlay: Inlay<*>, changeFlags: Int? = null) {
+	/** InlayModel.SimpleAdapter */
+	override fun onUpdated(inlay: Inlay<*>, changeFlags: Int) {
 		if(editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || inlay.placement != Inlay.Placement.ABOVE_LINE
-			|| !inlay.isValid || (changeFlags != null && changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0)) return
+			|| !inlay.isValid || changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0) return
 		repaintOrRequest()
 	}
 

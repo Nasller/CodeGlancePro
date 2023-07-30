@@ -49,6 +49,7 @@ class CodeGlanceConfig : BaseState() {
 	var unTypedWidth by property(50)
 	var consoleWidth by property(50)
 	var previewWidth by property(50)
+	var useFastMinimapForMain by property(false)
 
 	fun singleFileVisibleButton() = !hoveringToShowScrollBar && singleFileVisibleButton
 
