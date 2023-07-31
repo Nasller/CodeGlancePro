@@ -180,8 +180,8 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 	}
 
 	private fun makeMarkHighlight(text: CharSequence, graphics: Graphics2D):Map<Int,MarkCommentData>{
-		val markCommentMap = glancePanel.markCommentState.markCommentMap
-		if(markCommentMap.isNotEmpty()) {
+		val markCommentMap = glancePanel.markCommentState.getAllMarkCommentHighlight()
+		return if(markCommentMap.isNotEmpty()) {
 			val lineCount = editor.document.lineCount
 			val map = mutableMapOf<Int, MarkCommentData>()
 			val file = glancePanel.psiDocumentManager.getCachedPsiFile(editor.document)
@@ -194,7 +194,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 					else -> EditorFontType.PLAIN
 				}
 			).deriveFont(config.markersScaleFactor * config.pixelsPerLine)
-			for (highlighterEx in markCommentMap.values) {
+			for (highlighterEx in markCommentMap) {
 				val startOffset = highlighterEx.startOffset
 				file?.findElementAt(startOffset)?.findParentOfType<PsiComment>(false)?.let { comment ->
 					val textRange = comment.textRange
@@ -211,8 +211,8 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 			graphics.color = attributes.foregroundColor ?: editor.colorsScheme.defaultForeground
 			graphics.composite = GlancePanel.srcOver
 			UISettings.setupAntialiasing(graphics)
-			return map
-		} else return emptyMap()
+			map
+		} else emptyMap()
 	}
 
 	override fun rebuildDataAndImage() = updateImage(canUpdate = canUpdate())
@@ -254,16 +254,21 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 	override fun recalculationEnds() = Unit
 
 	/** MarkupModelListener */
-	override fun afterAdded(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,false)
+	override fun afterAdded(highlighter: RangeHighlighterEx) {
+		glancePanel.markCommentState.markCommentHighlightChange(highlighter, false)
+		updateRangeHighlight(highlighter)
+	}
 
-	override fun afterRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,true)
+	override fun beforeRemoved(highlighter: RangeHighlighterEx) {
+		glancePanel.markCommentState.markCommentHighlightChange(highlighter, true)
+	}
 
-	private fun updateRangeHighlight(highlighter: RangeHighlighterEx, remove: Boolean) {
-		//如果开启隐藏滚动条则忽略Vcs高亮
-		val highlightChange = glancePanel.markCommentState.markCommentHighlightChange(highlighter, remove)
-		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation
-			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark)) return
-		if(highlightChange || EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) {
+	override fun afterRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter)
+
+	private fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
+		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation) return
+		if(highlighter.isThinErrorStripeMark.not() && (CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
+			EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
 			repaintOrRequest()
 		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
 			repaintOrRequest(false)

@@ -148,7 +148,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 
 		val text = myDocument.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground
-		val markCommentMap = glancePanel.markCommentState.markCommentMap.values
+		val markCommentMap = glancePanel.markCommentState.getAllMarkCommentHighlight()
 			.associateBy { DocumentUtil.getLineStartOffset(it.startOffset, myDocument) }
 		while (!visLinesIterator.atEnd()) {
 			val start = visLinesIterator.getVisualLineStartOffset()
@@ -345,16 +345,22 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	/** MarkupModelListener */
-	override fun afterAdded(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter, false)
+	override fun afterAdded(highlighter: RangeHighlighterEx) {
+		glancePanel.markCommentState.markCommentHighlightChange(highlighter, false)
+		updateRangeHighlight(highlighter)
+	}
 
-	override fun afterRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter, true)
+	override fun beforeRemoved(highlighter: RangeHighlighterEx) {
+		glancePanel.markCommentState.markCommentHighlightChange(highlighter, true)
+	}
 
-	private fun updateRangeHighlight(highlighter: RangeHighlighterEx, remove: Boolean) {
-		val highlightChange = glancePanel.markCommentState.markCommentHighlightChange(highlighter, remove)
+	override fun afterRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter)
+
+	private fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
 		EdtInvocationManager.invokeLaterIfNeeded {
 			if (!glancePanel.checkVisible() || myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode ||
 				editor.foldingModel.isInBatchFoldingOperation || myDuringDocumentUpdate) return@invokeLaterIfNeeded
-			if(highlighter.isThinErrorStripeMark.not() && (highlightChange ||
+			if(highlighter.isThinErrorStripeMark.not() && (CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
 						EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
 				val textLength = myDocument.textLength
 				val startOffset = MathUtil.clamp(highlighter.affectedAreaStartOffset, 0, textLength)
