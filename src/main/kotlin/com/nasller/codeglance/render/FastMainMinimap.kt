@@ -43,7 +43,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	private val myDocument = editor.document
 	private val renderDataList = ObjectArrayList<LineRenderData>()
 	private val mySoftWrapChangeListener = Proxy.newProxyInstance(platformClassLoader, softWrapListenerClass) { _, method, args ->
-		return@newProxyInstance if("onRecalculationEnd" == method.name && args?.isNotEmpty() == true && args[0] is IncrementalCacheUpdateEvent){
+		return@newProxyInstance if("onRecalculationEnd" == method.name && args?.size == 1){
 			 onSoftWrapRecalculationEnd(args[0] as IncrementalCacheUpdateEvent)
 		}else null
 	}.also { editor.softWrapModel.applianceManager.addSoftWrapListener(it) }
