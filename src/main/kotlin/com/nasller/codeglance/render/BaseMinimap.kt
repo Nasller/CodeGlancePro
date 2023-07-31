@@ -30,15 +30,14 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val virtualFile: VirtualFile?): InlayModel.SimpleAdapter(), PropertyChangeListener,
 	PrioritizedDocumentListener, FoldingListener, MarkupModelListener, SoftWrapChangeListener, Disposable {
-	protected val editor
-		get() = glancePanel.editor
+	protected val editor = glancePanel.editor
 	protected val config
 		get() = glancePanel.config
 	protected val scrollState
 		get() = glancePanel.scrollState
 	protected var softWrapEnabled = false
 	protected val modalityState
-		get() = if (editor.editorKind != EditorKind.MAIN_EDITOR) ModalityState.any() else ModalityState.NON_MODAL
+		get() = if (editor.editorKind != EditorKind.MAIN_EDITOR) ModalityState.any() else ModalityState.defaultModalityState()
 	protected val rangeList by lazy(LazyThreadSafetyMode.NONE) { mutableListOf<Pair<Int, Range<Int>>>() }
 	protected val isLogFile = virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
 	private val scaleBuffer = FloatArray(4)
@@ -113,16 +112,6 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 			imgReference = MySoftReference.create(curImg, editor.editorKind != EditorKind.MAIN_EDITOR)
 		}
 		return if (editor.isDisposed || editor.document.lineCount <= 0) return null else curImg
-	}
-
-	protected fun getHighlightColor(startOffset:Int,endOffset:Int):MutableList<RangeHighlightColor>{
-		val list = mutableListOf<RangeHighlightColor>()
-		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(startOffset,endOffset) {
-			val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
-			if (foregroundColor != null) list.add(RangeHighlightColor(it.startOffset,it.endOffset,foregroundColor))
-			return@processRangeHighlightersOverlappingWith true
-		}
-		return list
 	}
 
 	protected fun Color.setColorRgba() {

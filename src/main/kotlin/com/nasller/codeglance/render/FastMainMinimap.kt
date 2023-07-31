@@ -19,8 +19,11 @@ import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.util.*
-import com.intellij.util.concurrency.annotations.RequiresEdt
+import com.intellij.util.DocumentEventUtil
+import com.intellij.util.DocumentUtil
+import com.intellij.util.MathUtil
+import com.intellij.util.Range
+import com.intellij.util.ui.EdtInvocationManager
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.config.CodeGlanceColorsPage
 import com.nasller.codeglance.panel.GlancePanel
@@ -137,7 +140,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		}
 	}
 
-	@RequiresEdt
 	private fun refreshRenderData(startVisualLine: Int = 0, endVisualLine: Int = 0) {
 		if(!glancePanel.checkVisible()) return
 		if(startVisualLine == 0 && endVisualLine == 0) resetRenderData()
@@ -195,10 +197,9 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 							foldRegion = visLinesIterator.getFoldRegion(++foldLineIndex)
 							foldStartOffset = foldRegion?.startOffset ?: -1
 						}else{
-							val highlightList = if(config.syntaxHighlight) getHighlightColor(curStart, curEnd) else emptyList()
-							renderList.add(RenderData(text.substring(curStart,curEnd), (highlightList.firstOrNull {
-								curStart >= it.startOffset && curEnd <= it.endOffset
-							}?.foregroundColor ?: runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() ?: defaultColor)))
+							val color = getHighlightColor(curStart, curEnd)?.foregroundColor
+								?: runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() ?: defaultColor
+							renderList.add(RenderData(text.substring(curStart,curEnd), color))
 							hlIter.advance()
 						}
 					}while (!hlIter.atEnd() && hlIter.start < end)
@@ -210,6 +211,23 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			else break
 		}
 		updateImage(canUpdate = true)
+	}
+
+	private fun getHighlightColor(curStartOffset: Int, curEndOffset: Int): RangeHighlightColor? {
+		var highlighter: RangeHighlightColor? = null
+		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(curStartOffset, curEndOffset) {
+			val startOffset = it.startOffset
+			val endOffset = it.endOffset
+			if (curStartOffset >= startOffset && curEndOffset <= endOffset) {
+				val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
+				if (foregroundColor != null) {
+					highlighter = RangeHighlightColor(startOffset, endOffset, foregroundColor)
+					return@processRangeHighlightersOverlappingWith false
+				}
+			}
+			return@processRangeHighlightersOverlappingWith true
+		}
+		return highlighter
 	}
 
 	override fun rebuildDataAndImage() {
@@ -285,8 +303,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	override fun onUpdated(inlay: Inlay<*>, changeFlags: Int) {
 		if(myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || inlay.placement != Inlay.Placement.ABOVE_LINE
 			|| !inlay.isValid || changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0) return
-		val visualLine = editor.offsetToVisualLine(inlay.offset)
-		refreshRenderData(visualLine,visualLine)
+		val offset = inlay.offset
+		doInvalidateRange(offset,offset)
 	}
 
 	override fun onBatchModeFinish(editor: Editor) {
@@ -327,39 +345,44 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	/** MarkupModelListener */
-	private val highlighterChangeList = mutableListOf<RangeHighlighterEx>()
-	private val highlightAlarm = SingleAlarm({
-		if(myDuringDocumentUpdate || editor.foldingModel.isInBatchFoldingOperation) return@SingleAlarm
-		val highlighterExes = highlighterChangeList.filter { it.isValid }
-		if (highlighterExes.isNotEmpty()) {
-			val startLine = editor.offsetToVisualLine(highlighterExes.minOf { it.startOffset })
-			val endLine = editor.offsetToVisualLine(highlighterExes.maxOf { it.endOffset })
-			refreshRenderData(startLine, endLine)
-		}
-		highlighterChangeList.clear()
-	}, 500, this, Alarm.ThreadToUse.SWING_THREAD, modalityState)
+	override fun afterAdded(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter, false)
 
-	override fun afterAdded(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,false)
+	override fun afterRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter, true)
 
-	override fun beforeRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,true)
-
-	private fun updateRangeHighlight(highlighter: RangeHighlighterEx,remove: Boolean) {
-		//如果开启隐藏滚动条则忽略Vcs高亮
+	private fun updateRangeHighlight(highlighter: RangeHighlighterEx, remove: Boolean) {
 		val highlightChange = glancePanel.markCommentState.markCommentHighlightChange(highlighter, remove)
-		if (myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation
-			|| (glancePanel.config.hideOriginalScrollBar && highlighter.isThinErrorStripeMark) || myDuringDocumentUpdate || checkDirty()) return
-		if(highlightChange || EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme))) {
-			highlighterChangeList.add(highlighter)
-			highlightAlarm.cancelAndRequest()
-		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null && glancePanel.checkVisible()){
-			glancePanel.repaint()
+		EdtInvocationManager.invokeLaterIfNeeded {
+			if (!glancePanel.checkVisible() || myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode ||
+				editor.foldingModel.isInBatchFoldingOperation || myDuringDocumentUpdate) return@invokeLaterIfNeeded
+			if(highlighter.isThinErrorStripeMark.not() && (highlightChange ||
+						EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
+				val textLength = myDocument.textLength
+				val startOffset = MathUtil.clamp(highlighter.affectedAreaStartOffset, 0, textLength)
+				val endOffset = MathUtil.clamp(highlighter.affectedAreaEndOffset, 0, textLength)
+				if (startOffset > endOffset || startOffset >= textLength || endOffset < 0) return@invokeLaterIfNeeded
+				invalidateRange(startOffset, endOffset)
+			}else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null && glancePanel.checkVisible()){
+				glancePanel.repaint()
+			}
 		}
 	}
 
 	/** PropertyChangeListener */
 	override fun propertyChange(evt: PropertyChangeEvent) {
-		if (EditorEx.PROP_HIGHLIGHTER != evt.propertyName || evt.newValue is EmptyEditorHighlighter) return
+		if (EditorEx.PROP_HIGHLIGHTER != evt.propertyName) return
 		refreshRenderData()
+	}
+
+	private fun invalidateRange(startOffset: Int, endOffset: Int) {
+		if(myDuringDocumentUpdate) {
+			myDocumentChangeStartOffset = min(myDocumentChangeStartOffset, startOffset)
+			myDocumentChangeEndOffset = max(myDocumentChangeEndOffset, endOffset)
+		}else if (myFoldingChangeEndOffset != Int.MIN_VALUE) {
+			myFoldingChangeStartOffset = min(myFoldingChangeStartOffset, startOffset)
+			myFoldingChangeEndOffset = max(myFoldingChangeEndOffset, endOffset)
+		}else {
+			doInvalidateRange(startOffset, endOffset)
+		}
 	}
 
 	private fun doInvalidateRange(startOffset: Int, endOffset: Int, reValidLine: Boolean = true) {
@@ -398,7 +421,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		super.dispose()
 		editor.softWrapModel.applianceManager.removeSoftWrapListener(mySoftWrapChangeListener)
 		renderDataList.clear()
-		highlighterChangeList.clear()
 	}
 
 	private data class LineRenderData(val renderData: Array<RenderData>, val startX: Int, val y: Int, val aboveBlockLine: Int, val lineType: LineType = LineType.CODE,

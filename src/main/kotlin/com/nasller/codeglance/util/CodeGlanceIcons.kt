@@ -15,7 +15,7 @@ object CodeGlanceIcons {
 	val Widget = load("/icons/widget.svg")
 
 	private fun load(path: String): Icon {
-		return IconManager.getInstance().getIcon(path, CodeGlanceIcons::class.java)
+		return IconManager.getInstance().getIcon(path, CodeGlanceIcons::class.java.classLoader)
 	}
 
 	@Suppress("UnstableApiUsage")

@@ -4,7 +4,7 @@
       <option name="env">
         <map>
           <entry key="buildSearchableOptions.enabled" value="true" />
-          <entry key="languagePlugins" value="com.intellij.zh:231.250" />
+          <entry key="languagePlugins" value="com.intellij.zh:232.172" />
         </map>
       </option>
       <option name="executionName" />
@@ -24,6 +24,7 @@
     <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
     <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
     <DebugAllEnabled>false</DebugAllEnabled>
+    <RunAsTest>false</RunAsTest>
     <method v="2" />
   </configuration>
 </component>

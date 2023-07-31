@@ -169,6 +169,16 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 		g.dispose()
 	}
 
+	private fun getHighlightColor(startOffset:Int, endOffset:Int):MutableList<RangeHighlightColor>{
+		val list = mutableListOf<RangeHighlightColor>()
+		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(startOffset,endOffset) {
+			val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
+			if (foregroundColor != null) list.add(RangeHighlightColor(it.startOffset,it.endOffset,foregroundColor))
+			return@processRangeHighlightersOverlappingWith true
+		}
+		return list
+	}
+
 	private fun makeMarkHighlight(text: CharSequence, graphics: Graphics2D):Map<Int,MarkCommentData>{
 		val markCommentMap = glancePanel.markCommentState.markCommentMap
 		if(markCommentMap.isNotEmpty()) {
