@@ -256,7 +256,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 	/** MarkupModelListener */
 	override fun afterAdded(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,false)
 
-	override fun beforeRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,true)
+	override fun afterRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter,true)
 
 	private fun updateRangeHighlight(highlighter: RangeHighlighterEx, remove: Boolean) {
 		//如果开启隐藏滚动条则忽略Vcs高亮
