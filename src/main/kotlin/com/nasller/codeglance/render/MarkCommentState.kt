@@ -10,7 +10,7 @@ class MarkCommentState(val glancePanel: GlancePanel) {
 	private val markCommentMap = lazy { ConcurrentHashMap<Long,RangeHighlighterEx>() }
 
 	fun getAllMarkCommentHighlight(): Collection<RangeHighlighterEx> =
-		if (markCommentMap.isInitialized() && markCommentMap.value.isNotEmpty()) markCommentMap.value.values else emptyList()
+		if(markCommentMap.isInitialized() && markCommentMap.value.isNotEmpty()) markCommentMap.value.values else emptyList()
 
 	fun markCommentHighlightChange(highlighter: RangeHighlighterEx, remove: Boolean) : Boolean{
 		return if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey){

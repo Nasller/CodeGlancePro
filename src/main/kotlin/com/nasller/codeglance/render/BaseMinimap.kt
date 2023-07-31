@@ -38,7 +38,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 	protected var softWrapEnabled = false
 	protected val modalityState
 		get() = if (editor.editorKind != EditorKind.MAIN_EDITOR) ModalityState.any() else ModalityState.defaultModalityState()
-	protected val rangeList by lazy(LazyThreadSafetyMode.NONE) { mutableListOf<Pair<Int, Range<Int>>>() }
+	protected val rangeList = mutableListOf<Pair<Int, Range<Int>>>()
 	protected val isLogFile = virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
 	private val scaleBuffer = FloatArray(4)
 	private val lock = AtomicBoolean(false)

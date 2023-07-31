@@ -30,7 +30,7 @@ import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
 class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMinimap(glancePanel,virtualFile){
-	private val alarm by lazy(LazyThreadSafetyMode.NONE) {
+	private val alarm by lazy {
 		SingleAlarm({ updateImage(directUpdate = true) }, 500, this, Alarm.ThreadToUse.SWING_THREAD, modalityState)
 	}
 	init { makeListener() }
