@@ -38,13 +38,16 @@ import kotlin.math.roundToInt
 @Suppress("UnstableApiUsage")
 class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : BaseMinimap(glancePanel, virtualFile){
 	private val myDocument = editor.document
-	private val renderDataList = ObjectArrayList.wrap<LineRenderData>(arrayOfNulls(editor.visibleLineCount))
+	private val renderDataList = ObjectArrayList<LineRenderData>()
 	private val mySoftWrapChangeListener = Proxy.newProxyInstance(platformClassLoader, softWrapListenerClass) { _, method, args ->
 		return@newProxyInstance if("onRecalculationEnd" == method.name && args?.isNotEmpty() == true && args[0] is IncrementalCacheUpdateEvent){
 			 onSoftWrapRecalculationEnd(args[0] as IncrementalCacheUpdateEvent)
 		}else null
 	}.also { editor.softWrapModel.applianceManager.addSoftWrapListener(it) }
-	init { makeListener() }
+	init {
+		resetRenderData()
+		makeListener()
+	}
 
 	override fun update() {
 		val curImg = getMinimapImage() ?: return
