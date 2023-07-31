@@ -361,7 +361,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 				val endOffset = MathUtil.clamp(highlighter.affectedAreaEndOffset, 0, textLength)
 				if (startOffset > endOffset || startOffset >= textLength || endOffset < 0) return@invokeLaterIfNeeded
 				invalidateRange(startOffset, endOffset)
-			}else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null && glancePanel.checkVisible()){
+			}else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
 				glancePanel.repaint()
 			}
 		}
