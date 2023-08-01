@@ -93,8 +93,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			}
 			var curX = it.startX
 			var curY = totalY
-			val renderCharAction = { char: Char ->
-				when (char.code) {
+			val renderCharAction = { code: Int ->
+				when (code) {
 					9 -> curX += 4 //TAB
 					10 -> {//ENTER
 						curX = 0
@@ -102,13 +102,13 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 					}
 					else -> curX += 1
 				}
-				curImg.renderImage(curX, curY, char.code)
+				curImg.renderImage(curX, curY, code)
 			}
 			when(it.lineType){
-				LineType.CODE -> {
+				LineType.CODE, LineType.CUSTOM_FOLD -> {
 					it.renderData.forEach { renderData ->
 						renderData.color.setColorRgba()
-						renderData.renderStr.forEach(renderCharAction)
+						renderData.renderCode.forEach(renderCharAction)
 					}
 				}
 				LineType.COMMENT -> {
@@ -121,10 +121,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 					graphics.font = textFont
 					graphics.drawString(commentText, curX,curY + (graphics.getFontMetrics(textFont).height / 1.5).roundToInt())
 					skipY = (config.markersScaleFactor.toInt() - 1) * config.pixelsPerLine
-				}
-				LineType.CUSTOM_FOLD -> {
-					it.color!!.setColorRgba()
-					it.renderStr!!.forEach(renderCharAction)
 				}
 			}
 			totalY += it.y
@@ -140,14 +136,16 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		}
 	}
 
-	private fun refreshRenderData(startVisualLine: Int = 0, endVisualLine: Int = 0) {
+	private fun refreshRenderData(startVisualLine: Int, endVisualLine: Int) {
 		if(!glancePanel.checkVisible()) return
-		if(startVisualLine == 0 && endVisualLine == 0) resetRenderData()
 		val visLinesIterator = MyVisualLinesIterator(editor, startVisualLine)
 		if(visLinesIterator.atEnd()) return
 
 		val text = myDocument.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground
+		val docComment by lazy(LazyThreadSafetyMode.NONE){
+			editor.colorsScheme.getAttributes(DefaultLanguageHighlighterColors.DOC_COMMENT).foregroundColor
+		}
 		val markCommentMap = glancePanel.markCommentState.getAllMarkCommentHighlight()
 			.associateBy { DocumentUtil.getLineStartOffset(it.startOffset, myDocument) }
 		while (!visLinesIterator.atEnd()) {
@@ -169,8 +167,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 					val lineEndOffset = myDocument.getLineEndOffset(line)
 					if(foldEndOffset < lineEndOffset) foldEndOffset else lineEndOffset
 				}else foldEndOffset))
-				renderDataList[visualLine] = LineRenderData(emptyArray(),0, heightLine, aboveBlockLine, LineType.CUSTOM_FOLD, renderStr = renderStr,
-					color = editor.colorsScheme.getAttributes(DefaultLanguageHighlighterColors.DOC_COMMENT)?.foregroundColor ?: defaultColor)
+				renderDataList[visualLine] = LineRenderData(arrayOf(RenderData(renderStr.toIntArray(), docComment ?: defaultColor)),
+					0, heightLine, aboveBlockLine, LineType.CUSTOM_FOLD)
 			}else{
 				//COMMENT
 				if(markCommentMap.containsKey(start)) {
@@ -191,20 +189,20 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						val curStart = if(start > hlIter.start && start < curEnd) start else hlIter.start
 						if(curStart == foldStartOffset){
 							val foldEndOffset = foldRegion!!.endOffset
-							renderList.add(RenderData(StringUtil.replace(foldRegion.placeholderText, "\n", " "),
+							renderList.add(RenderData(StringUtil.replace(foldRegion.placeholderText, "\n", " ").toIntArray(),
 								editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor))
 							do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < foldEndOffset)
 							foldRegion = visLinesIterator.getFoldRegion(++foldLineIndex)
 							foldStartOffset = foldRegion?.startOffset ?: -1
 						}else{
-							val renderStr = text.substring(curStart, curEnd)
+							val renderStr = text.subSequence(curStart, curEnd)
 							if(renderStr.isBlank()) {
-								renderList.add(RenderData(renderStr, defaultColor))
+								renderList.add(RenderData(renderStr.toIntArray(), defaultColor))
 							}else{
 								val highlightColors = getHighlightColor(curStart, curEnd)
 								if(highlightColors.isNotEmpty()){
 									if(highlightColors.size == 1 && highlightColors.first().run{ startOffset == curStart && endOffset == curEnd }){
-										renderList.add(RenderData(renderStr, highlightColors.first().foregroundColor))
+										renderList.add(RenderData(renderStr.toIntArray(), highlightColors.first().foregroundColor))
 									}else {
 										val lexerColor = runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() ?: defaultColor
 										var nextOffset = curStart
@@ -214,17 +212,17 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 												offset >= it.startOffset && offset < it.endOffset
 											}?.foregroundColor ?: lexerColor
 											if(preColor != null && preColor !== color){
-												renderList.add(RenderData(text.substring(nextOffset, offset), preColor))
+												renderList.add(RenderData(text.subSequence(nextOffset, offset).toIntArray(), preColor))
 												nextOffset = offset
 											}
 											preColor = color
 										}
 										if(nextOffset < curEnd){
-											renderList.add(RenderData(text.substring(nextOffset, curEnd), preColor ?: lexerColor))
+											renderList.add(RenderData(text.subSequence(nextOffset, curEnd).toIntArray(), preColor ?: lexerColor))
 										}
 									}
 								}else {
-									renderList.add(RenderData(renderStr, runCatching {
+									renderList.add(RenderData(renderStr.toIntArray(), runCatching {
 										hlIter.textAttributes.foregroundColor
 									}.getOrNull() ?: defaultColor))
 								}
@@ -243,11 +241,11 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	override fun rebuildDataAndImage() {
-		if(canUpdate()) invokeLater(modalityState){ refreshRenderData() }
+		if(canUpdate()) invokeLater(modalityState){ resetRenderData() }
 	}
 
 	private fun resetRenderData(){
-		doInvalidateRange(0, myDocument.textLength,false)
+		doInvalidateRange(0, myDocument.textLength)
 	}
 
 	private var myDirty = false
@@ -274,7 +272,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		assertValidState()
 	}
 
-	override fun bulkUpdateFinished(document: Document) = refreshRenderData()
+	override fun bulkUpdateFinished(document: Document) = resetRenderData()
 
 	override fun getPriority(): Int = 170 //EditorDocumentPriorities
 
@@ -321,7 +319,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 
 	override fun onBatchModeFinish(editor: Editor) {
 		if (myDocument.isInBulkUpdate) return
-		refreshRenderData()
+		resetRenderData()
 	}
 
 	/** SoftWrapChangeListener */
@@ -329,10 +327,10 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		val enabled = editor.softWrapModel.isSoftWrappingEnabled
 		if (enabled && !softWrapEnabled) {
 			softWrapEnabled = true
-			refreshRenderData()
+			resetRenderData()
 		} else if (!enabled && softWrapEnabled) {
 			softWrapEnabled = false
-			refreshRenderData()
+			resetRenderData()
 		}
 	}
 
@@ -388,7 +386,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	/** PropertyChangeListener */
 	override fun propertyChange(evt: PropertyChangeEvent) {
 		if (EditorEx.PROP_HIGHLIGHTER != evt.propertyName) return
-		refreshRenderData()
+		resetRenderData()
 	}
 
 	private fun invalidateRange(startOffset: Int, endOffset: Int) {
@@ -403,8 +401,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		}
 	}
 
-	private fun doInvalidateRange(startOffset: Int, endOffset: Int, reValidLine: Boolean = true) {
-		if (reValidLine && checkDirty()) return
+	private fun doInvalidateRange(startOffset: Int, endOffset: Int) {
+		if (checkDirty()) return
 		val startVisualLine = editor.offsetToVisualLine(startOffset, false)
 		val endVisualLine = editor.offsetToVisualLine(endOffset, true)
 		val lineDiff = editor.visibleLineCount - renderDataList.size
@@ -413,7 +411,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		} else if (lineDiff < 0) {
 			renderDataList.removeElements(startVisualLine, startVisualLine - lineDiff)
 		}
-		if(reValidLine) refreshRenderData(startVisualLine, endVisualLine)
+		refreshRenderData(startVisualLine, endVisualLine)
 	}
 
 	private fun checkDirty(): Boolean {
@@ -422,8 +420,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			return true
 		}
 		return if (myDirty) {
-			runInEdt(modalityState){ refreshRenderData() }
 			myDirty = false
+			runInEdt(modalityState){ resetRenderData() }
 			true
 		}else false
 	}
@@ -441,8 +439,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		renderDataList.clear()
 	}
 
-	private data class LineRenderData(val renderData: Array<RenderData>, val startX: Int, val y: Int, val aboveBlockLine: Int, val lineType: LineType = LineType.CODE,
-									  val renderStr: String? = null, val color: Color? = null, val commentHighlighterEx: RangeHighlighterEx? = null) {
+	private data class LineRenderData(val renderData: Array<RenderData>, val startX: Int, val y: Int, val aboveBlockLine: Int,
+									  val lineType: LineType = LineType.CODE, val commentHighlighterEx: RangeHighlighterEx? = null) {
 		override fun equals(other: Any?): Boolean {
 			if (this === other) return true
 			if (javaClass != other?.javaClass) return false
@@ -452,8 +450,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			if (y != other.y) return false
 			if (aboveBlockLine != other.aboveBlockLine) return false
 			if (lineType != other.lineType) return false
-			if (renderStr != other.renderStr) return false
-			if (color != other.color) return false
 			if (commentHighlighterEx != other.commentHighlighterEx) return false
 			return true
 		}
@@ -464,14 +460,27 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			result = 31 * result + y
 			result = 31 * result + aboveBlockLine
 			result = 31 * result + lineType.hashCode()
-			result = 31 * result + (renderStr?.hashCode() ?: 0)
-			result = 31 * result + (color?.hashCode() ?: 0)
 			result = 31 * result + (commentHighlighterEx?.hashCode() ?: 0)
 			return result
 		}
 	}
 
-	private data class RenderData(val renderStr: String, val color: Color)
+	private data class RenderData(val renderCode: IntArray, val color: Color) {
+		override fun equals(other: Any?): Boolean {
+			if (this === other) return true
+			if (javaClass != other?.javaClass) return false
+			other as RenderData
+			if (!renderCode.contentEquals(other.renderCode)) return false
+			if (color != other.color) return false
+			return true
+		}
+
+		override fun hashCode(): Int {
+			var result = renderCode.contentHashCode()
+			result = 31 * result + color.hashCode()
+			return result
+		}
+	}
 
 	private enum class LineType{ CODE, COMMENT, CUSTOM_FOLD}
 
@@ -491,5 +500,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		private fun SoftWrapApplianceManager.removeSoftWrapListener(listener: Any) {
 			(softWrapListeners.get(this) as MutableList<Any>).add(listener)
 		}
+
+		private fun CharSequence.toIntArray() = map { it.code }.toIntArray()
 	}
 }
