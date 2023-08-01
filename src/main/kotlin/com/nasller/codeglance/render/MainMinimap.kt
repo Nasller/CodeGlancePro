@@ -73,9 +73,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 		loop@ while (!hlIter.atEnd()) {
 			val start = hlIter.start
 			y = editor.document.getLineNumber(start) * config.pixelsPerLine + skipY
-			val color by lazy(LazyThreadSafetyMode.NONE){ try {
-				hlIter.textAttributes.foregroundColor
-			} catch (_: ConcurrentModificationException){ null } }
+			val color by lazy(LazyThreadSafetyMode.NONE){ runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() }
 			val region = editor.foldingModel.getCollapsedRegionAtOffset(start)
 			if (region != null) {
 				val startLineNumber = editor.document.getLineNumber(region.startOffset)
@@ -155,11 +153,10 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 									y += sumBlock
 									skipY += sumBlock
 								}
-						}}
+						} }
 						curImg.renderImage(x, y, charCode) {
-							(highlightList.firstOrNull {
-								offset >= it.startOffset && offset < it.endOffset
-							}?.foregroundColor ?: color ?: defaultColor).setColorRgba()
+							(highlightList.firstOrNull { offset >= it.startOffset && offset < it.endOffset }?.foregroundColor
+								?: color ?: defaultColor).setColorRgba()
 						}
 					}
 					hlIter.advance()
@@ -167,16 +164,6 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 			}
 		}
 		g.dispose()
-	}
-
-	private fun getHighlightColor(startOffset:Int, endOffset:Int):MutableList<RangeHighlightColor>{
-		val list = mutableListOf<RangeHighlightColor>()
-		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(startOffset,endOffset) {
-			val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
-			if (foregroundColor != null) list.add(RangeHighlightColor(it.startOffset,it.endOffset,foregroundColor))
-			return@processRangeHighlightersOverlappingWith true
-		}
-		return list
 	}
 
 	private fun makeMarkHighlight(text: CharSequence, graphics: Graphics2D):Map<Int,MarkCommentData>{

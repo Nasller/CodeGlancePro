@@ -197,9 +197,38 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 							foldRegion = visLinesIterator.getFoldRegion(++foldLineIndex)
 							foldStartOffset = foldRegion?.startOffset ?: -1
 						}else{
-							val color = getHighlightColor(curStart, curEnd)?.foregroundColor
-								?: runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() ?: defaultColor
-							renderList.add(RenderData(text.substring(curStart,curEnd), color))
+							val renderStr = text.substring(curStart, curEnd)
+							if(renderStr.isBlank()) {
+								renderList.add(RenderData(renderStr, defaultColor))
+							}else{
+								val highlightColors = getHighlightColor(curStart, curEnd)
+								if(highlightColors.isNotEmpty()){
+									if(highlightColors.size == 1 && highlightColors.first().run{ startOffset == curStart && endOffset == curEnd }){
+										renderList.add(RenderData(renderStr, highlightColors.first().foregroundColor))
+									}else {
+										val lexerColor = runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() ?: defaultColor
+										var nextOffset = curStart
+										var preColor: Color? = null
+										for(offset in curStart .. curEnd){
+											val color = highlightColors.firstOrNull {
+												offset >= it.startOffset && offset < it.endOffset
+											}?.foregroundColor ?: lexerColor
+											if(preColor != null && preColor !== color){
+												renderList.add(RenderData(text.substring(nextOffset, offset), preColor))
+												nextOffset = offset
+											}
+											preColor = color
+										}
+										if(nextOffset < curEnd){
+											renderList.add(RenderData(text.substring(nextOffset, curEnd), preColor ?: lexerColor))
+										}
+									}
+								}else {
+									renderList.add(RenderData(renderStr, runCatching {
+										hlIter.textAttributes.foregroundColor
+									}.getOrNull() ?: defaultColor))
+								}
+							}
 							hlIter.advance()
 						}
 					}while (!hlIter.atEnd() && hlIter.start < end)
@@ -211,23 +240,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			else break
 		}
 		updateImage(canUpdate = true)
-	}
-
-	private fun getHighlightColor(curStartOffset: Int, curEndOffset: Int): RangeHighlightColor? {
-		var highlighter: RangeHighlightColor? = null
-		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(curStartOffset, curEndOffset) {
-			val startOffset = it.startOffset
-			val endOffset = it.endOffset
-			if (curStartOffset >= startOffset && curEndOffset <= endOffset) {
-				val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
-				if (foregroundColor != null) {
-					highlighter = RangeHighlightColor(startOffset, endOffset, foregroundColor)
-					return@processRangeHighlightersOverlappingWith false
-				}
-			}
-			return@processRangeHighlightersOverlappingWith true
-		}
-		return highlighter
 	}
 
 	override fun rebuildDataAndImage() {
