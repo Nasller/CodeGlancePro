@@ -2,7 +2,6 @@ package com.nasller.codeglance.render
 
 import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.application.invokeLater
-import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.diagnostic.Attachment
 import com.intellij.openapi.editor.*
 import com.intellij.openapi.editor.colors.EditorFontType
@@ -421,7 +420,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		}
 		return if (myDirty) {
 			myDirty = false
-			runInEdt(modalityState){ resetRenderData() }
+			resetRenderData()
 			true
 		}else false
 	}
