@@ -41,7 +41,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	private val myDocument = editor.document
 	private val renderDataList = ObjectArrayList<LineRenderData>()
 	private val mySoftWrapChangeListener = Proxy.newProxyInstance(platformClassLoader, softWrapListenerClass) { _, method, args ->
-		return@newProxyInstance if("onRecalculationEnd" == method.name && args?.size == 1){
+		return@newProxyInstance if(HOOK_METHOD == method.name && args?.size == 1){
 			 onSoftWrapRecalculationEnd(args[0] as IncrementalCacheUpdateEvent)
 		}else null
 	}.also { editor.softWrapModel.applianceManager.addSoftWrapListener(it) }
@@ -485,6 +485,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	@Suppress("UNCHECKED_CAST")
 	private companion object{
 		private val LOG = LoggerFactory.getLogger(FastMainMinimap::class.java)
+		private const val HOOK_METHOD = "onRecalculationEnd"
 		private val platformClassLoader = EditorImpl::class.java.classLoader
 		private val softWrapListenerClass = arrayOf(Class.forName("com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapAwareDocumentParsingListener"))
 		private val softWrapListeners = SoftWrapApplianceManager::class.java.getDeclaredField("myListeners").apply {
