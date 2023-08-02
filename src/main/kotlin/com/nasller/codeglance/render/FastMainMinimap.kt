@@ -138,8 +138,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	private fun refreshRenderData(startVisualLine: Int, endVisualLine: Int) {
 		if(!glancePanel.checkVisible()) return
 		val visLinesIterator = MyVisualLinesIterator(editor, startVisualLine)
-		if(visLinesIterator.atEnd()) return
-
 		val text = myDocument.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val docComment by lazy(LazyThreadSafetyMode.NONE){
@@ -426,7 +424,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	private fun assertValidState() {
-		if (myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || !glancePanel.checkVisible()) return
+		if (myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode) return
 		if (editor.visibleLineCount != renderDataList.size) {
 			LOG.error("Inconsistent state {}", Attachment("glance.txt", editor.dumpState()))
 		}
