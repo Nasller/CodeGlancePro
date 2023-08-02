@@ -424,9 +424,11 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	private fun assertValidState() {
-		if (myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode) return
+		if (myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || myDirty) return
 		if (editor.visibleLineCount != renderDataList.size) {
 			LOG.error("Inconsistent state {}", Attachment("glance.txt", editor.dumpState()))
+			resetRenderData()
+			assert(editor.visibleLineCount == renderDataList.size)
 		}
 	}
 
