@@ -15,7 +15,6 @@ import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.impl.softwrap.mapping.IncrementalCacheUpdateEvent
 import com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapApplianceManager
 import com.intellij.openapi.util.SystemInfoRt
-import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.DocumentEventUtil
@@ -160,13 +159,13 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 				val heightLine = (foldRegion.heightInPixels * scrollState.scale).toInt()
 				//this is render document
 				val line = myDocument.getLineNumber(foldStartOffset) - 1 + (heightLine / config.pixelsPerLine)
-				val renderStr = myDocument.getText(TextRange(foldStartOffset, if(DocumentUtil.isValidLine(line,myDocument)) {
-					val lineEndOffset = myDocument.getLineEndOffset(line)
-					if(foldEndOffset < lineEndOffset) foldEndOffset else lineEndOffset
-				}else foldEndOffset))
-				renderDataList[visualLine] = LineRenderData(arrayOf(RenderData(renderStr.toIntArray(), docComment ?: defaultColor)),
+				renderDataList[visualLine] = LineRenderData(arrayOf(RenderData(text.subSequence(foldStartOffset,
+					if(DocumentUtil.isValidLine(line, myDocument)) {
+						val lineEndOffset = myDocument.getLineEndOffset(line)
+						if(foldEndOffset < lineEndOffset) foldEndOffset else lineEndOffset
+					}else foldEndOffset).toIntArray(), docComment ?: defaultColor)),
 					0, heightLine, aboveBlockLine, LineType.CUSTOM_FOLD)
-			}else{
+			}else {
 				//COMMENT
 				if(markCommentMap.containsKey(start)) {
 					renderDataList[visualLine] = LineRenderData(emptyArray(), 2, config.pixelsPerLine, aboveBlockLine,
@@ -177,8 +176,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 					var foldLineIndex = visLinesIterator.getStartFoldingIndex()
 					val hlIter = editor.highlighter.run {
 						if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(start,end,myDocument.createLineIterator())
-						else if(isLogFile) IdeLogFileHighlightDelegate(myDocument,this.createIterator(start))
-						else this.createIterator(start)
+						else if(isLogFile) IdeLogFileHighlightDelegate(myDocument, createIterator(start))
+						else createIterator(start)
 					}
 					val renderList = mutableListOf<RenderData>()
 					do {
@@ -289,7 +288,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	override fun onCustomFoldRegionPropertiesChange(region: CustomFoldRegion, flags: Int) {
-		if (flags and FoldingListener.ChangeFlags.WIDTH_CHANGED == 0 || myDocument.isInBulkUpdate || checkDirty()) return
+		if (flags and FoldingListener.ChangeFlags.HEIGHT_CHANGED == 0 || myDocument.isInBulkUpdate || checkDirty()) return
 		val startOffset = region.startOffset
 		if (editor.foldingModel.getCollapsedRegionAtOffset(startOffset) !== region) return
 		val visualLine = editor.offsetToVisualLine(startOffset)
