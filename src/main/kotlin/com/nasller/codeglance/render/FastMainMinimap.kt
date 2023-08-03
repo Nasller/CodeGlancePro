@@ -89,24 +89,23 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			}else {
 				totalY += it.aboveBlockLine
 			}
-			var curX = it.startX
-			var curY = totalY
-			val renderCharAction = { code: Int ->
-				curImg.renderImage(curX, curY, code)
-				when (code) {
-					9 -> curX += 4 //TAB
-					10 -> {//ENTER
-						curX = 0
-						curY += config.pixelsPerLine
-					}
-					else -> curX += 1
-				}
-			}
 			when(it.lineType){
 				LineType.CODE, LineType.CUSTOM_FOLD -> {
+					var curX = it.startX
+					var curY = totalY
 					it.renderData.forEach { renderData ->
 						renderData.color.setColorRgba()
-						renderData.renderCode.forEach(renderCharAction)
+						renderData.renderCode.forEach { code: Int ->
+							curImg.renderImage(curX, curY, code)
+							when (code) {
+								9 -> curX += 4 //TAB
+								10 -> {//ENTER
+									curX = 0
+									curY += config.pixelsPerLine
+								}
+								else -> curX += 1
+							}
+						}
 					}
 				}
 				LineType.COMMENT -> {
@@ -117,7 +116,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						UIUtil.getFontWithFallback(font).deriveFont(markAttributes.fontType, font.size2D)
 					} else font
 					graphics.font = textFont
-					graphics.drawString(commentText, curX,curY + (graphics.getFontMetrics(textFont).height / 1.5).roundToInt())
+					graphics.drawString(commentText, it.startX,totalY + (graphics.getFontMetrics(textFont).height / 1.5).roundToInt())
 					skipY = (config.markersScaleFactor.toInt() - 1) * config.pixelsPerLine
 				}
 			}

@@ -24,12 +24,6 @@
 	]]></description>
 
 	<change-notes><![CDATA[
-		<h3>1.6.9</h3>
-		<ul>
-			<li>fix ModalityState alarm</li>
-			<li>fix console diff error</li>
-			<li>BigFeature: make a new fast minimap render,experiments run on the Main and Console Editor</li>
-		</ul>
 		<h3>1.6.8</h3>
 		<ul>
 			<li>fix ModalityState alarm</li>
