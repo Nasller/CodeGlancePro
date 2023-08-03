@@ -92,6 +92,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			var curX = it.startX
 			var curY = totalY
 			val renderCharAction = { code: Int ->
+				curImg.renderImage(curX, curY, code)
 				when (code) {
 					9 -> curX += 4 //TAB
 					10 -> {//ENTER
@@ -100,7 +101,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 					}
 					else -> curX += 1
 				}
-				curImg.renderImage(curX, curY, code)
 			}
 			when(it.lineType){
 				LineType.CODE, LineType.CUSTOM_FOLD -> {
@@ -175,7 +175,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 					val end = visLinesIterator.getVisualLineEndOffset()
 					var foldLineIndex = visLinesIterator.getStartFoldingIndex()
 					val hlIter = editor.highlighter.run {
-						if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(start,end,myDocument.createLineIterator())
+						if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(start,end)
 						else if(isLogFile) IdeLogFileHighlightDelegate(myDocument, createIterator(start))
 						else createIterator(start)
 					}

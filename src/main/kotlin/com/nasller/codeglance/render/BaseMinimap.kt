@@ -8,7 +8,6 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.InlayModel
 import com.intellij.openapi.editor.ex.FoldingListener
-import com.intellij.openapi.editor.ex.LineIterator
 import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
 import com.intellij.openapi.editor.ex.SoftWrapChangeListener
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
@@ -235,19 +234,14 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 		}
 	}
 
-	protected class OneLineHighlightDelegate(private val startOffset: Int, private val endOffset: Int, private val lineIterator: LineIterator) : HighlighterIterator{
+	protected class OneLineHighlightDelegate(private val startOffset: Int, private val endOffset: Int) : HighlighterIterator{
 		private var advance = false
-		init {
-		    lineIterator.start(startOffset)
-		}
+
 		override fun getTextAttributes(): TextAttributes = TextAttributes.ERASE_MARKER
 
-		override fun getStart() = if(startOffset < lineIterator.start) startOffset else lineIterator.start
+		override fun getStart() = startOffset
 
-		override fun getEnd(): Int {
-			val end = lineIterator.end.run { if(endOffset - 1 >= getStart()) endOffset - 1 else endOffset }
-			return if(end > endOffset) endOffset else end
-		}
+		override fun getEnd() = endOffset
 
 		override fun getTokenType(): IElementType = IElementType.find(IElementType.FIRST_TOKEN_INDEX)
 
@@ -257,7 +251,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 
 		override fun retreat() = throw UnsupportedOperationException()
 
-		override fun atEnd() = lineIterator.atEnd() || advance
+		override fun atEnd() = advance
 
 		override fun getDocument() = throw UnsupportedOperationException()
 	}
