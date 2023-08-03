@@ -251,16 +251,18 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 
 		override fun getTokenType(): IElementType = IElementType.find(IElementType.FIRST_TOKEN_INDEX)
 
-		override fun advance() {
-			if(offsetLineIterator.hasNext()) {
+		override fun advance() = Unit
+
+		override fun retreat() = Unit
+
+		override fun atEnd(): Boolean {
+			val hasNext = offsetLineIterator.hasNext()
+			return if(hasNext) {
 				start = endOffset
 				endOffset = offsetLineIterator.next() + startOffset
-			}
+				false
+			} else true
 		}
-
-		override fun retreat() = throw UnsupportedOperationException()
-
-		override fun atEnd() = offsetLineIterator.hasNext().not()
 
 		override fun getDocument() = throw UnsupportedOperationException()
 	}

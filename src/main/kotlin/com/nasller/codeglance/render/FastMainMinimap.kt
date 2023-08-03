@@ -189,7 +189,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 							do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < foldEndOffset)
 							foldRegion = visLinesIterator.getFoldRegion(++foldLineIndex)
 							foldStartOffset = foldRegion?.startOffset ?: -1
-						}else{
+						}else {
 							val renderStr = text.subSequence(curStart, curEnd)
 							if(renderStr.isBlank()) {
 								renderList.add(RenderData(renderStr.toIntArray(), defaultColor))
