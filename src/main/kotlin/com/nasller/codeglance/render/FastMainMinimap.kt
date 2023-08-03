@@ -39,16 +39,15 @@ import kotlin.math.roundToInt
 @Suppress("UnstableApiUsage")
 class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : BaseMinimap(glancePanel, virtualFile){
 	private val myDocument = editor.document
-	private val renderDataList = ObjectArrayList<LineRenderData>()
+	private val renderDataList = ObjectArrayList<LineRenderData>().also {
+		it.addAll(0, ObjectArrayList.wrap(arrayOfNulls(editor.visibleLineCount)))
+	}
 	private val mySoftWrapChangeListener = Proxy.newProxyInstance(platformClassLoader, softWrapListenerClass) { _, method, args ->
 		return@newProxyInstance if(HOOK_METHOD == method.name && args?.size == 1){
 			 onSoftWrapRecalculationEnd(args[0] as IncrementalCacheUpdateEvent)
 		}else null
 	}.also { editor.softWrapModel.applianceManager.addSoftWrapListener(it) }
-	init {
-		resetRenderData()
-		makeListener()
-	}
+	init { makeListener() }
 
 	override fun update() {
 		val curImg = getMinimapImage() ?: return
@@ -174,7 +173,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 					val end = visLinesIterator.getVisualLineEndOffset()
 					var foldLineIndex = visLinesIterator.getStartFoldingIndex()
 					val hlIter = editor.highlighter.run {
-						if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(start,end)
+						myDocument.createLineIterator()
+						if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(start, end, text.subSequence(start, end))
 						else if(isLogFile) IdeLogFileHighlightDelegate(myDocument, createIterator(start))
 						else createIterator(start)
 					}
