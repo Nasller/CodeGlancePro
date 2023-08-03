@@ -150,7 +150,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		for ((index, startByte) in editor.selectionModel.blockSelectionStarts.withIndex()) {
 			val endByte = editor.selectionModel.blockSelectionEnds[index]
 			val start = editor.offsetToVisualPosition(startByte)
-			val end = editor.offsetToVisualPosition(endByte)
+			val end = editor.offsetToVisualPosition(endByte,false,true)
 			val documentLine = minimap.getMyRenderLine(start.line, end.line)
 
 			val sX = start.column
@@ -236,7 +236,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 				drawMarkOneLine(it, sY, sX, eX)
 			} else if (collapsed != null) {
 				val startVis = editor.offsetToVisualPosition(collapsed.startOffset)
-				val endVis = editor.offsetToVisualPosition(collapsed.endOffset)
+				val endVis = editor.offsetToVisualPosition(collapsed.endOffset,false,true)
 				drawMarkOneLine(it, sY, startVis.column, endVis.column)
 			} else {
 				fillRect(if (it.fullLine) 0 else sX, sY, if (it.fullLine) width else width - sX, config.pixelsPerLine)
@@ -320,7 +320,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		}
 
 		val startVis by lazy(LazyThreadSafetyMode.NONE) { editor.offsetToVisualPosition(startOffset) }
-		val endVis by lazy(LazyThreadSafetyMode.NONE) { editor.offsetToVisualPosition(endOffset) }
+		val endVis by lazy(LazyThreadSafetyMode.NONE) { editor.offsetToVisualPosition(endOffset,false,true) }
 	}
 
 	companion object {
