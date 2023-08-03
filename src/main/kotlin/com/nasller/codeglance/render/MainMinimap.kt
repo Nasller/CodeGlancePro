@@ -31,7 +31,7 @@ import kotlin.math.roundToInt
 @Suppress("UnstableApiUsage")
 class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMinimap(glancePanel,virtualFile){
 	private val alarm by lazy {
-		SingleAlarm({ updateImage(directUpdate = true) }, 500, this, Alarm.ThreadToUse.SWING_THREAD, modalityState)
+		SingleAlarm({ updateImage() }, 500, this, Alarm.ThreadToUse.POOLED_THREAD)
 	}
 	init { makeListener() }
 
@@ -202,7 +202,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 		} else emptyMap()
 	}
 
-	override fun rebuildDataAndImage() = updateImage(canUpdate = canUpdate())
+	override fun rebuildDataAndImage() = updateImage(canUpdate())
 
 	/** FoldingListener */
 	override fun onFoldProcessingEnd() {

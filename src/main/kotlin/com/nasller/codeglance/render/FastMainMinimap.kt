@@ -233,7 +233,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			if(endVisualLine == 0 || visualLine <= endVisualLine) visLinesIterator.advance()
 			else break
 		}
-		updateImage(canUpdate = true)
+		updateImage(true)
 	}
 
 	override fun rebuildDataAndImage() {

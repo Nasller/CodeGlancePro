@@ -54,11 +54,10 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 		return img
 	}
 
-	fun updateImage(canUpdate: Boolean = glancePanel.checkVisible(), directUpdate: Boolean = false){
+	fun updateImage(canUpdate: Boolean = glancePanel.checkVisible()){
 		if (canUpdate && lock.compareAndSet(false,true)) {
 			glancePanel.psiDocumentManager.performForCommittedDocument(editor.document) {
-				if (directUpdate) updateImgTask()
-				else invokeLater(modalityState){ updateImgTask() }
+				invokeLater(modalityState){ updateImgTask() }
 			}
 		}
 	}
