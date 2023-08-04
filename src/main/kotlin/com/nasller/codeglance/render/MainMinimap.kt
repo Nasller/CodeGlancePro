@@ -216,9 +216,15 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 	}
 
 	/** InlayModel.SimpleAdapter */
-	override fun onUpdated(inlay: Inlay<*>, changeFlags: Int) {
+	override fun onAdded(inlay: Inlay<*>) = checkinInlayAndUpdate(inlay)
+
+	override fun onRemoved(inlay: Inlay<*>) = checkinInlayAndUpdate(inlay)
+
+	override fun onUpdated(inlay: Inlay<*>, changeFlags: Int) = checkinInlayAndUpdate(inlay, changeFlags)
+
+	private fun checkinInlayAndUpdate(inlay: Inlay<*>, changeFlags: Int? = null) {
 		if(editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || inlay.placement != Inlay.Placement.ABOVE_LINE
-			|| !inlay.isValid || changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0) return
+			|| !inlay.isValid || (changeFlags != null && changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0)) return
 		repaintOrRequest()
 	}
 
