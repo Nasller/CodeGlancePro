@@ -39,7 +39,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 		get() = if (editor.editorKind != EditorKind.MAIN_EDITOR) ModalityState.any() else ModalityState.defaultModalityState()
 	protected val rangeList = mutableListOf<Pair<Int, Range<Int>>>()
 	protected val isLogFile = virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
-	private val scaleBuffer = FloatArray(4)
+	private val scaleBuffer = IntArray(4)
 	private val lock = AtomicBoolean(false)
 	private var imgReference = MySoftReference.create(getBufferedImage(), editor.editorKind != EditorKind.MAIN_EDITOR)
 
@@ -123,9 +123,9 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 	}
 
 	protected fun Color.setColorRgba() {
-		scaleBuffer[0] = red.toFloat()
-		scaleBuffer[1] = green.toFloat()
-		scaleBuffer[2] = blue.toFloat()
+		scaleBuffer[0] = red
+		scaleBuffer[1] = green
+		scaleBuffer[2] = blue
 	}
 
 	protected fun BufferedImage.renderImage(x: Int, y: Int, char: Int, consumer: (() -> Unit)? = null) {
@@ -199,7 +199,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 	 * @param alpha     alpha percent from 0-1.
 	 */
 	private fun BufferedImage.setPixel(x: Int, y: Int, alpha: Float) {
-		scaleBuffer[3] = alpha * 0xFF
+		scaleBuffer[3] = (alpha * 0xFF).toInt()
 		raster.setPixel(x, y, scaleBuffer)
 	}
 
@@ -219,7 +219,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 	}
 
 	@Suppress("UndesirableClassUsage")
-	private fun getBufferedImage() = BufferedImage(glancePanel.getConfigSize().width, glancePanel.scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_4BYTE_ABGR)
+	private fun getBufferedImage() = BufferedImage(glancePanel.getConfigSize().width, glancePanel.scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_INT_ARGB)
 
 	protected data class RangeHighlightColor(val startOffset: Int,val endOffset: Int,val foregroundColor: Color)
 
