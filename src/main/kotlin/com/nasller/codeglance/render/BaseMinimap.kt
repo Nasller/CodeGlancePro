@@ -27,7 +27,7 @@ import java.awt.image.BufferedImage
 import java.beans.PropertyChangeListener
 import java.util.concurrent.atomic.AtomicBoolean
 
-abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val virtualFile: VirtualFile?): InlayModel.SimpleAdapter(), PropertyChangeListener,
+abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val virtualFile: VirtualFile?): InlayModel.Listener, PropertyChangeListener,
 	PrioritizedDocumentListener, FoldingListener, MarkupModelListener, SoftWrapChangeListener, Disposable {
 	protected val editor = glancePanel.editor
 	protected val config
