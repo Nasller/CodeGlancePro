@@ -52,24 +52,23 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	override fun update() {
 		val curImg = getMinimapImage() ?: return
 		if(rangeList.size > 0) rangeList.clear()
-		val markAttributes by lazy(LazyThreadSafetyMode.NONE) {
-			editor.colorsScheme.getAttributes(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES)
-		}
-		val font by lazy(LazyThreadSafetyMode.NONE) {
-			editor.colorsScheme.getFont(
-				when (markAttributes.fontType) {
-					Font.ITALIC -> EditorFontType.ITALIC
-					Font.BOLD -> EditorFontType.BOLD
-					Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
-					else -> EditorFontType.PLAIN
-				}
-			).deriveFont(config.markersScaleFactor * config.pixelsPerLine)
-		}
-		val text by lazy(LazyThreadSafetyMode.NONE) { myDocument.immutableCharSequence }
 		val graphics = curImg.createGraphics()
 		graphics.composite = GlancePanel.CLEAR
 		graphics.fillRect(0, 0, curImg.width, curImg.height)
-		UISettings.setupAntialiasing(graphics)
+		val markAttributes by lazy(LazyThreadSafetyMode.NONE) {
+			editor.colorsScheme.getAttributes(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES).also {
+				UISettings.setupAntialiasing(graphics)
+			}
+		}
+		val font by lazy(LazyThreadSafetyMode.NONE) {
+			editor.colorsScheme.getFont(when (markAttributes.fontType) {
+				Font.ITALIC -> EditorFontType.ITALIC
+				Font.BOLD -> EditorFontType.BOLD
+				Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
+				else -> EditorFontType.PLAIN
+			}).deriveFont(config.markersScaleFactor * config.pixelsPerLine)
+		}
+		val text by lazy(LazyThreadSafetyMode.NONE) { myDocument.immutableCharSequence }
 		var totalY = 0
 		var skipY = 0
 		for ((index, it) in renderDataList.withIndex()) {
