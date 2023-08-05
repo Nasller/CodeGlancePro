@@ -172,7 +172,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 					}
 				} else {
 					val end = hlIter.end
-					val highlightList = if(config.syntaxHighlight) getHighlightColor(start, end) else emptyList()
+					val highlightList = getHighlightColor(start, end)
 					for(offset in start until end) {
 						// Watch out for tokens that extend past the document
 						if (offset >= text.length) break@loop
@@ -307,7 +307,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 	/** PrioritizedDocumentListener */
 	override fun documentChanged(event: DocumentEvent) {
 		if (event.document.isInBulkUpdate) return
-		if (event.document.lineCount > glancePanel.config.moreThanLineDelay) {
+		if (event.document.lineCount > 3000) {
 			repaintOrRequest()
 		} else updateImage()
 	}

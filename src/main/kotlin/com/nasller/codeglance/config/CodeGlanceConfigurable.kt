@@ -108,13 +108,14 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 							p.text = v
 						}, config::viewportColor.toMutableProperty())
 				}, {
-					spinner(2000..Int.MAX_VALUE, 100).label(message("settings.more.than.line.delay"))
-						.bindIntValue(config::moreThanLineDelay)
-						.accessibleName(message("settings.more.than.line.delay"))
-						.applyToComponent {
-							toolTipText = "2000 - Int.Max lines"
-							addMouseWheelListener(numberScrollListener)
+					editorKindComboBox = comboBox(EditorKind.values().toList(), EditorKindListCellRenderer()).label(message("settings.editor.kind")).applyToComponent {
+						isSwingPopup = false
+						addActionListener {
+							val kind = editorKindComboBox.item ?: return@addActionListener
+							if (!editorKinds.remove(kind)) editorKinds.add(kind)
+							editorKindComboBox.repaint()
 						}
+					}.component
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
 					cell(ColorButton(config.viewportBorderColor, JBColor.WHITE)).label(message("settings.viewport.border.color"))
@@ -147,18 +148,9 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 							addMouseWheelListener(doubleNumberScrollListener)
 						}
 				}).bottomGap(BottomGap.SMALL)
-				twoColumnsRow({
+				row {
 					textField().label(message("settings.markers.regex")).bindText(config::markRegex).accessibleName(message("settings.markers.regex"))
-				},{
-					editorKindComboBox = comboBox(EditorKind.values().toList(), EditorKindListCellRenderer()).label(message("settings.editor.kind")).applyToComponent {
-						isSwingPopup = false
-						addActionListener {
-							val kind = editorKindComboBox.item ?: return@addActionListener
-							if (!editorKinds.remove(kind)) editorKinds.add(kind)
-							editorKindComboBox.repaint()
-						}
-					}.component
-				}).bottomGap(BottomGap.SMALL)
+				}.bottomGap(BottomGap.SMALL)
 				val widthList = EditorKind.values().toList().chunked(3)
 				widthList.forEachIndexed { index, it ->
 					row {

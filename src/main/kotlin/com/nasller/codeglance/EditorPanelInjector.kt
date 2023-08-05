@@ -75,7 +75,7 @@ class GlobalLafManagerListener : LafManagerListener {
 }
 
 private val firstRunEditor = firstRunEditor@ { info: EditorInfo, diffView: FrameDiffTool.DiffViewer? ->
-    info.editor.putUserData(CURRENT_EDITOR_DIFF_VIEW, diffView)
+    if(diffView != null) info.editor.putUserData(CURRENT_EDITOR_DIFF_VIEW, diffView)
     if(info.editor.isDisableExtensionFile() || !CodeGlanceConfigService.getConfig().editorKinds.contains(info.editor.editorKind)) {
         return@firstRunEditor
     }

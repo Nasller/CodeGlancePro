@@ -79,13 +79,15 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 			|| runReadAction { editor.highlighter !is EmptyEditorHighlighter })
 
 	protected fun getHighlightColor(startOffset: Int, endOffset: Int): List<RangeHighlightColor>{
-		val list = mutableListOf<RangeHighlightColor>()
-		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(startOffset, endOffset) {
-			val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
-			if (foregroundColor != null) list.add(RangeHighlightColor(it.startOffset, it.endOffset, foregroundColor))
-			return@processRangeHighlightersOverlappingWith true
-		}
-		return list
+		return if(config.syntaxHighlight){
+			val list = mutableListOf<RangeHighlightColor>()
+			editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(startOffset, endOffset) {
+				val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
+				if (foregroundColor != null) list.add(RangeHighlightColor(it.startOffset, it.endOffset, foregroundColor))
+				return@processRangeHighlightersOverlappingWith true
+			}
+			list
+		}else emptyList()
 	}
 
 	protected fun Color.setColorRgba() {

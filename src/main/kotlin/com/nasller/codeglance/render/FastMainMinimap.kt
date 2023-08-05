@@ -61,24 +61,25 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	override fun updateImage(canUpdate: Boolean){
-		if (canUpdate.not()) return
-		if(lock.compareAndSet(false,true)) {
-			val renderDataIterable = renderDataList.toList().withIndex()
-			glancePanel.psiDocumentManager.performForCommittedDocument(editor.document) {
-				ReadAction.nonBlocking<MutableList<Pair<Int, Range<Int>>>?>{
-					update(renderDataIterable)
-				}.finishOnUiThread(modalityState) {
-					if(it != null) rangeList = it
-					myLastImageIndex = if (myLastImageIndex == 0) 1 else 0
-					lock.set(false)
-					glancePanel.repaint()
-					if(myRenderDirty) {
-						updateImage()
-						myRenderDirty = false
-					}
-				}.submit(AppExecutorUtil.getAppExecutorService())
-			}
-		}else myRenderDirty = true
+		if (canUpdate) {
+			if(lock.compareAndSet(false,true)) {
+				val renderDataIterable = renderDataList.toList().withIndex()
+				glancePanel.psiDocumentManager.performForCommittedDocument(editor.document) {
+					ReadAction.nonBlocking<MutableList<Pair<Int, Range<Int>>>?>{
+						update(renderDataIterable)
+					}.finishOnUiThread(modalityState) {
+						myLastImageIndex = if(myLastImageIndex == 0) 1 else 0
+						if(it?.isNotEmpty() == true) rangeList = it
+						lock.set(false)
+						glancePanel.repaint()
+						if(myRenderDirty) {
+							updateImage()
+							myRenderDirty = false
+						}
+					}.submit(AppExecutorUtil.getAppExecutorService())
+				}
+			}else myRenderDirty = true
+		}
 	}
 
 	override fun rebuildDataAndImage() {
@@ -93,7 +94,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			curImg = getBufferedImage()
 			imgArray[index] = curImg
 		}
-		return if (editor.isDisposed || editor.document.lineCount <= 0) return null else curImg
+		return if(editor.isDisposed || editor.document.lineCount <= 0) return null else curImg
 	}
 
 	private fun update(renderDataArray: Iterable<IndexedValue<LineRenderData?>>): MutableList<Pair<Int, Range<Int>>>?{
@@ -114,12 +115,18 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 				else -> EditorFontType.PLAIN
 			}).deriveFont(config.markersScaleFactor * config.pixelsPerLine)
 		}
-		val curRangeList = mutableListOf<Pair<Int, Range<Int>>>()
 		var totalY = 0
 		var skipY = 0
+		val curRangeList = mutableListOf<Pair<Int, Range<Int>>>()
 		for ((index, it) in renderDataArray) {
 			if(it == null) continue
-			it.rebuildRange(index, totalY, curRangeList)
+			//Coordinates
+			if(it.lineType == LineType.CUSTOM_FOLD){
+				curRangeList.add(index to Range(totalY, totalY + it.y - config.pixelsPerLine + it.aboveBlockLine))
+			}else if(it.aboveBlockLine > 0){
+				curRangeList.add(index - 1 to Range(totalY, totalY + it.y - config.pixelsPerLine + it.aboveBlockLine))
+			}
+			//Skipping
 			if(skipY > 0){
 				if(skipY in 1 .. it.aboveBlockLine){
 					totalY += it.aboveBlockLine
@@ -133,6 +140,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			}else {
 				totalY += it.aboveBlockLine
 			}
+			//Rendering
 			when(it.lineType){
 				LineType.CODE, LineType.CUSTOM_FOLD -> {
 					var curX = it.startX
@@ -170,14 +178,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		return curRangeList
 	}
 
-	private fun LineRenderData.rebuildRange(index: Int,curY: Int,rangeList: MutableList<Pair<Int, Range<Int>>>){
-		if(lineType == LineType.CUSTOM_FOLD){
-			rangeList.add(index to Range(curY, curY + y - config.pixelsPerLine + aboveBlockLine))
-		}else if(aboveBlockLine > 0){
-			rangeList.add(index - 1 to Range(curY, curY + y - config.pixelsPerLine + aboveBlockLine))
-		}
-	}
-
 	private fun refreshRenderData(startVisualLine: Int, endVisualLine: Int) {
 		if(!glancePanel.checkVisible()) return
 		val visLinesIterator = MyVisualLinesIterator(editor, startVisualLine)
@@ -190,7 +190,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			.associateBy { DocumentUtil.getLineStartOffset(it.startOffset, myDocument) }
 		while (!visLinesIterator.atEnd()) {
 			val start = visLinesIterator.getVisualLineStartOffset()
-			if (start >= text.length) break
 			val visualLine = visLinesIterator.getVisualLine()
 			//BLOCK_INLAY
 			val aboveBlockLine = visLinesIterator.getBlockInlaysAbove().sumOf { (it.heightInPixels * scrollState.scale).toInt() }
@@ -247,16 +246,16 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						if(renderStr.isBlank()) {
 							renderList.add(RenderData(renderStr.toIntArray(), defaultColor))
 						}else{
-							val highlightColors = getHighlightColor(curStart, curEnd)
-							if(highlightColors.isNotEmpty()){
-								if(highlightColors.size == 1 && highlightColors.first().run{ startOffset == curStart && endOffset == curEnd }){
-									renderList.add(RenderData(renderStr.toIntArray(), highlightColors.first().foregroundColor))
+							val highlightList = getHighlightColor(curStart, curEnd)
+							if(highlightList.isNotEmpty()){
+								if(highlightList.size == 1 && highlightList.first().run{ startOffset == curStart && endOffset == curEnd }){
+									renderList.add(RenderData(renderStr.toIntArray(), highlightList.first().foregroundColor))
 								}else {
 									val lexerColor = runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() ?: defaultColor
 									var nextOffset = curStart
 									var preColor: Color? = null
 									for(offset in curStart .. curEnd){
-										val color = highlightColors.firstOrNull {
+										val color = highlightList.firstOrNull {
 											offset >= it.startOffset && offset < it.endOffset
 										}?.foregroundColor ?: lexerColor
 										if(preColor != null && preColor !== color){
