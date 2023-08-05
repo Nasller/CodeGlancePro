@@ -1,6 +1,7 @@
 package com.nasller.codeglance.render
 
 import com.intellij.ide.ui.UISettings
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.diagnostic.Attachment
 import com.intellij.openapi.editor.*
@@ -22,6 +23,7 @@ import com.intellij.util.DocumentEventUtil
 import com.intellij.util.DocumentUtil
 import com.intellij.util.MathUtil
 import com.intellij.util.Range
+import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.ui.EdtInvocationManager
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.config.CodeGlanceColorsPage
@@ -31,6 +33,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import org.slf4j.LoggerFactory
 import java.awt.Color
 import java.awt.Font
+import java.awt.image.BufferedImage
 import java.beans.PropertyChangeEvent
 import java.lang.reflect.Proxy
 import kotlin.math.max
@@ -48,11 +51,53 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			 onSoftWrapRecalculationEnd(args[0] as IncrementalCacheUpdateEvent)
 		}else null
 	}.also { editor.softWrapModel.applianceManager.addSoftWrapListener(it) }
+	private val imgArray = arrayOf(getBufferedImage(), getBufferedImage())
+	private var myLastImageIndex = 0
+	private var myRenderDirty = false
 	init { makeListener() }
 
-	override fun update() {
-		val curImg = getMinimapImage() ?: return
-		if(rangeList.size > 0) rangeList.clear()
+	override fun getImageOrUpdate(): BufferedImage {
+		return imgArray[myLastImageIndex]
+	}
+
+	override fun updateImage(canUpdate: Boolean){
+		if (canUpdate.not()) return
+		if(lock.compareAndSet(false,true)) {
+			val renderDataIterable = renderDataList.toList().withIndex()
+			glancePanel.psiDocumentManager.performForCommittedDocument(editor.document) {
+				ReadAction.nonBlocking<MutableList<Pair<Int, Range<Int>>>?>{
+					update(renderDataIterable)
+				}.finishOnUiThread(modalityState) {
+					if(it != null) rangeList = it
+					myLastImageIndex = if (myLastImageIndex == 0) 1 else 0
+					lock.set(false)
+					glancePanel.repaint()
+					if(myRenderDirty) {
+						updateImage()
+						myRenderDirty = false
+					}
+				}.submit(AppExecutorUtil.getAppExecutorService())
+			}
+		}else myRenderDirty = true
+	}
+
+	override fun rebuildDataAndImage() {
+		if(canUpdate()) invokeLater(modalityState){ resetRenderData() }
+	}
+
+	private fun getMinimapImage(): BufferedImage? {
+		val index = if(myLastImageIndex == 0) 1 else 0
+		var curImg = imgArray[index]
+		if (curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
+			curImg.flush()
+			curImg = getBufferedImage()
+			imgArray[index] = curImg
+		}
+		return if (editor.isDisposed || editor.document.lineCount <= 0) return null else curImg
+	}
+
+	private fun update(renderDataArray: Iterable<IndexedValue<LineRenderData?>>): MutableList<Pair<Int, Range<Int>>>?{
+		val curImg = getMinimapImage() ?: return null
 		val graphics = curImg.createGraphics()
 		graphics.composite = GlancePanel.CLEAR
 		graphics.fillRect(0, 0, curImg.width, curImg.height)
@@ -69,11 +114,12 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 				else -> EditorFontType.PLAIN
 			}).deriveFont(config.markersScaleFactor * config.pixelsPerLine)
 		}
+		val curRangeList = mutableListOf<Pair<Int, Range<Int>>>()
 		var totalY = 0
 		var skipY = 0
-		for ((index, it) in renderDataList.withIndex()) {
+		for ((index, it) in renderDataArray) {
 			if(it == null) continue
-			it.rebuildRange(index, totalY)
+			it.rebuildRange(index, totalY, curRangeList)
 			if(skipY > 0){
 				if(skipY in 1 .. it.aboveBlockLine){
 					totalY += it.aboveBlockLine
@@ -121,9 +167,10 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			totalY += it.y
 		}
 		graphics.dispose()
+		return curRangeList
 	}
 
-	private fun LineRenderData.rebuildRange(index: Int,curY: Int){
+	private fun LineRenderData.rebuildRange(index: Int,curY: Int,rangeList: MutableList<Pair<Int, Range<Int>>>){
 		if(lineType == LineType.CUSTOM_FOLD){
 			rangeList.add(index to Range(curY, curY + y - config.pixelsPerLine + aboveBlockLine))
 		}else if(aboveBlockLine > 0){
@@ -238,10 +285,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			else break
 		}
 		updateImage(true)
-	}
-
-	override fun rebuildDataAndImage() {
-		if(canUpdate()) invokeLater(modalityState){ resetRenderData() }
 	}
 
 	private fun resetRenderData(){
@@ -445,6 +488,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		super.dispose()
 		editor.softWrapModel.applianceManager.removeSoftWrapListener(mySoftWrapChangeListener)
 		renderDataList.clear()
+		imgArray.forEach { it.flush() }
 	}
 
 	private data class LineRenderData(val renderData: Array<RenderData>, val startX: Int, val y: Int, val aboveBlockLine: Int,

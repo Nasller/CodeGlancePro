@@ -2,7 +2,6 @@ package com.nasller.codeglance.render
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ModalityState
-import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.EditorKind
@@ -21,7 +20,6 @@ import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.panel.GlancePanel
-import com.nasller.codeglance.util.MySoftReference
 import java.awt.Color
 import java.awt.image.BufferedImage
 import java.beans.PropertyChangeListener
@@ -37,38 +35,16 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 	protected var softWrapEnabled = false
 	protected val modalityState
 		get() = if (editor.editorKind != EditorKind.MAIN_EDITOR) ModalityState.any() else ModalityState.defaultModalityState()
-	protected val rangeList = mutableListOf<Pair<Int, Range<Int>>>()
+	protected var rangeList = mutableListOf<Pair<Int, Range<Int>>>()
 	protected val isLogFile = virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
+	protected val lock = AtomicBoolean(false)
 	private val scaleBuffer = IntArray(4)
-	private val lock = AtomicBoolean(false)
-	private var imgReference = MySoftReference.create(getBufferedImage(), editor.editorKind != EditorKind.MAIN_EDITOR)
 
-	abstract fun update()
+	abstract fun getImageOrUpdate(): BufferedImage?
 
 	abstract fun rebuildDataAndImage()
 
-	fun getImageOrUpdate() : BufferedImage? {
-		val img = imgReference.get()
-		if(img == null) updateImage()
-		return img
-	}
-
-	fun updateImage(canUpdate: Boolean = glancePanel.checkVisible()){
-		if (canUpdate && lock.compareAndSet(false,true)) {
-			glancePanel.psiDocumentManager.performForCommittedDocument(editor.document) {
-				invokeLater(modalityState){ updateImgTask() }
-			}
-		}
-	}
-
-	private fun updateImgTask() {
-		try {
-			update()
-		} finally {
-			lock.set(false)
-			glancePanel.repaint()
-		}
-	}
+	abstract fun updateImage(canUpdate: Boolean = glancePanel.checkVisible())
 
 	fun getMyRenderVisualLine(y: Int): Int {
 		var minus = 0
@@ -101,16 +77,6 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 
 	protected fun canUpdate() = glancePanel.checkVisible() && (editor.editorKind == EditorKind.CONSOLE || virtualFile == null
 			|| runReadAction { editor.highlighter !is EmptyEditorHighlighter })
-
-	protected fun getMinimapImage() : BufferedImage? {
-		var curImg = imgReference.get()
-		if (curImg == null || curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
-			curImg?.flush()
-			curImg = getBufferedImage()
-			imgReference = MySoftReference.create(curImg, editor.editorKind != EditorKind.MAIN_EDITOR)
-		}
-		return if (editor.isDisposed || editor.document.lineCount <= 0) return null else curImg
-	}
 
 	protected fun getHighlightColor(startOffset: Int, endOffset: Int): List<RangeHighlightColor>{
 		val list = mutableListOf<RangeHighlightColor>()
@@ -214,12 +180,11 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 	}
 
 	override fun dispose() {
-		imgReference.clear{ flush() }
 		rangeList.clear()
 	}
 
 	@Suppress("UndesirableClassUsage")
-	private fun getBufferedImage() = BufferedImage(glancePanel.getConfigSize().width, glancePanel.scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_INT_ARGB)
+	protected fun getBufferedImage() = BufferedImage(glancePanel.getConfigSize().width, glancePanel.scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_INT_ARGB)
 
 	protected data class RangeHighlightColor(val startOffset: Int,val endOffset: Int,val foregroundColor: Color)
 

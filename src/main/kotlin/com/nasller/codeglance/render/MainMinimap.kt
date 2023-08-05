@@ -1,6 +1,7 @@
 package com.nasller.codeglance.render
 
 import com.intellij.ide.ui.UISettings
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.editor.*
 import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.editor.event.DocumentEvent
@@ -22,9 +23,11 @@ import com.intellij.util.SingleAlarm
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.config.CodeGlanceColorsPage
 import com.nasller.codeglance.panel.GlancePanel
+import com.nasller.codeglance.util.MySoftReference
 import java.awt.Font
 import java.awt.Graphics2D
 import java.awt.RenderingHints
+import java.awt.image.BufferedImage
 import java.beans.PropertyChangeEvent
 import kotlin.math.roundToInt
 
@@ -33,9 +36,43 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 	private val alarm by lazy {
 		SingleAlarm({ updateImage() }, 500, this, Alarm.ThreadToUse.POOLED_THREAD)
 	}
+	private var imgReference = MySoftReference.create(getBufferedImage(), editor.editorKind != EditorKind.MAIN_EDITOR)
 	init { makeListener() }
 
-	override fun update() {
+	override fun getImageOrUpdate(): BufferedImage? {
+		val img = imgReference.get()
+		if(img == null) updateImage()
+		return img
+	}
+
+	override fun updateImage(canUpdate: Boolean){
+		if (canUpdate && lock.compareAndSet(false,true)) {
+			glancePanel.psiDocumentManager.performForCommittedDocument(editor.document){
+				invokeLater(modalityState) {
+					try {
+						update()
+					} finally {
+						lock.set(false)
+						glancePanel.repaint()
+					}
+				}
+			}
+		}
+	}
+
+	override fun rebuildDataAndImage() = updateImage(canUpdate())
+
+	private fun getMinimapImage(): BufferedImage? {
+		var curImg = imgReference.get()
+		if (curImg == null || curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
+			curImg?.flush()
+			curImg = getBufferedImage()
+			imgReference = MySoftReference.create(curImg, editor.editorKind != EditorKind.MAIN_EDITOR)
+		}
+		return if (editor.isDisposed || editor.document.lineCount <= 0) return null else curImg
+	}
+
+	private fun update() {
 		val curImg = getMinimapImage() ?: return
 		if(rangeList.size > 0) rangeList.clear()
 		val text = editor.document.immutableCharSequence
@@ -202,8 +239,6 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 		} else emptyMap()
 	}
 
-	override fun rebuildDataAndImage() = updateImage(canUpdate())
-
 	/** FoldingListener */
 	override fun onFoldProcessingEnd() {
 		if (editor.document.isInBulkUpdate) return
@@ -280,6 +315,11 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 	override fun bulkUpdateFinished(document: Document) = updateImage()
 
 	override fun getPriority(): Int = 170 //EditorDocumentPriorities
+
+	override fun dispose() {
+		super.dispose()
+		imgReference.clear{ flush() }
+	}
 
 	/** PropertyChangeListener */
 	override fun propertyChange(evt: PropertyChangeEvent) {
