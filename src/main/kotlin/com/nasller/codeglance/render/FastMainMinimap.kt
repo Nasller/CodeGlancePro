@@ -15,6 +15,7 @@ import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.impl.softwrap.mapping.IncrementalCacheUpdateEvent
 import com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapApplianceManager
 import com.intellij.openapi.util.SystemInfoRt
+import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.DocumentEventUtil
@@ -68,7 +69,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 				else -> EditorFontType.PLAIN
 			}).deriveFont(config.markersScaleFactor * config.pixelsPerLine)
 		}
-		val text by lazy(LazyThreadSafetyMode.NONE) { myDocument.immutableCharSequence }
 		var totalY = 0
 		var skipY = 0
 		for ((index, it) in renderDataList.withIndex()) {
@@ -109,7 +109,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 				LineType.COMMENT -> {
 					graphics.composite = GlancePanel.srcOver
 					graphics.color = markAttributes.foregroundColor
-					val commentText = text.substring(it.commentHighlighterEx!!.startOffset, it.commentHighlighterEx.endOffset)
+					val commentText = myDocument.getText(TextRange(it.commentHighlighterEx!!.startOffset, it.commentHighlighterEx.endOffset))
 					val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
 						UIUtil.getFontWithFallback(font).deriveFont(markAttributes.fontType, font.size2D)
 					} else font
