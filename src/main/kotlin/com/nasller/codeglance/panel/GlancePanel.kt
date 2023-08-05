@@ -278,7 +278,9 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		val img = minimap.getImageOrUpdate() ?: return
 		with(gfx as Graphics2D){
 			setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-			paintSomething()
+			if(hideScrollBarListener.isNotRunning()){
+				paintSomething()
+			}
 			if (editor.document.textLength != 0) {
 				composite = srcOver0_8
 				drawImage(img, 0, 0, width, scrollState.drawHeight,
@@ -304,7 +306,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		editor.putUserData(CURRENT_GLANCE, null)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, null)
 		editor.component.remove(this.parent)
-		hideScrollBarListener.removeHideScrollBarListener(true)
+		hideScrollBarListener.removeHideScrollBarListener()
 		scrollbar.clear()
 		markCommentState.clear()
 	}
