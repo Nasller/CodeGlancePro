@@ -74,8 +74,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						lock.set(false)
 						glancePanel.repaint()
 						if(myRenderDirty) {
-							updateImage()
 							myRenderDirty = false
+							updateImage()
 						}
 					}.submit(AppExecutorUtil.getAppExecutorService())
 				}
