@@ -48,8 +48,10 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		it.addAll(ObjectArrayList.wrap(arrayOfNulls(editor.visibleLineCount)))
 	}
 	private val mySoftWrapChangeListener = Proxy.newProxyInstance(platformClassLoader, softWrapListenerClass) { _, method, args ->
-		return@newProxyInstance if(HOOK_METHOD == method.name && args?.size == 1){
+		return@newProxyInstance if(HOOK_ON_RECALCULATION_END_METHOD == method.name && args?.size == 1){
 			 onSoftWrapRecalculationEnd(args[0] as IncrementalCacheUpdateEvent)
+		}else if(HOOK_RESET_METHOD == method.name && (args == null || args.isEmpty())){
+			resetSoftWrap()
 		}else null
 	}.also { editor.softWrapModel.applianceManager.addSoftWrapListener(it) }
 	private val imgArray = arrayOf(getBufferedImage(), getBufferedImage())
@@ -296,6 +298,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	private var myDirty = false
+	private var myOnceReset = 0
 	private var myFoldingChangeStartOffset = Int.MAX_VALUE
 	private var myFoldingChangeEndOffset = Int.MIN_VALUE
 	private var myDuringDocumentUpdate = false
@@ -387,7 +390,12 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		}
 	}
 
-	override fun recalculationEnds() = Unit
+	override fun recalculationEnds() {
+		if(myOnceReset == 1){
+			rebuildDataAndImage()
+			myOnceReset = 2
+		}
+	}
 
 	private fun onSoftWrapRecalculationEnd(event: IncrementalCacheUpdateEvent) {
 		if (myDocument.isInBulkUpdate) return
@@ -404,6 +412,12 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		}
 		if (invalidate) {
 			doInvalidateRange(event.startOffset, event.actualEndOffset)
+		}
+	}
+
+	private fun resetSoftWrap() {
+		if(myOnceReset == 0){
+			myOnceReset = 1
 		}
 	}
 
@@ -543,7 +557,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	@Suppress("UNCHECKED_CAST")
 	private companion object{
 		private val LOG = LoggerFactory.getLogger(FastMainMinimap::class.java)
-		private const val HOOK_METHOD = "onRecalculationEnd"
+		private const val HOOK_ON_RECALCULATION_END_METHOD = "onRecalculationEnd"
+		private const val HOOK_RESET_METHOD = "reset"
 		private val platformClassLoader = EditorImpl::class.java.classLoader
 		private val softWrapListenerClass = arrayOf(Class.forName("com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapAwareDocumentParsingListener"))
 		private val softWrapListeners = SoftWrapApplianceManager::class.java.getDeclaredField("myListeners").apply {
