@@ -80,6 +80,8 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		recomputeVisible(editor.scrollingModel.visibleArea)
 	}
 
+	fun getMinimapHeight() = minimap.getImageOrUpdate()?.height ?: scrollState.documentHeight
+
 	fun checkVisible() = !isReleased && !editor.isDisposed && (config.hoveringToShowScrollBar || isVisible)
 
 	fun getPlaceIndex() = editor.getUserData(CURRENT_GLANCE_PLACE_INDEX) ?: PlaceIndex.Right
