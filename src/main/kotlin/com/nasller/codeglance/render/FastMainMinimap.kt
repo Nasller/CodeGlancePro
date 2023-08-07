@@ -24,6 +24,7 @@ import com.intellij.util.DocumentUtil
 import com.intellij.util.MathUtil
 import com.intellij.util.Range
 import com.intellij.util.concurrency.AppExecutorUtil
+import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.ui.EdtInvocationManager
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.config.CodeGlanceColorsPage
@@ -52,6 +53,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		}else null
 	}.also { editor.softWrapModel.applianceManager.addSoftWrapListener(it) }
 	private val imgArray = arrayOf(getBufferedImage(), getBufferedImage())
+	override val rangeList: MutableList<Pair<Int, Range<Int>>> = ContainerUtil.createLockFreeCopyOnWriteList()
+	@Volatile
 	private var myLastImageIndex = 0
 	private var myRenderDirty = false
 	init { makeListener() }
@@ -66,14 +69,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 				val renderDataIterable = renderDataList.toList().withIndex()
 				glancePanel.psiDocumentManager.performForCommittedDocument(editor.document) {
 					ReadAction.nonBlocking<Unit>{
-						val localRangeList = update(renderDataIterable)
-						myLastImageIndex = if(myLastImageIndex == 0) 1 else 0
-						if(rangeList.isNotEmpty() || localRangeList.isNotEmpty()){
-							synchronized(rangeList){
-								rangeList.clear()
-								rangeList.addAll(localRangeList)
-							}
-						}
+						update(renderDataIterable)
 					}.finishOnUiThread(modalityState) {
 						lock.set(false)
 						glancePanel.repaint()
@@ -102,8 +98,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		return if(editor.isDisposed || editor.document.lineCount <= 0) return null else curImg
 	}
 
-	private fun update(renderDataArray: Iterable<IndexedValue<LineRenderData?>>): List<Pair<Int, Range<Int>>>{
-		val curImg = getMinimapImage() ?: return emptyList()
+	private fun update(renderDataArray: Iterable<IndexedValue<LineRenderData?>>){
+		val curImg = getMinimapImage() ?: return
 		val graphics = curImg.createGraphics()
 		graphics.composite = GlancePanel.CLEAR
 		graphics.fillRect(0, 0, curImg.width, curImg.height)
@@ -180,7 +176,11 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			totalY += it.y
 		}
 		graphics.dispose()
-		return curRangeList
+		if(rangeList.isNotEmpty() || curRangeList.isNotEmpty()){
+			rangeList.clear()
+			rangeList.addAll(curRangeList)
+		}
+		myLastImageIndex = if(myLastImageIndex == 0) 1 else 0
 	}
 
 	private fun refreshRenderData(startVisualLine: Int, endVisualLine: Int) {
@@ -365,7 +365,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 
 	private fun checkinInlayAndUpdate(inlay: Inlay<*>, changeFlags: Int? = null) {
 		if(myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || inlay.placement != Inlay.Placement.ABOVE_LINE
-			|| !inlay.isValid || (changeFlags != null && changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0)) return
+			|| (changeFlags != null && changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0)) return
 		val offset = inlay.offset
 		doInvalidateRange(offset,offset)
 	}

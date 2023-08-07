@@ -37,6 +37,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 		SingleAlarm({ updateImage() }, 500, this, Alarm.ThreadToUse.POOLED_THREAD)
 	}
 	private var imgReference = MySoftReference.create(getBufferedImage(), editor.editorKind != EditorKind.MAIN_EDITOR)
+	override val rangeList: MutableList<Pair<Int, Range<Int>>> = mutableListOf()
 	init { makeListener() }
 
 	override fun getImageOrUpdate(): BufferedImage? {
@@ -259,7 +260,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 
 	private fun checkinInlayAndUpdate(inlay: Inlay<*>, changeFlags: Int? = null) {
 		if(editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || inlay.placement != Inlay.Placement.ABOVE_LINE
-			|| !inlay.isValid || (changeFlags != null && changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0)) return
+			|| (changeFlags != null && changeFlags and InlayModel.ChangeFlags.HEIGHT_CHANGED == 0)) return
 		repaintOrRequest()
 	}
 
