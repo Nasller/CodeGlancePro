@@ -66,9 +66,10 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 				val renderDataIterable = renderDataList.toList().withIndex()
 				glancePanel.psiDocumentManager.performForCommittedDocument(editor.document) {
 					ReadAction.nonBlocking<MutableList<Pair<Int, Range<Int>>>?>{
-						update(renderDataIterable)
+						update(renderDataIterable).also {
+							myLastImageIndex = if(myLastImageIndex == 0) 1 else 0
+						}
 					}.finishOnUiThread(modalityState) {
-						myLastImageIndex = if(myLastImageIndex == 0) 1 else 0
 						if(it?.isNotEmpty() == true) rangeList = it
 						lock.set(false)
 						glancePanel.repaint()
