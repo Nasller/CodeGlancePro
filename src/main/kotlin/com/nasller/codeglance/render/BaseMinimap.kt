@@ -186,7 +186,9 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 	}
 
 	@Suppress("UndesirableClassUsage")
-	protected fun getBufferedImage() = BufferedImage(glancePanel.getConfigSize().width, glancePanel.scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_INT_ARGB)
+	protected fun getBufferedImage(drawHeight: Int = glancePanel.scrollState.documentHeight): BufferedImage{
+		return BufferedImage(glancePanel.getConfigSize().width, drawHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_INT_ARGB)
+	}
 
 	protected data class RangeHighlightColor(val startOffset: Int,val endOffset: Int,val foregroundColor: Color)
 

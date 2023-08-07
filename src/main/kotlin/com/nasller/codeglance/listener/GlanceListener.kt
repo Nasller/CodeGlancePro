@@ -2,7 +2,6 @@ package com.nasller.codeglance.listener
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
@@ -38,9 +37,6 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	/** ComponentAdapter */
 	override fun componentResized(componentEvent: ComponentEvent) = glancePanel.run {
 		updateScrollState()
-		if(editor.editorKind == EditorKind.CONSOLE && getMinimapHeight() < scrollState.documentHeight){
-			refresh(true)
-		}
 		repaint()
 	}
 

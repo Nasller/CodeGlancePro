@@ -64,12 +64,12 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	override fun updateImage(canUpdate: Boolean){
-		if (canUpdate) {
+		if (canUpdate && myDocument.textLength > 0) {
 			if(lock.compareAndSet(false,true)) {
-				val renderDataIterable = renderDataList.toList().withIndex()
+				val copyList = renderDataList.toList()
 				glancePanel.psiDocumentManager.performForCommittedDocument(editor.document) {
 					ReadAction.nonBlocking<Unit>{
-						update(renderDataIterable)
+						update(copyList)
 					}.finishOnUiThread(modalityState) {
 						lock.set(false)
 						glancePanel.repaint()
@@ -89,19 +89,19 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		if(canUpdate()) invokeLater(modalityState){ resetRenderData() }
 	}
 
-	private fun getMinimapImage(): BufferedImage? {
+	private fun getMinimapImage(drawHeight: Int): BufferedImage? {
 		val index = if(myLastImageIndex == 0) 1 else 0
 		var curImg = imgArray[index]
-		if (curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
+		if (curImg.height < drawHeight || curImg.width < glancePanel.width) {
 			curImg.flush()
-			curImg = getBufferedImage()
+			curImg = getBufferedImage(drawHeight)
 			imgArray[index] = curImg
 		}
 		return if(editor.isDisposed || editor.document.lineCount <= 0) return null else curImg
 	}
 
-	private fun update(renderDataArray: Iterable<IndexedValue<LineRenderData?>>){
-		val curImg = getMinimapImage() ?: return
+	private fun update(copyList: List<LineRenderData?>){
+		val curImg = getMinimapImage(copyList.filterNotNull().sumOf { it.y + it.aboveBlockLine }) ?: return
 		val graphics = curImg.createGraphics()
 		graphics.composite = GlancePanel.CLEAR
 		graphics.fillRect(0, 0, curImg.width, curImg.height)
@@ -121,7 +121,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		var totalY = 0
 		var skipY = 0
 		val curRangeList = mutableListOf<Pair<Int, Range<Int>>>()
-		for ((index, it) in renderDataArray) {
+		for ((index, it) in copyList.withIndex()) {
 			if(it == null) continue
 			//Coordinates
 			if(it.lineType == LineType.CUSTOM_FOLD){
@@ -290,7 +290,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			if(endVisualLine == 0 || visualLine <= endVisualLine) visLinesIterator.advance()
 			else break
 		}
-		updateImage(text.isNotEmpty())
+		updateImage()
 	}
 
 	private fun resetRenderData(){
