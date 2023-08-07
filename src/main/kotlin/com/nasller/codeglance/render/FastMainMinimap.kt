@@ -65,12 +65,16 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			if(lock.compareAndSet(false,true)) {
 				val renderDataIterable = renderDataList.toList().withIndex()
 				glancePanel.psiDocumentManager.performForCommittedDocument(editor.document) {
-					ReadAction.nonBlocking<MutableList<Pair<Int, Range<Int>>>?>{
-						update(renderDataIterable).also {
-							myLastImageIndex = if(myLastImageIndex == 0) 1 else 0
+					ReadAction.nonBlocking<Unit>{
+						val localRangeList = update(renderDataIterable)
+						myLastImageIndex = if(myLastImageIndex == 0) 1 else 0
+						if(rangeList.isNotEmpty() || localRangeList.isNotEmpty()){
+							synchronized(rangeList){
+								rangeList.clear()
+								rangeList.addAll(localRangeList)
+							}
 						}
 					}.finishOnUiThread(modalityState) {
-						if(it?.isNotEmpty() == true) rangeList = it
 						lock.set(false)
 						glancePanel.repaint()
 						if(myRenderDirty) {
@@ -98,8 +102,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		return if(editor.isDisposed || editor.document.lineCount <= 0) return null else curImg
 	}
 
-	private fun update(renderDataArray: Iterable<IndexedValue<LineRenderData?>>): MutableList<Pair<Int, Range<Int>>>?{
-		val curImg = getMinimapImage() ?: return null
+	private fun update(renderDataArray: Iterable<IndexedValue<LineRenderData?>>): List<Pair<Int, Range<Int>>>{
+		val curImg = getMinimapImage() ?: return emptyList()
 		val graphics = curImg.createGraphics()
 		graphics.composite = GlancePanel.CLEAR
 		graphics.fillRect(0, 0, curImg.width, curImg.height)
