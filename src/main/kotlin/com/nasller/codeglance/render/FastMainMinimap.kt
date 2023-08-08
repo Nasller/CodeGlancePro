@@ -227,7 +227,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 					val end = visLinesIterator.getVisualLineEndOffset()
 					var foldLineIndex = visLinesIterator.getStartFoldingIndex()
 					val hlIter = editor.highlighter.run {
-						myDocument.createLineIterator()
 						if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(start, end, text.subSequence(start, end))
 						else if(isLogFile) IdeLogFileHighlightDelegate(myDocument, createIterator(start))
 						else createIterator(start)
