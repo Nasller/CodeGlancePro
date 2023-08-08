@@ -3,7 +3,6 @@ package com.nasller.codeglance.render
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.runReadAction
-import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.InlayModel
 import com.intellij.openapi.editor.ex.FoldingListener
@@ -192,13 +191,13 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 
 	protected data class RangeHighlightColor(val startOffset: Int,val endOffset: Int,val foregroundColor: Color)
 
-	protected class IdeLogFileHighlightDelegate(private val document: Document, private val highlighterIterator: HighlighterIterator)
+	protected class IdeLogFileHighlightDelegate(private val highlighterIterator: HighlighterIterator)
 		: HighlighterIterator by highlighterIterator{
-		private val length = document.textLength
+		private val length = highlighterIterator.document.textLength
 
 		override fun getEnd(): Int {
 			val end = highlighterIterator.end
-			return if(DocumentUtil.isAtLineEnd(end,document) && end + 1 < length) end + 1
+			return if(DocumentUtil.isAtLineEnd(end, highlighterIterator.document) && end + 1 < length) end + 1
 			else end
 		}
 	}
