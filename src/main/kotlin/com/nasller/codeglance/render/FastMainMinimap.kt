@@ -101,7 +101,10 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	private fun update(copyList: List<LineRenderData?>){
-		val curImg = getMinimapImage(copyList.filterNotNull().sumOf { it.y + it.aboveBlockLine }) ?: return
+		val curImg = getMinimapImage(
+			if(editor.editorKind == EditorKind.CONSOLE) copyList.filterNotNull().sumOf { it.y + it.aboveBlockLine }
+			else scrollState.documentHeight
+		) ?: return
 		val graphics = curImg.createGraphics()
 		graphics.composite = GlancePanel.CLEAR
 		graphics.fillRect(0, 0, curImg.width, curImg.height)
