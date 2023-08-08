@@ -31,6 +31,8 @@ import com.nasller.codeglance.render.ScrollState
 import java.awt.*
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
+import kotlin.math.max
+import kotlin.math.min
 
 class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val editor = info.editor
@@ -79,8 +81,6 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		computeDimensions()
 		recomputeVisible(editor.scrollingModel.visibleArea)
 	}
-
-	fun getMinimapHeight() = minimap.getImageOrUpdate()?.height ?: scrollState.documentHeight
 
 	fun checkVisible() = !isReleased && !editor.isDisposed && (config.hoveringToShowScrollBar || isVisible)
 
@@ -346,7 +346,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 				val sequence = editor.document.charsSequence
 				shift = if (sequence.isEmpty()) 0 else if (sequence[sequence.length - 1] == '\n') 1 else 0
 			}
-			return 0.coerceAtLeast((lineCount - shift).coerceAtMost(visualLine))
+			return max(0, min(lineCount - shift, visualLine))
 		}
 	}
 
