@@ -34,7 +34,7 @@ import kotlin.math.roundToInt
 @Suppress("UnstableApiUsage")
 class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMinimap(glancePanel,virtualFile){
 	private val alarm by lazy {
-		SingleAlarm({ updateImage() }, 500, this, Alarm.ThreadToUse.POOLED_THREAD)
+		SingleAlarm({ updateMinimapImage() }, 500, this, Alarm.ThreadToUse.POOLED_THREAD)
 	}
 	private var imgReference = MySoftReference.create(getBufferedImage(), editor.editorKind != EditorKind.MAIN_EDITOR)
 	override val rangeList: MutableList<Pair<Int, Range<Int>>> = mutableListOf()
@@ -42,11 +42,11 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 
 	override fun getImageOrUpdate(): BufferedImage? {
 		val img = imgReference.get()
-		if(img == null) updateImage()
+		if(img == null) updateMinimapImage()
 		return img
 	}
 
-	override fun updateImage(canUpdate: Boolean){
+	override fun updateMinimapImage(canUpdate: Boolean){
 		if (canUpdate && lock.compareAndSet(false,true)) {
 			glancePanel.psiDocumentManager.performForCommittedDocument(editor.document){
 				invokeLater(modalityState) {
@@ -61,7 +61,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 		}
 	}
 
-	override fun rebuildDataAndImage() = updateImage(canUpdate())
+	override fun rebuildDataAndImage() = updateMinimapImage(canUpdate())
 
 	private fun getMinimapImage(): BufferedImage? {
 		var curImg = imgReference.get()
@@ -79,7 +79,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 		val text = editor.document.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val hlIter = editor.highlighter.createIterator(0).run {
-			if(isLogFile) IdeLogFileHighlightDelegate(this) else this
+			if(isLogFile) IdeLogFileHighlightDelegate(editor.document,this) else this
 		}
 		val softWrapEnable = editor.softWrapModel.isSoftWrappingEnabled
 		val hasBlockInlay = editor.inlayModel.hasBlockElements()
@@ -243,7 +243,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 	/** FoldingListener */
 	override fun onFoldProcessingEnd() {
 		if (editor.document.isInBulkUpdate) return
-		updateImage()
+		updateMinimapImage()
 	}
 
 	override fun onCustomFoldRegionPropertiesChange(region: CustomFoldRegion, flags: Int) {
@@ -266,7 +266,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 
 	override fun onBatchModeFinish(editor: Editor) {
 		if (editor.document.isInBulkUpdate) return
-		updateImage()
+		updateMinimapImage()
 	}
 
 	/** SoftWrapChangeListener */
@@ -274,10 +274,10 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 		val enabled = editor.softWrapModel.isSoftWrappingEnabled
 		if (enabled && !softWrapEnabled) {
 			softWrapEnabled = true
-			updateImage()
+			updateMinimapImage()
 		} else if (!enabled && softWrapEnabled) {
 			softWrapEnabled = false
-			updateImage()
+			updateMinimapImage()
 		}
 	}
 
@@ -310,10 +310,10 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 		if (event.document.isInBulkUpdate) return
 		if (event.document.lineCount > 3000) {
 			repaintOrRequest()
-		} else updateImage()
+		} else updateMinimapImage()
 	}
 
-	override fun bulkUpdateFinished(document: Document) = updateImage()
+	override fun bulkUpdateFinished(document: Document) = updateMinimapImage()
 
 	override fun getPriority(): Int = 170 //EditorDocumentPriorities
 
@@ -325,7 +325,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 	/** PropertyChangeListener */
 	override fun propertyChange(evt: PropertyChangeEvent) {
 		if (EditorEx.PROP_HIGHLIGHTER != evt.propertyName || evt.newValue is EmptyEditorHighlighter) return
-		updateImage()
+		updateMinimapImage()
 	}
 
 	private fun repaintOrRequest(request: Boolean = true) {
