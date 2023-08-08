@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.6.8.1</h3>
+		<ul>
+			<li>Fix emptyLine</li>
+		</ul>
 		<h3>1.6.8</h3>
 		<ul>
 			<li>Fix ModalityState alarm</li>
