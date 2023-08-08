@@ -188,8 +188,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		myLastImageIndex = if(myLastImageIndex == 0) 1 else 0
 	}
 
-	private fun refreshRenderData(startVisualLine: Int, endVisualLine: Int) {
-		if(!glancePanel.checkVisible()) return
+	private fun refreshRenderData(startVisualLine: Int, endVisualLine: Int) = runCatching {
+		if(!glancePanel.checkVisible()) return@runCatching
 		val visLinesIterator = MyVisualLinesIterator(editor, startVisualLine)
 		val text = myDocument.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground
@@ -296,6 +296,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			else break
 		}
 		updateImage()
+	}.onFailure {
+		LOG.error("refreshRenderData internal failed!", it)
 	}
 
 	private fun resetRenderData(){
