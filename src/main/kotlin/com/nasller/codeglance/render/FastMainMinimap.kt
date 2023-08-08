@@ -233,59 +233,61 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						else createIterator(start)
 					}
 					val renderList = mutableListOf<RenderData>()
-					do {
-						val curEnd = hlIter.end
-						var curStart = if(start > hlIter.start && start < curEnd) start else hlIter.start
-						//FOLD
-						if(curStart == foldStartOffset){
-							val foldEndOffset = foldRegion!!.endOffset
-							renderList.add(RenderData(StringUtil.replace(foldRegion.placeholderText, "\n", " ").toIntArray(),
-								editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor))
-							foldRegion = visLinesIterator.getFoldRegion(++foldLineIndex)
-							foldStartOffset = foldRegion?.startOffset ?: -1
-							//case on fold InLine
-							if(foldEndOffset < curEnd){
-								curStart = foldEndOffset
-							}else {
-								do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < foldEndOffset)
-								continue
-							}
-						}
-						//CODE
-						val renderStr = text.subSequence(curStart, curEnd)
-						if(renderStr.isBlank()) {
-							renderList.add(RenderData(renderStr.toIntArray(), defaultColor))
-						}else{
-							val highlightList = getHighlightColor(curStart, curEnd)
-							if(highlightList.isNotEmpty()){
-								if(highlightList.size == 1 && highlightList.first().run{ startOffset == curStart && endOffset == curEnd }){
-									renderList.add(RenderData(renderStr.toIntArray(), highlightList.first().foregroundColor))
+					if(!hlIter.atEnd()){
+						do {
+							val curEnd = hlIter.end
+							var curStart = if(start > hlIter.start && start < curEnd) start else hlIter.start
+							//FOLD
+							if(curStart == foldStartOffset){
+								val foldEndOffset = foldRegion!!.endOffset
+								renderList.add(RenderData(StringUtil.replace(foldRegion.placeholderText, "\n", " ").toIntArray(),
+									editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor))
+								foldRegion = visLinesIterator.getFoldRegion(++foldLineIndex)
+								foldStartOffset = foldRegion?.startOffset ?: -1
+								//case on fold InLine
+								if(foldEndOffset < curEnd){
+									curStart = foldEndOffset
 								}else {
-									val lexerColor = runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() ?: defaultColor
-									var nextOffset = curStart
-									var preColor: Color? = null
-									for(offset in curStart .. curEnd){
-										val color = highlightList.firstOrNull {
-											offset >= it.startOffset && offset < it.endOffset
-										}?.foregroundColor ?: lexerColor
-										if(preColor != null && preColor !== color){
-											renderList.add(RenderData(text.subSequence(nextOffset, offset).toIntArray(), preColor))
-											nextOffset = offset
-										}
-										preColor = color
-									}
-									if(nextOffset < curEnd){
-										renderList.add(RenderData(text.subSequence(nextOffset, curEnd).toIntArray(), preColor ?: lexerColor))
-									}
+									do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < foldEndOffset)
+									continue
 								}
-							}else {
-								renderList.add(RenderData(renderStr.toIntArray(), runCatching {
-									hlIter.textAttributes.foregroundColor
-								}.getOrNull() ?: defaultColor))
 							}
-						}
-						hlIter.advance()
-					}while (!hlIter.atEnd() && hlIter.start < end)
+							//CODE
+							val renderStr = text.subSequence(curStart, curEnd)
+							if(renderStr.isBlank()) {
+								renderList.add(RenderData(renderStr.toIntArray(), defaultColor))
+							}else{
+								val highlightList = getHighlightColor(curStart, curEnd)
+								if(highlightList.isNotEmpty()){
+									if(highlightList.size == 1 && highlightList.first().run{ startOffset == curStart && endOffset == curEnd }){
+										renderList.add(RenderData(renderStr.toIntArray(), highlightList.first().foregroundColor))
+									}else {
+										val lexerColor = runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() ?: defaultColor
+										var nextOffset = curStart
+										var preColor: Color? = null
+										for(offset in curStart .. curEnd){
+											val color = highlightList.firstOrNull {
+												offset >= it.startOffset && offset < it.endOffset
+											}?.foregroundColor ?: lexerColor
+											if(preColor != null && preColor !== color){
+												renderList.add(RenderData(text.subSequence(nextOffset, offset).toIntArray(), preColor))
+												nextOffset = offset
+											}
+											preColor = color
+										}
+										if(nextOffset < curEnd){
+											renderList.add(RenderData(text.subSequence(nextOffset, curEnd).toIntArray(), preColor ?: lexerColor))
+										}
+									}
+								}else {
+									renderList.add(RenderData(renderStr.toIntArray(), runCatching {
+										hlIter.textAttributes.foregroundColor
+									}.getOrNull() ?: defaultColor))
+								}
+							}
+							hlIter.advance()
+						}while (!hlIter.atEnd() && hlIter.start < end)
+					}
 					renderDataList[visualLine] = LineRenderData(renderList.toTypedArray(),
 						visLinesIterator.getStartsWithSoftWrap()?.indentInColumns ?: 0, config.pixelsPerLine, aboveBlockLine)
 				}
