@@ -233,7 +233,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						else createIterator(start)
 					}
 					val renderList = mutableListOf<RenderData>()
-					if(!hlIter.atEnd()){
+					if(hlIter is OneLineHighlightDelegate || !hlIter.atEnd()){
 						do {
 							val curEnd = hlIter.end
 							var curStart = if(start > hlIter.start && start < curEnd) start else hlIter.start
