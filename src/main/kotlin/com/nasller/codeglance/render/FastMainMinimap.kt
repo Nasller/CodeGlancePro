@@ -165,13 +165,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 										curY += config.pixelsPerLine
 									}else break@breakY
 								}
-								else -> {
-									curX += 1
-									if(curX > curImg.width) {
-										if(it.lineType == LineType.CUSTOM_FOLD) break
-										else break@breakY
-									}
-								}
+								else -> curX += 1
 							}
 						}
 					}
