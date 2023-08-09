@@ -1,6 +1,7 @@
 package com.nasller.codeglance.render
 
 import com.intellij.ide.ui.UISettings
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.diagnostic.Attachment
 import com.intellij.openapi.editor.*
@@ -38,7 +39,6 @@ import java.awt.Font
 import java.awt.image.BufferedImage
 import java.beans.PropertyChangeEvent
 import java.lang.reflect.Proxy
-import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -73,7 +73,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 				glancePanel.psiDocumentManager.performForCommittedDocument(editor.document) {
 					ReadAction.nonBlocking<Unit>{
 						update(copyList)
-					}.expireWith(this).finishOnUiThread(modalityState) {
+					}.expireWith(this).finishOnUiThread(ModalityState.any()) {
 						lock.set(false)
 						glancePanel.repaint()
 						if (myRenderDirty) {
@@ -199,7 +199,13 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			if(reset){
 				myResetDataPromise = ReadAction.nonBlocking<Unit> {
 					updateMinimapData(visLinesIterator, 0)
-				}.expireWith(this).submit(AppExecutorUtil.getAppExecutorService()).onSuccess {
+				}.expireWith(this).finishOnUiThread(ModalityState.any()) {
+					if (myResetChangeStartOffset <= myResetChangeEndOffset) {
+						doInvalidateRange(myResetChangeStartOffset, myResetChangeEndOffset)
+						myResetChangeStartOffset = Int.MAX_VALUE
+						myResetChangeEndOffset = Int.MIN_VALUE
+					}
+				}.submit(AppExecutorUtil.getAppExecutorService()).onSuccess {
 					myResetDataPromise = null
 				}.onError {
 					myResetDataPromise = null
@@ -332,6 +338,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	private fun resetMinimapData(){
+		assert(!myDocument.isInBulkUpdate)
+		assert(!editor.inlayModel.isInBatchMode)
 		doInvalidateRange(0, myDocument.textLength, true)
 	}
 
@@ -342,6 +350,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	private var myDuringDocumentUpdate = false
 	private var myDocumentChangeStartOffset = 0
 	private var myDocumentChangeEndOffset = 0
+	private var myResetChangeStartOffset = Int.MAX_VALUE
+	private var myResetChangeEndOffset = Int.MIN_VALUE
 	/** PrioritizedDocumentListener */
 	override fun beforeDocumentChange(event: DocumentEvent) {
 		assertValidState()
@@ -359,8 +369,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		doInvalidateRange(myDocumentChangeStartOffset, myDocumentChangeEndOffset)
 		assertValidState()
 	}
-
-	override fun bulkUpdateFinished(document: Document) = resetMinimapData()
 
 	override fun getPriority(): Int = 170 //EditorDocumentPriorities
 
@@ -500,8 +508,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	private fun doInvalidateRange(startOffset: Int, endOffset: Int, reset: Boolean = false) {
-		checkProcessReset(reset)
-		if (checkDirty()) return
+		if (checkDirty() || checkProcessReset(startOffset,endOffset,reset)) return
 		val startVisualLine = editor.offsetToVisualLine(startOffset, false)
 		val endVisualLine = editor.offsetToVisualLine(endOffset, true)
 		val lineDiff = editor.visibleLineCount - renderDataList.size
@@ -514,20 +521,22 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	//check has background tasks
-	private fun checkProcessReset(reset: Boolean){
+	private fun checkProcessReset(startOffset: Int, endOffset: Int,reset: Boolean): Boolean{
 		if (myResetDataPromise != null) {
 			if(myResetDataPromise?.state == Promise.State.PENDING){
 				if(reset) {
 					myResetDataPromise?.cancel()
+					myResetChangeStartOffset = Int.MAX_VALUE
+					myResetChangeEndOffset = Int.MIN_VALUE
 				}else {
-					runCatching { myResetDataPromise?.blockingGet(10, TimeUnit.SECONDS) }.onFailure {
-						LOG.error("Waiting reset minimap data error", it)
-						myResetDataPromise?.cancel()
-					}
+					myResetChangeStartOffset = min(myResetChangeStartOffset, startOffset)
+					myResetChangeEndOffset = max(myResetChangeEndOffset, endOffset)
+					return true
 				}
 			}
 			myResetDataPromise = null
 		}
+		return false
 	}
 
 	private fun checkDirty(): Boolean {

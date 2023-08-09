@@ -313,8 +313,6 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 		} else updateMinimapImage()
 	}
 
-	override fun bulkUpdateFinished(document: Document) = updateMinimapImage()
-
 	override fun getPriority(): Int = 170 //EditorDocumentPriorities
 
 	override fun dispose() {
