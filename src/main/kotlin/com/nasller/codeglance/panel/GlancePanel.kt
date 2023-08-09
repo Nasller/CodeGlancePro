@@ -278,14 +278,13 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		if(isReleased) return
 		val img = minimap.getImageOrUpdate() ?: return
 		with(gfx as Graphics2D){
-			val animationNotRun = hideScrollBarListener.isNotRunning()
-			if(animationNotRun) paintSomething()
+			if(hideScrollBarListener.isNotRunning()) paintSomething()
 			if (editor.document.textLength != 0) {
 				composite = srcOver0_8
 				drawImage(img, 0, 0, width, scrollState.drawHeight,
 					0, scrollState.visibleStart, width, scrollState.visibleEnd, null)
 			}
-			if(animationNotRun) scrollbar.paint(this)
+			scrollbar.paint(this)
 		}
 	}
 
