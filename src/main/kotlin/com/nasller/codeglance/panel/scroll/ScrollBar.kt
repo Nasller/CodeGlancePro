@@ -175,15 +175,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 
 	private fun resizeGlancePanel(refreshImage: Boolean) {
 		if(!resizing) return
-		val action = {it: GlancePanel->
-			if(refreshImage){
-				if (it.editor.softWrapModel.isSoftWrappingEnabled) {
-					it.refreshDataAndImage()
-				} else {
-					it.refresh(true)
-				}
-			}else it.refresh()
-		}
+		val action = {it: GlancePanel-> if(refreshImage) it.refreshDataAndImage() else it.refresh() }
 		val diffViewer = editor.getUserData(CURRENT_EDITOR_DIFF_VIEW)
 		if (diffViewer != null) {
 			diffViewer.editors.mapNotNull { it.getUserData(GlancePanel.CURRENT_GLANCE) }.forEach(action)

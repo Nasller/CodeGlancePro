@@ -14,7 +14,6 @@ import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.impl.softwrap.mapping.IncrementalCacheUpdateEvent
 import com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapApplianceManager
-import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
@@ -32,6 +31,7 @@ import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MyVisualLinesIterator
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import org.jetbrains.concurrency.CancellablePromise
+import org.jetbrains.concurrency.Promise
 import org.slf4j.LoggerFactory
 import java.awt.Color
 import java.awt.Font
@@ -106,10 +106,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	private fun update(copyList: List<LineRenderData?>){
-		val curImg = getMinimapImage(
-			if(editor.editorKind == EditorKind.CONSOLE) copyList.filterNotNull().sumOf { it.y + it.aboveBlockLine }
-			else scrollState.documentHeight
-		) ?: return
+		val curImg = getMinimapImage(copyList.filterNotNull().sumOf { it.y + it.aboveBlockLine }) ?: return
 		val graphics = curImg.createGraphics()
 		graphics.composite = GlancePanel.CLEAR
 		graphics.fillRect(0, 0, curImg.width, curImg.height)
@@ -229,7 +226,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			.associateBy { DocumentUtil.getLineStartOffset(it.startOffset, myDocument) }
 		val limitWidth = glancePanel.getConfigSize().width
 		while (!visLinesIterator.atEnd()) {
-			if(myResetDataPromise != null) ProgressManager.checkCanceled()
+			if(myResetDataPromise?.isCancelled == true) return
 			val start = visLinesIterator.getVisualLineStartOffset()
 			val visualLine = visLinesIterator.getVisualLine()
 			//BLOCK_INLAY
@@ -271,6 +268,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						if(hlIter is OneLineHighlightDelegate || !hlIter.atEnd()){
 							var width = 0
 							do {
+								if(width > limitWidth) break
 								val curEnd = hlIter.end
 								var curStart = if(start > hlIter.start && start < curEnd) start else hlIter.start
 								//FOLD
@@ -290,7 +288,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 									}
 								}
 								//CODE
-								val renderStr = text.subSequence(curStart, curEnd)
+								val renderStr = text.subSequence(curStart, limitLength(curStart,curEnd,limitWidth))
 								width += renderStr.length
 								if(renderStr.isBlank()) {
 									renderList.add(RenderData(renderStr, defaultColor))
@@ -308,13 +306,15 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 													offset >= it.startOffset && offset < it.endOffset
 												}?.foregroundColor ?: lexerColor
 												if(preColor != null && preColor !== color){
-													renderList.add(RenderData(text.subSequence(nextOffset, offset), preColor))
+													renderList.add(RenderData(text.subSequence(nextOffset,
+														limitLength(nextOffset,offset,limitWidth)), preColor))
 													nextOffset = offset
 												}
 												preColor = color
 											}
 											if(nextOffset < curEnd){
-												renderList.add(RenderData(text.subSequence(nextOffset, curEnd), preColor ?: lexerColor))
+												renderList.add(RenderData(text.subSequence(nextOffset,
+													limitLength(nextOffset,curEnd,limitWidth)), preColor ?: lexerColor))
 											}
 										}
 									}else {
@@ -324,7 +324,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 									}
 								}
 								hlIter.advance()
-							}while (!hlIter.atEnd() && hlIter.start < end && width < limitWidth)
+							}while (!hlIter.atEnd() && hlIter.start < end)
 						}
 					}
 					renderDataList[visualLine] = LineRenderData(renderList,
@@ -520,17 +520,19 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	//check has background tasks
-	private fun checkProcessReset(reset: Boolean) {
+	private fun checkProcessReset(reset: Boolean){
 		if (myResetDataPromise != null) {
-			if (reset) {
-				myResetDataPromise?.cancel()
-				myResetDataPromise = null
-			} else {
-				runCatching { myResetDataPromise!!.blockingGet(5,TimeUnit.SECONDS) }.onFailure {
-					LOG.error("Waiting reset minimap data error", it)
-					myResetDataPromise = null
+			if(myResetDataPromise?.state == Promise.State.PENDING){
+				if(reset) {
+					myResetDataPromise?.cancel()
+				}else {
+					runCatching { myResetDataPromise?.blockingGet(10, TimeUnit.SECONDS) }.onFailure {
+						LOG.error("Waiting reset minimap data error", it)
+						myResetDataPromise?.cancel()
+					}
 				}
 			}
+			myResetDataPromise = null
 		}
 	}
 
@@ -585,6 +587,11 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 
 		private fun SoftWrapApplianceManager.removeSoftWrapListener(listener: Any) {
 			(softWrapListeners.get(this) as MutableList<Any>).add(listener)
+		}
+
+		private fun limitLength(start: Int, end: Int, limit: Int): Int{
+			val length = end - start
+			return if(length > limit) start + limit else end
 		}
 	}
 }
