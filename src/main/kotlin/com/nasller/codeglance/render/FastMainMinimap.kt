@@ -2,7 +2,6 @@ package com.nasller.codeglance.render
 
 import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.application.ReadAction
-import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.diagnostic.Attachment
 import com.intellij.openapi.editor.*
 import com.intellij.openapi.editor.colors.EditorFontType
@@ -39,6 +38,7 @@ import java.awt.Font
 import java.awt.image.BufferedImage
 import java.beans.PropertyChangeEvent
 import java.lang.reflect.Proxy
+import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -90,9 +90,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 
 	override fun rebuildDataAndImage() {
 		if(canUpdate()) {
-			invokeLater(modalityState){
-				resetMinimapData()
-			}
+			ReadAction.compute<Unit,Throwable>{ resetMinimapData() }
 		}
 	}
 
@@ -526,8 +524,9 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		if (myResetDataPromise != null) {
 			if (reset) {
 				myResetDataPromise?.cancel()
+				myResetDataPromise = null
 			} else {
-				runCatching { myResetDataPromise!!.blockingGet(0) }.onFailure {
+				runCatching { myResetDataPromise!!.blockingGet(5,TimeUnit.SECONDS) }.onFailure {
 					LOG.error("Waiting reset minimap data error", it)
 					myResetDataPromise = null
 				}
