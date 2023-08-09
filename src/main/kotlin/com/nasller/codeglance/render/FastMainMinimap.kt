@@ -102,7 +102,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			curImg = getBufferedImage(drawHeight)
 			imgArray[index] = curImg
 		}
-		return if(editor.isDisposed || editor.document.lineCount <= 0) return null else curImg
+		return if(glancePanel.checkVisible()) curImg else null
 	}
 
 	private fun update(copyList: List<LineRenderData?>){
