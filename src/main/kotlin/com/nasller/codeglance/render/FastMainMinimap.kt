@@ -351,6 +351,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	private var myDirty = false
+	private var myFoldingBatchStart = false
 	private var myFoldingChangeStartOffset = Int.MAX_VALUE
 	private var myFoldingChangeEndOffset = Int.MIN_VALUE
 	private var myDuringDocumentUpdate = false
@@ -401,13 +402,19 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		submitUpdateMinimapDataTask(visualLine, visualLine, false)
 	}
 
+	override fun onFoldProcessingStart() {
+		myFoldingBatchStart = true
+	}
+
 	override fun onFoldProcessingEnd() {
 		if (myDocument.isInBulkUpdate) return
-		if (myFoldingChangeStartOffset <= myFoldingChangeEndOffset) {
+		if (myFoldingChangeStartOffset <= myFoldingChangeEndOffset && (!myFoldingBatchStart ||
+					editor.visibleLineCount != renderDataList.size)) {
 			doInvalidateRange(myFoldingChangeStartOffset, myFoldingChangeEndOffset)
 		}
 		myFoldingChangeStartOffset = Int.MAX_VALUE
 		myFoldingChangeEndOffset = Int.MIN_VALUE
+		myFoldingBatchStart = false
 		assertValidState()
 	}
 
