@@ -205,6 +205,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						doInvalidateRange(myResetChangeStartOffset, myResetChangeEndOffset)
 						myResetChangeStartOffset = Int.MAX_VALUE
 						myResetChangeEndOffset = Int.MIN_VALUE
+						assertValidState()
 					}
 				}.submit(AppExecutorUtil.getAppExecutorService()).onSuccess {
 					myResetDataPromise = null
