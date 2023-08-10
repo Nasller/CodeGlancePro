@@ -262,12 +262,14 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						val end = visLinesIterator.getVisualLineEndOffset()
 						var foldLineIndex = visLinesIterator.getStartFoldingIndex()
 						val hlIter = editor.highlighter.run {
-							if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(start, end, text.subSequence(start, end))
+							if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(myDocument, start, end)
 							else{
 								val highlighterIterator = createIterator(start)
-								if(highlighterIterator is EmptyEditorHighlighter) OneLineHighlightDelegate(start, end, text.subSequence(start, end))
-								else if(isLogFile) IdeLogFileHighlightDelegate(myDocument, highlighterIterator)
-								else highlighterIterator
+								if(isLogFile){
+									if(highlighterIterator::class.java.name.contains("EmptyEditorHighlighter")){
+										OneLineHighlightDelegate(myDocument, start, end)
+									}else IdeLogFileHighlightDelegate(myDocument, highlighterIterator)
+								}else highlighterIterator
 							}
 						}
 						if(hlIter is OneLineHighlightDelegate || !hlIter.atEnd()){
