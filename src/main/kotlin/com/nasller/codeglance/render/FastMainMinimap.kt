@@ -55,10 +55,11 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			 onSoftWrapRecalculationEnd(args[0] as IncrementalCacheUpdateEvent)
 		}else null
 	}.also { editor.softWrapModel.applianceManager.addSoftWrapListener(it) }
-	private var myResetDataPromise: CancellablePromise<Unit>? = null
 	private val imgArray = arrayOf(getBufferedImage(), getBufferedImage())
 	@Volatile
 	private var myLastImageIndex = 0
+	@Volatile
+	private var myResetDataPromise: CancellablePromise<Unit>? = null
 	private var myRenderDirty = false
 	init { makeListener() }
 
@@ -226,9 +227,12 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			.associateBy { DocumentUtil.getLineStartOffset(it.startOffset, myDocument) }
 		val limitWidth = glancePanel.getConfigSize().width
 		while (!visLinesIterator.atEnd()) {
-			if(myResetDataPromise?.isCancelled == true) return
 			val start = visLinesIterator.getVisualLineStartOffset()
 			val visualLine = visLinesIterator.getVisualLine()
+			if(myResetDataPromise != null) {
+				//Check invalid line in background task
+				if(myResetDataPromise!!.isCancelled || visualLine >= renderDataList.size) return
+			}
 			//BLOCK_INLAY
 			val aboveBlockLine = visLinesIterator.getBlockInlaysAbove().sumOf { (it.heightInPixels * scrollState.scale).toInt() }
 			//CUSTOM_FOLD
@@ -344,7 +348,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	private var myDirty = false
-	private var mySoftWrapChanged = false
 	private var myFoldingChangeStartOffset = Int.MAX_VALUE
 	private var myFoldingChangeEndOffset = Int.MIN_VALUE
 	private var myDuringDocumentUpdate = false
@@ -429,21 +432,16 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		val enabled = editor.softWrapModel.isSoftWrappingEnabled
 		if (enabled && !softWrapEnabled) {
 			softWrapEnabled = true
-			mySoftWrapChanged = true
-			resetMinimapData()
 		} else if (!enabled && softWrapEnabled) {
 			softWrapEnabled = false
-			mySoftWrapChanged = true
 			resetMinimapData()
 		}
 	}
 
-	override fun recalculationEnds() {
-		mySoftWrapChanged = false
-	}
+	override fun recalculationEnds() = Unit
 
 	private fun onSoftWrapRecalculationEnd(event: IncrementalCacheUpdateEvent) {
-		if (myDocument.isInBulkUpdate || mySoftWrapChanged) return
+		if (myDocument.isInBulkUpdate) return
 		var invalidate = true
 		if (editor.foldingModel.isInBatchFoldingOperation) {
 			myFoldingChangeStartOffset = min(myFoldingChangeStartOffset, event.startOffset)
@@ -456,7 +454,9 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			invalidate = false
 		}
 		if (invalidate) {
-			doInvalidateRange(event.startOffset, event.actualEndOffset)
+			val startOffset = event.startOffset
+			val endOffset = event.actualEndOffset
+			doInvalidateRange(startOffset, endOffset, startOffset == 0 && endOffset == myDocument.textLength)
 		}
 	}
 
@@ -552,7 +552,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	private fun assertValidState() {
-		if (myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || myDirty) return
+		if (myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || myResetDataPromise != null || myDirty) return
 		if (editor.visibleLineCount != renderDataList.size) {
 			LOG.error("Inconsistent state {}", Attachment("glance.txt", editor.dumpState()))
 			resetMinimapData()
