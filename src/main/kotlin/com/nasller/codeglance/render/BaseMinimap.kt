@@ -239,8 +239,8 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 	companion object{
 		fun EditorKind.getMinimap(glancePanel: GlancePanel): BaseMinimap = glancePanel.run {
 			val visualFile = editor.virtualFile ?: psiDocumentManager.getPsiFile(glancePanel.editor.document)?.virtualFile
-			if(this@getMinimap == EditorKind.CONSOLE || visualFile == null ||
-				(this@getMinimap == EditorKind.MAIN_EDITOR && CodeGlanceConfigService.getConfig().useFastMinimapForMain)) {
+			if(this@getMinimap == EditorKind.CONSOLE || (this@getMinimap == EditorKind.MAIN_EDITOR &&
+						CodeGlanceConfigService.getConfig().useFastMinimapForMain)) {
 				FastMainMinimap(this, visualFile)
 			}else MainMinimap(this, visualFile)
 		}

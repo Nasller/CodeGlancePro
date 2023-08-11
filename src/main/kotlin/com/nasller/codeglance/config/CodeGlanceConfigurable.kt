@@ -17,6 +17,7 @@ import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.extensions.visitor.MarkCommentVisitor
 import com.nasller.codeglance.panel.GlancePanel
+import com.nasller.codeglance.render.FastMainMinimap
 import com.nasller.codeglance.ui.ColorButton
 import com.nasller.codeglance.ui.DonationDialog
 import com.nasller.codeglance.util.localMessage
@@ -236,6 +237,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 			if((!isRightAligned || disabled) && hoveringToShowScrollBar) hoveringToShowScrollBar = false
 			MarkCommentVisitor.markRegex.set(if(markRegex.isNotBlank()) Regex(markRegex) else null)
 		}
+		FastMainMinimap.changePixels()
 		invokeLater{ SettingsChangePublisher.onGlobalChanged() }
 	}
 

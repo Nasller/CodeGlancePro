@@ -27,6 +27,7 @@
 		<h3>1.7.0</h3>
 		<ul>
 			<li>Add some range check</li>
+			<li>Fix softWrap listener</li>
 		</ul>
 		<h3>1.6.9</h3>
 		<ul>
