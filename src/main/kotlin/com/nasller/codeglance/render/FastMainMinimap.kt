@@ -258,7 +258,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						LineType.COMMENT, commentHighlighterEx = markCommentMap[start])
 				}else {
 					val renderList = mutableListOf<RenderData>()
-					if(start < myDocument.textLength){
+					if(start < text.length){
 						val end = visLinesIterator.getVisualLineEndOffset()
 						var foldLineIndex = visLinesIterator.getStartFoldingIndex()
 						val hlIter = editor.highlighter.run {
@@ -275,8 +275,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						if(hlIter is OneLineHighlightDelegate || !hlIter.atEnd()){
 							var width = 0
 							do {
-								if(width > limitWidth) break
 								val curEnd = hlIter.end
+								if(width > limitWidth || curEnd >= text.length) break
 								var curStart = if(start > hlIter.start && start < curEnd) start else hlIter.start
 								//FOLD
 								if(curStart == foldStartOffset){
