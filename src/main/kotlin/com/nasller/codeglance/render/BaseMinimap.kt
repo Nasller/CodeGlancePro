@@ -14,7 +14,6 @@ import com.intellij.openapi.editor.highlighter.HighlighterIterator
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.tree.IElementType
 import com.intellij.util.DocumentUtil
@@ -204,7 +203,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 
 	protected class OneLineHighlightDelegate(document: Document, private val startOffset: Int, private var endOffset: Int) : HighlighterIterator {
 		private var start = startOffset
-		private val offsetLineIterator = document.getText(TextRange(startOffset,endOffset))
+		private val offsetLineIterator = document.immutableCharSequence.subSequence(startOffset,endOffset)
 			.withIndex().filter { it.value == '\n' }.map { it.index }.iterator()
 		init {
 			if(offsetLineIterator.hasNext()){
