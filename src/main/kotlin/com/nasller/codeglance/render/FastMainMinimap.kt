@@ -277,7 +277,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 							var width = 0
 							do {
 								val curEnd = hlIter.end
-								if(width > limitWidth || curEnd >= text.length) break
+								if(width > limitWidth || curEnd > text.length) break
 								var curStart = if(start > hlIter.start && start < curEnd) start else hlIter.start
 								//FOLD
 								if(curStart == foldStartOffset){
