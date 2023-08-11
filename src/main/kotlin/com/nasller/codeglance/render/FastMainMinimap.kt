@@ -25,6 +25,7 @@ import com.intellij.util.MathUtil
 import com.intellij.util.Range
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.containers.ContainerUtil
+import com.intellij.util.text.CharArrayUtil
 import com.intellij.util.ui.EdtInvocationManager
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.config.CodeGlanceColorsPage
@@ -245,7 +246,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 				val heightLine = (foldRegion.heightInPixels * scrollState.scale).toInt()
 				//this is render document
 				val line = myDocument.getLineNumber(foldStartOffset) - 1 + (heightLine / config.pixelsPerLine)
-				renderDataList[visualLine] = LineRenderData(listOf(RenderData(text.subSequence(foldStartOffset,
+				renderDataList[visualLine] = LineRenderData(listOf(RenderData(CharArrayUtil.fromSequence(text,foldStartOffset,
 					if(DocumentUtil.isValidLine(line, myDocument)) {
 						val lineEndOffset = myDocument.getLineEndOffset(line)
 						if(foldEndOffset < lineEndOffset) foldEndOffset else lineEndOffset
@@ -281,9 +282,10 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 								//FOLD
 								if(curStart == foldStartOffset){
 									val foldEndOffset = foldRegion!!.endOffset
-									val foldText = StringUtil.replace(foldRegion.placeholderText, "\n", " ")
-									width += foldText.length
-									renderList.add(RenderData(foldText, editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor))
+									val foldText = StringUtil.replace(foldRegion.placeholderText, "\n", " ").toCharArray()
+									width += foldText.size
+									renderList.add(RenderData(foldText, editor.foldingModel
+										.placeholderAttributes?.foregroundColor ?: defaultColor))
 									foldRegion = visLinesIterator.getFoldRegion(++foldLineIndex)
 									foldStartOffset = foldRegion?.startOffset ?: -1
 									//case on fold InLine
@@ -295,9 +297,9 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 									}
 								}
 								//CODE
-								val renderStr = text.subSequence(curStart, limitLength(curStart,curEnd,limitWidth))
-								width += renderStr.length
-								if(renderStr.isBlank()) {
+								val renderStr = CharArrayUtil.fromSequence(text, curStart, limitLength(curStart,curEnd,limitWidth))
+								width += renderStr.size
+								if(renderStr.isEmpty() || renderStr.all { it.isWhitespace() }) {
 									renderList.add(RenderData(renderStr, defaultColor))
 								}else{
 									val highlightList = getHighlightColor(curStart, curEnd)
@@ -313,14 +315,14 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 													offset >= it.startOffset && offset < it.endOffset
 												}?.foregroundColor ?: lexerColor
 												if(preColor != null && preColor !== color){
-													renderList.add(RenderData(text.subSequence(nextOffset,
+													renderList.add(RenderData(CharArrayUtil.fromSequence(text, nextOffset,
 														limitLength(nextOffset,offset,limitWidth)), preColor))
 													nextOffset = offset
 												}
 												preColor = color
 											}
 											if(nextOffset < curEnd){
-												renderList.add(RenderData(text.subSequence(nextOffset,
+												renderList.add(RenderData(CharArrayUtil.fromSequence(text, nextOffset,
 													limitLength(nextOffset,curEnd,limitWidth)), preColor ?: lexerColor))
 											}
 										}
@@ -580,7 +582,22 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	private data class LineRenderData(val renderData: List<RenderData>, val startX: Int, val y: Int, val aboveBlockLine: Int,
 									  val lineType: LineType = LineType.CODE, val commentHighlighterEx: RangeHighlighterEx? = null)
 
-	private data class RenderData(val renderChar: CharSequence, val color: Color)
+	private data class RenderData(val renderChar: CharArray, val color: Color){
+		override fun equals(other: Any?): Boolean {
+			if (this === other) return true
+			if (javaClass != other?.javaClass) return false
+			other as RenderData
+			if (!renderChar.contentEquals(other.renderChar)) return false
+			if (color != other.color) return false
+			return true
+		}
+
+		override fun hashCode(): Int {
+			var result = renderChar.contentHashCode()
+			result = 31 * result + color.hashCode()
+			return result
+		}
+	}
 
 	private enum class LineType{ CODE, COMMENT, CUSTOM_FOLD}
 
