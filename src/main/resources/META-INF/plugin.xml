@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.7.0</h3>
+		<ul>
+			<li>Add some range check</li>
+		</ul>
 		<h3>1.6.9</h3>
 		<ul>
 			<li>Fix various FastMinimap bug</li>
@@ -49,10 +53,6 @@
 		<h3>1.6.5</h3>
 		<ul>
 			<li>Support custom markers regex.</li>
-		</ul>
-		<h3>1.6.4</h3>
-		<ul>
-			<li>fix issues:<a href="https://github.com/Nasller/CodeGlancePro/issues/78">split and move后，将拆分的文件拖到一个新的窗口，不会显示缩略图</a></li>
 		</ul>
 	]]></change-notes>
 
