@@ -73,8 +73,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		if (canUpdate && myDocument.textLength > 0) {
 			if(lock.compareAndSet(false,true)) {
 				val copyList = renderDataList.toList()
-				glancePanel.psiDocumentManager.performForCommittedDocument(editor.document) {
-					ReadAction.nonBlocking<Unit>{
+				val action = Runnable {
+					ReadAction.nonBlocking<Unit> {
 						update(copyList)
 					}.expireWith(this).finishOnUiThread(ModalityState.any()) {
 						lock.set(false)
@@ -85,6 +85,9 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						}
 					}.submit(AppExecutorUtil.getAppExecutorService())
 				}
+				if(editor.editorKind != EditorKind.CONSOLE){
+					glancePanel.psiDocumentManager.performForCommittedDocument(myDocument, action)
+				}else action.run()
 			}else {
 				myRenderDirty = true
 			}
@@ -211,6 +214,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						myResetChangeEndOffset = Int.MIN_VALUE
 						assertValidState()
 					}
+					if(LOG.isDebugEnabled) LOG.info(renderDataList.toString())
 				}.submit(AppExecutorUtil.getAppExecutorService()).onSuccess {
 					myResetDataPromise = null
 				}.onError {
