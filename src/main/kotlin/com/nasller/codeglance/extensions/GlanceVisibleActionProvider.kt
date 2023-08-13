@@ -15,7 +15,7 @@ private class GlanceVisibleActionProvider : InspectionWidgetActionProvider {
 		return object : DefaultActionGroup(ActionManagerEx.getInstanceEx().getAction("CodeGlance.toggle")) {
 			override fun update(e: AnActionEvent) {
 				e.presentation.isEnabledAndVisible = editor.getUserData(CURRENT_GLANCE)?.run {
-					editor.editorKind == EditorKind.MAIN_EDITOR && config.singleFileVisibleButton()
+					editor.editorKind == EditorKind.MAIN_EDITOR && !config.hoveringToShowScrollBar && config.singleFileVisibleButton()
 				} ?: false
 			}
 

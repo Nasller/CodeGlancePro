@@ -3,6 +3,7 @@ package com.nasller.codeglance.render
 import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.diagnostic.Attachment
 import com.intellij.openapi.editor.*
 import com.intellij.openapi.editor.colors.EditorFontType
@@ -95,9 +96,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	override fun rebuildDataAndImage() {
-		if(canUpdate()) {
-			ReadAction.compute<Unit,Throwable>{ resetMinimapData() }
-		}
+		if(canUpdate()) runInEdt(modalityState){ resetMinimapData() }
 	}
 
 	private fun getMinimapImage(drawHeight: Int): BufferedImage? {
@@ -200,32 +199,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		myLastImageIndex = if(myLastImageIndex == 0) 1 else 0
 	}
 
-	private fun submitUpdateMinimapDataTask(startVisualLine: Int, endVisualLine: Int, reset: Boolean) {
-		if(!glancePanel.checkVisible()) return
-		try {
-			val visLinesIterator = MyVisualLinesIterator(editor, startVisualLine)
-			if(reset){
-				myResetDataPromise = ReadAction.nonBlocking<Unit> {
-					updateMinimapData(visLinesIterator, 0)
-				}.expireWith(this).finishOnUiThread(ModalityState.any()) {
-					if (myResetChangeStartOffset <= myResetChangeEndOffset) {
-						doInvalidateRange(myResetChangeStartOffset, myResetChangeEndOffset)
-						myResetChangeStartOffset = Int.MAX_VALUE
-						myResetChangeEndOffset = Int.MIN_VALUE
-						assertValidState()
-					}
-					if(LOG.isDebugEnabled) LOG.info(renderDataList.toString())
-				}.submit(AppExecutorUtil.getAppExecutorService()).onSuccess {
-					myResetDataPromise = null
-				}.onError {
-					myResetDataPromise = null
-				}
-			}else updateMinimapData(visLinesIterator, endVisualLine)
-		}catch (e: Throwable){
-			LOG.error("submitMinimapDataUpdateTask error",e)
-		}
-	}
-
 	private fun updateMinimapData(visLinesIterator: MyVisualLinesIterator, endVisualLine: Int){
 		val text = myDocument.immutableCharSequence
 		val defaultColor = editor.colorsScheme.defaultForeground
@@ -237,10 +210,11 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		val limitWidth = glancePanel.getConfigSize().width
 		while (!visLinesIterator.atEnd()) {
 			val start = visLinesIterator.getVisualLineStartOffset()
+			val end = visLinesIterator.getVisualLineEndOffset()
 			val visualLine = visLinesIterator.getVisualLine()
 			if(myResetDataPromise != null) {
-				//Check invalid line in background task
-				if(myResetDataPromise!!.isCancelled || visualLine >= renderDataList.size) return
+				//Check invalid somethings in background task
+				if(visualLine >= renderDataList.size || start > end) return
 			}
 			//BLOCK_INLAY
 			val aboveBlockLine = visLinesIterator.getBlockInlaysAbove().sumOf { (it.heightInPixels * scrollState.scale).toInt() }
@@ -248,19 +222,21 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			var foldRegion = visLinesIterator.getCurrentFoldRegion()
 			var foldStartOffset = foldRegion?.startOffset ?: -1
 			if(foldRegion is CustomFoldRegion && foldStartOffset == start){
-				val foldEndOffset = foldRegion.endOffset
 				//jump over the fold line
-				val heightLine = (foldRegion.heightInPixels * scrollState.scale).toInt()
+				val heightLine = (foldRegion.heightInPixels * scrollState.scale).toInt().run{
+					if(this < config.pixelsPerLine) config.pixelsPerLine else this
+				}
 				//this is render document
 				val line = myDocument.getLineNumber(foldStartOffset) - 1 + (heightLine / config.pixelsPerLine)
-				renderDataList[visualLine] = LineRenderData(listOf(RenderData(CharArrayUtil.fromSequence(text,foldStartOffset,
+				val foldEndOffset = foldRegion.endOffset.run {
 					if(DocumentUtil.isValidLine(line, myDocument)) {
 						val lineEndOffset = myDocument.getLineEndOffset(line)
-						if(foldEndOffset < lineEndOffset) foldEndOffset else lineEndOffset
-					}else foldEndOffset
-				), docComment ?: defaultColor)), 0, heightLine, aboveBlockLine, LineType.CUSTOM_FOLD)
+						if(this < lineEndOffset) this else lineEndOffset
+					}else this
+				}
+				renderDataList[visualLine] = LineRenderData(listOf(RenderData(CharArrayUtil.fromSequence(text, foldStartOffset,
+					foldEndOffset), docComment ?: defaultColor)), 0, heightLine, aboveBlockLine, LineType.CUSTOM_FOLD)
 			}else {
-				val end = visLinesIterator.getVisualLineEndOffset()
 				//COMMENT
 				if(markCommentMap.containsKey(start)) {
 					renderDataList[visualLine] = LineRenderData(emptyList(), 2, config.pixelsPerLine, aboveBlockLine,
@@ -409,8 +385,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		if (flags and FoldingListener.ChangeFlags.HEIGHT_CHANGED == 0 || myDocument.isInBulkUpdate || checkDirty()) return
 		val startOffset = region.startOffset
 		if (editor.foldingModel.getCollapsedRegionAtOffset(startOffset) !== region) return
-		val visualLine = editor.offsetToVisualLine(startOffset)
-		submitUpdateMinimapDataTask(visualLine, visualLine, false)
+		doInvalidateRange(startOffset, startOffset)
 	}
 
 	override fun onFoldProcessingStart() {
@@ -539,6 +514,33 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			renderDataList.removeElements(startVisualLine, startVisualLine - lineDiff)
 		}
 		submitUpdateMinimapDataTask(startVisualLine, endVisualLine, reset)
+	}
+
+	private fun submitUpdateMinimapDataTask(startVisualLine: Int, endVisualLine: Int, reset: Boolean) {
+		if(!glancePanel.checkVisible()) return
+		try {
+			val visLinesIterator = MyVisualLinesIterator(editor, startVisualLine)
+			if(reset){
+				if(LOG.isDebugEnabled) LOG.info(Throwable().stackTraceToString())
+				myResetDataPromise = ReadAction.nonBlocking<Unit> {
+					updateMinimapData(visLinesIterator, 0)
+				}.coalesceBy(this).expireWith(this).finishOnUiThread(ModalityState.any()) {
+					if (myResetChangeStartOffset <= myResetChangeEndOffset) {
+						doInvalidateRange(myResetChangeStartOffset, myResetChangeEndOffset)
+						myResetChangeStartOffset = Int.MAX_VALUE
+						myResetChangeEndOffset = Int.MIN_VALUE
+						assertValidState()
+					}
+					if(LOG.isDebugEnabled) LOG.info(renderDataList.toString())
+				}.submit(AppExecutorUtil.getAppExecutorService()).onSuccess {
+					myResetDataPromise = null
+				}.onError {
+					myResetDataPromise = null
+				}
+			}else updateMinimapData(visLinesIterator, endVisualLine)
+		}catch (e: Throwable){
+			LOG.error("submitMinimapDataUpdateTask error",e)
+		}
 	}
 
 	//check has background tasks

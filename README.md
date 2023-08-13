@@ -2,8 +2,11 @@
 
 [![Version](https://img.shields.io/jetbrains/plugin/v/18824-codeglance-pro.svg)](https://plugins.jetbrains.com/plugin/18824-codeglance-pro)
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/18824-codeglance-pro.svg)](https://plugins.jetbrains.com/plugin/18824-codeglance-pro)
+[![Discord](https://img.shields.io/discord/1140116923468763216?label=Discord)](https://discord.gg/Pf2She6p)
 
 [Preview Channel](https://plugins.jetbrains.com/plugin/18824-codeglance-pro/versions/preview)
+
+[Join Discord](https://discord.gg/Pf2She6p)
 #### Main differences compared to CodeGlance
 - Hide original scrollbar
 - Right click to quick config

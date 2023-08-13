@@ -9,7 +9,7 @@ import com.intellij.openapi.editor.impl.InlayModelImpl
 class MyVisualLinesIterator(private val myEditor: EditorImpl, startVisualLine: Int){
 	private val myDocument = myEditor.document
 	private val myFoldRegions = myEditor.foldingModel.fetchTopLevel() ?: FoldRegion.EMPTY_ARRAY
-	private val mySoftWraps = myEditor.softWrapModel.registeredSoftWraps
+	private val mySoftWraps = myEditor.softWrapModel.registeredSoftWraps.toList()
 
 	private val myInlaysAbove = ArrayList<Inlay<*>>()
 	private var myInlaySet = false
@@ -137,7 +137,7 @@ class MyVisualLinesIterator(private val myEditor: EditorImpl, startVisualLine: I
 		}
 
 		fun advance() {
-			val nextWrapOffset = nextSoftWrapOffset
+			val nextWrapOffset = if (softWrap < mySoftWraps.size) mySoftWraps[softWrap].start else Int.MAX_VALUE
 			offset = getNextVisualLineStartOffset(nextWrapOffset)
 			if (offset == Int.MAX_VALUE) {
 				offset = -1
@@ -147,9 +147,6 @@ class MyVisualLinesIterator(private val myEditor: EditorImpl, startVisualLine: I
 			visualLine++
 			while (foldRegion < myFoldRegions.size && myFoldRegions[foldRegion].startOffset < offset) foldRegion++
 		}
-
-		private val nextSoftWrapOffset
-			get() = if (softWrap < mySoftWraps.size) mySoftWraps[softWrap].start else Int.MAX_VALUE
 
 		private fun getNextVisualLineStartOffset(nextWrapOffset: Int): Int {
 			while (logicalLine < myDocument.lineCount) {
