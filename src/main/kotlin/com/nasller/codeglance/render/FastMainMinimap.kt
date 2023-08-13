@@ -96,7 +96,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	override fun rebuildDataAndImage() {
-		if(canUpdate()) runInEdt(modalityState){ resetMinimapData() }
+		runInEdt(modalityState){ if(canUpdate()) resetMinimapData() }
 	}
 
 	private fun getMinimapImage(drawHeight: Int): BufferedImage? {
@@ -452,7 +452,10 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		if (invalidate) {
 			val startOffset = event.startOffset
 			val endOffset = event.actualEndOffset
-			doInvalidateRange(startOffset, endOffset, startOffset == 0 && endOffset == myDocument.textLength)
+			if(startOffset == 0 && endOffset == myDocument.textLength) {
+				if(glancePanel.hideScrollBarListener.isNotRunning().not()) return
+				doInvalidateRange(startOffset, endOffset, true)
+			}else doInvalidateRange(startOffset, endOffset)
 		}
 	}
 
@@ -478,7 +481,15 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 				val startOffset = MathUtil.clamp(highlighter.affectedAreaStartOffset, 0, textLength)
 				val endOffset = MathUtil.clamp(highlighter.affectedAreaEndOffset, 0, textLength)
 				if (startOffset > endOffset || startOffset >= textLength || endOffset < 0) return@invokeLaterIfNeeded
-				invalidateRange(startOffset, endOffset)
+				if(myDuringDocumentUpdate) {
+					myDocumentChangeStartOffset = min(myDocumentChangeStartOffset, startOffset)
+					myDocumentChangeEndOffset = max(myDocumentChangeEndOffset, endOffset)
+				}else if (myFoldingChangeEndOffset != Int.MIN_VALUE) {
+					myFoldingChangeStartOffset = min(myFoldingChangeStartOffset, startOffset)
+					myFoldingChangeEndOffset = max(myFoldingChangeEndOffset, endOffset)
+				}else {
+					doInvalidateRange(startOffset, endOffset)
+				}
 			}else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
 				glancePanel.repaint()
 			}
@@ -489,18 +500,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	override fun propertyChange(evt: PropertyChangeEvent) {
 		if (EditorEx.PROP_HIGHLIGHTER != evt.propertyName) return
 		resetMinimapData()
-	}
-
-	private fun invalidateRange(startOffset: Int, endOffset: Int) {
-		if(myDuringDocumentUpdate) {
-			myDocumentChangeStartOffset = min(myDocumentChangeStartOffset, startOffset)
-			myDocumentChangeEndOffset = max(myDocumentChangeEndOffset, endOffset)
-		}else if (myFoldingChangeEndOffset != Int.MIN_VALUE) {
-			myFoldingChangeStartOffset = min(myFoldingChangeStartOffset, startOffset)
-			myFoldingChangeEndOffset = max(myFoldingChangeEndOffset, endOffset)
-		}else {
-			doInvalidateRange(startOffset, endOffset)
-		}
 	}
 
 	private fun doInvalidateRange(startOffset: Int, endOffset: Int, reset: Boolean = false) {

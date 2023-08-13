@@ -49,8 +49,8 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val scrollbar = ScrollBar(this)
 	var myVcsPanel: MyVcsPanel? = null
 	val markCommentState = MarkCommentState(this)
-	private var isReleased = false
 	private val minimap = editor.editorKind.getMinimap(this)
+	private var isReleased = false
 	init {
 		Disposer.register(editor.disposable, this)
 		Disposer.register(this, GlanceListener(this))
@@ -304,7 +304,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		editor.putUserData(CURRENT_GLANCE, null)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, null)
 		editor.component.remove(this.parent)
-		hideScrollBarListener.removeHideScrollBarListener()
+		hideScrollBarListener.dispose()
 		scrollbar.clear()
 		markCommentState.clear()
 	}
