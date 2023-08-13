@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.7.1</h3>
+		<ul>
+			<li>fix nonblocking task calculate error</li>
+		</ul>
 		<h3>1.7.0</h3>
 		<ul>
 			<li>Add some range check</li>
@@ -50,10 +54,6 @@
 		<ul>
 			<li>Support Diff editor window</li>
 			<li>Optimize Left Alignment Behavior</li>
-		</ul>
-		<h3>1.6.5</h3>
-		<ul>
-			<li>Support custom markers regex.</li>
 		</ul>
 	]]></change-notes>
 
@@ -82,6 +82,5 @@
 		<additionalTextAttributes scheme="Default" file="colorSchemes/color-default.xml"/>
 		<additionalTextAttributes scheme="Darcula" file="colorSchemes/color-default-darcula.xml"/>
 		<highlightVisitor implementation="com.nasller.codeglance.extensions.visitor.MarkCommentVisitor"/>
-<!--		<statusBarWidgetFactory implementation="com.nasller.codeglance.extensions.widget.GlanceVisibleWidgetFactory"/>-->
 	</extensions>
 </idea-plugin>
