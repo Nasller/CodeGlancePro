@@ -21,9 +21,9 @@ import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.SingleAlarm
 import com.intellij.util.ui.UIUtil
-import com.nasller.codeglance.config.CodeGlanceColorsPage
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MySoftReference
+import com.nasller.codeglance.util.Util
 import java.awt.Font
 import java.awt.Graphics2D
 import java.awt.RenderingHints
@@ -210,7 +210,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 			val lineCount = editor.document.lineCount
 			val map = mutableMapOf<Int, MarkCommentData>()
 			val file = glancePanel.psiDocumentManager.getCachedPsiFile(editor.document)
-			val attributes = editor.colorsScheme.getAttributes(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES)
+			val attributes = editor.colorsScheme.getAttributes(Util.MARK_COMMENT_ATTRIBUTES)
 			val font = editor.colorsScheme.getFont(
 				when (attributes.fontType) {
 					Font.ITALIC -> EditorFontType.ITALIC
@@ -297,7 +297,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 
 	private fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation) return
-		if(highlighter.isThinErrorStripeMark.not() && (CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
+		if(highlighter.isThinErrorStripeMark.not() && (Util.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
 			EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
 			repaintOrRequest()
 		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){

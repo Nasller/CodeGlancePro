@@ -2,8 +2,8 @@ package com.nasller.codeglance.render
 
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.EditorImpl
-import com.nasller.codeglance.config.CodeGlanceColorsPage
 import com.nasller.codeglance.panel.GlancePanel
+import com.nasller.codeglance.util.Util
 import java.util.concurrent.ConcurrentHashMap
 
 class MarkCommentState(val glancePanel: GlancePanel) {
@@ -13,7 +13,7 @@ class MarkCommentState(val glancePanel: GlancePanel) {
 		if(markCommentMap.isInitialized() && markCommentMap.value.isNotEmpty()) markCommentMap.value.values else emptyList()
 
 	fun markCommentHighlightChange(highlighter: RangeHighlighterEx, remove: Boolean) : Boolean{
-		return if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey){
+		return if(Util.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey){
 			if(remove) markCommentMap.value.remove(highlighter.id)
 			else markCommentMap.value[highlighter.id] = highlighter
 			true
@@ -22,7 +22,7 @@ class MarkCommentState(val glancePanel: GlancePanel) {
 
 	fun refreshMarkCommentHighlight(editor: EditorImpl){
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0,editor.document.textLength){
-			if(CodeGlanceColorsPage.MARK_COMMENT_ATTRIBUTES == it.textAttributesKey){
+			if(Util.MARK_COMMENT_ATTRIBUTES == it.textAttributesKey){
 				markCommentMap.value[it.id] = it
 			}
 			return@processRangeHighlightersOverlappingWith true

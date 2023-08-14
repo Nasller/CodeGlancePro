@@ -15,11 +15,11 @@ import com.nasller.codeglance.config.CodeGlanceConfig.Companion.getWidth
 import com.nasller.codeglance.config.CodeGlanceConfig.Companion.setWidth
 import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
-import com.nasller.codeglance.extensions.visitor.MarkCommentVisitor
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.render.FastMainMinimap
 import com.nasller.codeglance.ui.ColorButton
 import com.nasller.codeglance.ui.DonationDialog
+import com.nasller.codeglance.util.Util
 import com.nasller.codeglance.util.localMessage
 import com.nasller.codeglance.util.message
 import java.awt.Component
@@ -30,7 +30,7 @@ import javax.swing.*
 import kotlin.math.max
 import kotlin.math.min
 
-class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com.nasller.CodeGlancePro"){
+class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com.nasller.CodeGlancePro"){
 	private val editorKinds = mutableListOf<EditorKind>()
 	private lateinit var editorKindComboBox: ComboBox<EditorKind>
 
@@ -235,7 +235,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable("CodeGlance Pro","com
 		CodeGlanceConfigService.getConfig().apply {
 			editorKinds = this@CodeGlanceConfigurable.editorKinds
 			if((!isRightAligned || disabled) && hoveringToShowScrollBar) hoveringToShowScrollBar = false
-			MarkCommentVisitor.markRegex.set(if(markRegex.isNotBlank()) Regex(markRegex) else null)
+			Util.MARK_REGEX = if(markRegex.isNotBlank()) Regex(markRegex) else null
 		}
 		FastMainMinimap.changePixels()
 		invokeLater{ SettingsChangePublisher.onGlobalChanged() }
