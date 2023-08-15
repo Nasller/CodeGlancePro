@@ -34,7 +34,6 @@ import com.nasller.codeglance.util.MyVisualLinesIterator
 import com.nasller.codeglance.util.Util
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import org.jetbrains.concurrency.CancellablePromise
-import org.jetbrains.concurrency.Promise
 import org.slf4j.LoggerFactory
 import java.awt.Color
 import java.awt.Font
@@ -518,22 +517,20 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		try {
 			val visLinesIterator = MyVisualLinesIterator(editor, startVisualLine)
 			if(reset){
-				if(LOG.isDebugEnabled) LOG.info(Throwable().stackTraceToString())
+//				println(Throwable().stackTraceToString())
 				myResetDataPromise = ReadAction.nonBlocking<Unit> {
+//					val startTime = System.currentTimeMillis()
 					updateMinimapData(visLinesIterator, 0)
+//					println("updateMinimapData time: ${System.currentTimeMillis() - startTime}")
 				}.coalesceBy(this).expireWith(this).finishOnUiThread(ModalityState.any()) {
+					myResetDataPromise = null
 					if (myResetChangeStartOffset <= myResetChangeEndOffset) {
 						doInvalidateRange(myResetChangeStartOffset, myResetChangeEndOffset)
 						myResetChangeStartOffset = Int.MAX_VALUE
 						myResetChangeEndOffset = Int.MIN_VALUE
 						assertValidState()
 					}
-					if(LOG.isDebugEnabled) LOG.info(renderDataList.toString())
-				}.submit(AppExecutorUtil.getAppExecutorService()).onSuccess {
-					myResetDataPromise = null
-				}.onError {
-					myResetDataPromise = null
-				}
+				}.submit(AppExecutorUtil.getAppExecutorService())
 			}else updateMinimapData(visLinesIterator, endVisualLine)
 		}catch (e: Throwable){
 			LOG.error("submitMinimapDataUpdateTask error",e)
@@ -543,7 +540,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	//check has background tasks
 	private fun checkProcessReset(startOffset: Int, endOffset: Int,reset: Boolean): Boolean{
 		if (myResetDataPromise != null) {
-			if(myResetDataPromise?.state == Promise.State.PENDING){
+			if(myResetDataPromise?.isDone == false){
 				if(reset) {
 					myResetDataPromise?.cancel()
 					myResetChangeStartOffset = Int.MAX_VALUE
