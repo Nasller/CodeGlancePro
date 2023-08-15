@@ -27,6 +27,7 @@
 		<h3>1.7.2</h3>
 		<ul>
 			<li>fix a large file input freeze</li>
+			<li>fix xaml file freeze</li>
 		</ul>
 		<h3>1.7.1</h3>
 		<ul>
