@@ -1,6 +1,7 @@
 package com.nasller.codeglance.render
 
 import com.intellij.ide.ui.UISettings
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.runInEdt
@@ -16,6 +17,7 @@ import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.impl.softwrap.mapping.IncrementalCacheUpdateEvent
 import com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapApplianceManager
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
@@ -73,18 +75,18 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	override fun updateMinimapImage(canUpdate: Boolean){
 		if (canUpdate && myDocument.textLength > 0) {
 			if(lock.compareAndSet(false,true)) {
-				val copyList = renderDataList.toList()
 				val action = Runnable {
-					ReadAction.nonBlocking<Unit> {
-						update(copyList)
-					}.expireWith(this).finishOnUiThread(ModalityState.any()) {
-						lock.set(false)
+					ApplicationManager.getApplication().executeOnPooledThread {
+						update(renderDataList.toList())
 						glancePanel.repaint()
-						if (myRenderDirty) {
-							myRenderDirty = false
-							updateMinimapImage()
+						ReadAction.compute<Unit,Throwable> {
+							lock.set(false)
+							if (myRenderDirty) {
+								myRenderDirty = false
+								updateMinimapImage()
+							}
 						}
-					}.submit(AppExecutorUtil.getAppExecutorService())
+					}
 				}
 				if(editor.editorKind != EditorKind.CONSOLE){
 					glancePanel.psiDocumentManager.performForCommittedDocument(myDocument, action)
@@ -213,6 +215,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			val end = visLinesIterator.getVisualLineEndOffset()
 			val visualLine = visLinesIterator.getVisualLine()
 			if(myResetDataPromise != null) {
+				ProgressManager.checkCanceled()
 				//Check invalid somethings in background task
 				if(visualLine >= renderDataList.size || start > end) return
 			}
