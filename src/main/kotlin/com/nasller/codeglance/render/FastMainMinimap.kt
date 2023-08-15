@@ -258,9 +258,9 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						var foldLineIndex = visLinesIterator.getStartFoldingIndex()
 						var width = 0
 						do {
-							val curEnd = hlIter.end
+							var curStart = hlIter.start.run{ if(start > this) start else this }
+							val curEnd = hlIter.end.run{ if(this - curStart > limitWidth) start + limitWidth else this }
 							if(width > limitWidth || curEnd > text.length) break
-							var curStart = if(start > hlIter.start && start < curEnd) start else hlIter.start
 							//FOLD
 							if(curStart == foldStartOffset){
 								val foldEndOffset = foldRegion!!.endOffset
@@ -279,7 +279,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 								}
 							}
 							//CODE
-							val renderStr = CharArrayUtil.fromSequence(text, curStart, limitLength(curStart,curEnd,limitWidth))
+							val renderStr = CharArrayUtil.fromSequence(text, curStart, curEnd)
 							width += renderStr.size
 							if(renderStr.isEmpty() || renderStr.all { it.isWhitespace() }) {
 								renderList.add(RenderData(renderStr, defaultColor))
@@ -297,15 +297,13 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 												offset >= it.startOffset && offset < it.endOffset
 											}?.foregroundColor ?: lexerColor
 											if(preColor != null && preColor !== color){
-												renderList.add(RenderData(CharArrayUtil.fromSequence(text, nextOffset,
-													limitLength(nextOffset,offset,limitWidth)), preColor))
+												renderList.add(RenderData(CharArrayUtil.fromSequence(text, nextOffset,offset), preColor))
 												nextOffset = offset
 											}
 											preColor = color
 										}
 										if(nextOffset < curEnd){
-											renderList.add(RenderData(CharArrayUtil.fromSequence(text, nextOffset,
-												limitLength(nextOffset,curEnd,limitWidth)), preColor ?: lexerColor))
+											renderList.add(RenderData(CharArrayUtil.fromSequence(text, nextOffset, curEnd), preColor ?: lexerColor))
 										}
 									}
 								}else {
@@ -633,11 +631,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 
 		private fun SoftWrapApplianceManager.removeSoftWrapListener(listener: Any) {
 			(softWrapListeners.get(this) as MutableList<Any>).remove(listener)
-		}
-
-		private fun limitLength(start: Int, end: Int, limit: Int): Int{
-			val length = end - start
-			return if(length > limit) start + limit else end
 		}
 	}
 }
