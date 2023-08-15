@@ -1,10 +1,7 @@
 package com.nasller.codeglance.render
 
 import com.intellij.ide.ui.UISettings
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.ModalityState
-import com.intellij.openapi.application.ReadAction
-import com.intellij.openapi.application.runInEdt
+import com.intellij.openapi.application.*
 import com.intellij.openapi.diagnostic.Attachment
 import com.intellij.openapi.editor.*
 import com.intellij.openapi.editor.colors.EditorFontType
@@ -78,8 +75,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 				val action = Runnable {
 					ApplicationManager.getApplication().executeOnPooledThread {
 						update(renderDataList.toList())
-						glancePanel.repaint()
-						ReadAction.compute<Unit,Throwable> {
+						invokeLater(ModalityState.any()){
+							glancePanel.repaint()
 							lock.set(false)
 							if (myRenderDirty) {
 								myRenderDirty = false
