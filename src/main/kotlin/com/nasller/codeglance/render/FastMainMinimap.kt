@@ -56,17 +56,14 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			 onSoftWrapRecalculationEnd(args[0] as IncrementalCacheUpdateEvent)
 		}else null
 	}.also { editor.softWrapModel.applianceManager.addSoftWrapListener(it) }
-	private val imgArray = arrayOf(getBufferedImage(), getBufferedImage())
 	@Volatile
-	private var myLastImageIndex = 0
+	private var previewImg = EMPTY_IMG
 	@Volatile
 	private var myResetDataPromise: CancellablePromise<Unit>? = null
 	private var myRenderDirty = false
 	init { makeListener() }
 
-	override fun getImageOrUpdate(): BufferedImage {
-		return imgArray[myLastImageIndex]
-	}
+	override fun getImageOrUpdate() = previewImg
 
 	override fun updateMinimapImage(canUpdate: Boolean){
 		if (canUpdate && myDocument.textLength > 0) {
@@ -97,19 +94,11 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		runInEdt(modalityState){ if(canUpdate()) resetMinimapData() }
 	}
 
-	private fun getMinimapImage(drawHeight: Int): BufferedImage? {
-		val index = if(myLastImageIndex == 0) 1 else 0
-		var curImg = imgArray[index]
-		if (curImg.height < drawHeight || curImg.width < glancePanel.width) {
-			curImg.flush()
-			curImg = getBufferedImage(drawHeight)
-			imgArray[index] = curImg
-		}
-		return if(glancePanel.checkVisible()) curImg else null
-	}
-
+	@Suppress("UndesirableClassUsage")
 	private fun update(copyList: List<LineRenderData?>){
-		val curImg = getMinimapImage(copyList.filterNotNull().sumOf { it.y + it.aboveBlockLine }) ?: return
+		val curImg = if(glancePanel.checkVisible()) BufferedImage(glancePanel.getConfigSize().width,
+			copyList.filterNotNull().sumOf { it.y + it.aboveBlockLine }, BufferedImage.TYPE_INT_ARGB)
+		else null ?: return
 		val graphics = curImg.createGraphics()
 		graphics.composite = GlancePanel.CLEAR
 		graphics.fillRect(0, 0, curImg.width, curImg.height)
@@ -194,7 +183,10 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			rangeList.clear()
 			rangeList.addAll(curRangeList)
 		}
-		myLastImageIndex = if(myLastImageIndex == 0) 1 else 0
+		previewImg.let {
+			previewImg = curImg
+			it.flush()
+		}
 	}
 
 	private fun updateMinimapData(visLinesIterator: MyVisualLinesIterator, endVisualLine: Int){
@@ -531,7 +523,11 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						assertValidState()
 					}
 				}.submit(AppExecutorUtil.getAppExecutorService())
-			}else updateMinimapData(visLinesIterator, endVisualLine)
+			}else {
+//				val startTime = System.currentTimeMillis()
+				updateMinimapData(visLinesIterator, endVisualLine)
+//				println("updateMinimapData time: ${System.currentTimeMillis() - startTime}")
+			}
 		}catch (e: Throwable){
 			LOG.error("submitMinimapDataUpdateTask error",e)
 		}
@@ -580,8 +576,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	override fun dispose() {
 		super.dispose()
 		editor.softWrapModel.applianceManager.removeSoftWrapListener(mySoftWrapChangeListener)
-		renderDataList.clear()
-		imgArray.forEach { it.flush() }
+		previewImg.flush()
 	}
 
 	private data class LineRenderData(val renderData: List<RenderData>, val startX: Int, var y: Int, val aboveBlockLine: Int,
@@ -606,7 +601,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 
 	private enum class LineType{ CODE, COMMENT, CUSTOM_FOLD}
 
-	@Suppress("UNCHECKED_CAST")
+	@Suppress("UNCHECKED_CAST", "UndesirableClassUsage")
 	companion object{
 		private val LOG = LoggerFactory.getLogger(FastMainMinimap::class.java)
 		private const val HOOK_ON_RECALCULATION_END_METHOD = "onRecalculationEnd"
@@ -617,6 +612,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		}
 		private val DefaultLineRenderData = LineRenderData(emptyList(), 0,
 			CodeGlanceConfigService.getConfig().pixelsPerLine, 0, LineType.CODE)
+		private val EMPTY_IMG = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB)
 
 		fun changePixels(){
 			DefaultLineRenderData.y = CodeGlanceConfigService.getConfig().pixelsPerLine

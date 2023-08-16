@@ -73,6 +73,10 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 		return if (editor.isDisposed || editor.document.lineCount <= 0) return null else curImg
 	}
 
+	@Suppress("UndesirableClassUsage")
+	private fun getBufferedImage() = BufferedImage(glancePanel.getConfigSize().width,
+		glancePanel.scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_INT_ARGB)
+
 	private fun update() {
 		val curImg = getMinimapImage() ?: return
 		if(rangeList.size > 0) rangeList.clear()
