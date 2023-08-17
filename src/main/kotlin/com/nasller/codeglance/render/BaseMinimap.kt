@@ -25,7 +25,7 @@ import java.awt.image.BufferedImage
 import java.beans.PropertyChangeListener
 import java.util.concurrent.atomic.AtomicBoolean
 
-abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val virtualFile: VirtualFile?): InlayModel.Listener, PropertyChangeListener,
+abstract class BaseMinimap(protected val glancePanel: GlancePanel, protected val virtualFile: VirtualFile?): InlayModel.Listener, PropertyChangeListener,
 	PrioritizedDocumentListener, FoldingListener, MarkupModelListener, SoftWrapChangeListener, Disposable {
 	protected val editor = glancePanel.editor
 	protected val config
@@ -79,7 +79,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 			|| runReadAction { editor.highlighter !is EmptyEditorHighlighter })
 
 	protected fun getHighlightColor(startOffset: Int, endOffset: Int): List<RangeHighlightColor>{
-		return if(config.syntaxHighlight){
+		return if(config.syntaxHighlight) runCatching {
 			val list = mutableListOf<RangeHighlightColor>()
 			editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(startOffset, endOffset) {
 				val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
@@ -87,13 +87,20 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, private val v
 				return@processRangeHighlightersOverlappingWith true
 			}
 			list
-		}else emptyList()
+		}.getOrElse { emptyList() }
+		else emptyList()
 	}
 
-	protected fun Color.setColorRgba() {
+	protected fun Color.setColorRgb() {
 		scaleBuffer[0] = red
 		scaleBuffer[1] = green
 		scaleBuffer[2] = blue
+	}
+
+	protected fun Int.setColorRgb() {
+		scaleBuffer[0] = (this shr 16) and 0xFF //RED
+		scaleBuffer[1] = (this shr 8) and 0xFF //GREEN
+		scaleBuffer[2] = (this shr 0) and 0xFF //BLUE
 	}
 
 	protected fun BufferedImage.renderImage(x: Int, y: Int, char: Int, consumer: (() -> Unit)? = null) {

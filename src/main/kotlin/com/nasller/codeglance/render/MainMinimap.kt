@@ -123,13 +123,13 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 				val foldLine = editor.document.getLineNumber(endOffset) - startLineNumber
 				if(region !is CustomFoldRegionImpl){
 					if(region.placeholderText.isNotBlank()) {
-						(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor).setColorRgba()
+						(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor).setColorRgb()
 						StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach(moveAndRenderChar)
 					}
 					skipY -= foldLine * config.pixelsPerLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 				} else {
-					(color ?: defaultColor).setColorRgba()
+					(color ?: defaultColor).setColorRgb()
 					//jump over the fold line
 					val heightLine = (region.heightInPixels * scrollState.scale).toInt()
 					skipY -= (foldLine + 1) * config.pixelsPerLine - heightLine
@@ -198,7 +198,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 						} }
 						curImg.renderImage(x, y, charCode) {
 							(highlightList.firstOrNull { offset >= it.startOffset && offset < it.endOffset }?.foregroundColor
-								?: color ?: defaultColor).setColorRgba()
+								?: color ?: defaultColor).setColorRgb()
 						}
 					}
 					hlIter.advance()

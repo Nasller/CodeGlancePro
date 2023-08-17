@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.7.3</h3>
+		<ul>
+			<li>fix NegativeArraySizeException</li>
+		</ul>
 		<h3>1.7.2</h3>
 		<ul>
 			<li>fix a large file input freeze</li>
@@ -49,11 +53,6 @@
 			<li>Fix console diff error</li>
 			<li>Speed up show minimap on scrollbar hover animation</li>
 			<li>BigFeature: make a new fast minimap render,experiments run on the Main and Console Editor</li>
-		</ul>
-		<h3>1.6.7</h3>
-		<ul>
-			<li>Change the editor injection method to support more editors</li>
-			<li>Support console minimap</li>
 		</ul>
 	]]></change-notes>
 
