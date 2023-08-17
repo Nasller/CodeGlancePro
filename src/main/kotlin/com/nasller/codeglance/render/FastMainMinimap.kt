@@ -535,14 +535,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 				val originalStack = Throwable()
 				myResetDataPromise = ReadAction.nonBlocking<Unit> {
 //					val startTime = System.currentTimeMillis()
-					try {
-						updateMinimapData(visLinesIterator, 0)
-					}catch (e: Throwable){
-						if(e !is ProcessCanceledException){
-							LOG.error("Async update error fileType:${virtualFile?.fileType?.name} original stack:${originalStack.stackTraceToString()}", e)
-						}
-						throw e
-					}
+					updateMinimapData(visLinesIterator, 0)
 //					println("updateMinimapData time: ${System.currentTimeMillis() - startTime}")
 				}.coalesceBy(this).expireWith(this).finishOnUiThread(ModalityState.any()) {
 					myResetDataPromise = null
@@ -552,7 +545,11 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						myResetChangeEndOffset = Int.MIN_VALUE
 						assertValidState()
 					}
-				}.submit(AppExecutorUtil.getAppExecutorService())
+				}.submit(AppExecutorUtil.getAppExecutorService()).onError{
+					if(it !is ProcessCanceledException){
+						LOG.error("Async update error fileType:${virtualFile?.fileType?.name} original stack:${originalStack.stackTraceToString()}", it)
+					}
+				}
 			}else {
 //				val startTime = System.currentTimeMillis()
 				updateMinimapData(visLinesIterator, endVisualLine)
