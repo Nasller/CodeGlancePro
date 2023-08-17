@@ -14,7 +14,6 @@ import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.impl.softwrap.mapping.IncrementalCacheUpdateEvent
 import com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapApplianceManager
-import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.TextRange
@@ -40,6 +39,7 @@ import java.awt.Font
 import java.awt.image.BufferedImage
 import java.beans.PropertyChangeEvent
 import java.lang.reflect.Proxy
+import java.util.concurrent.CancellationException
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -546,7 +546,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						assertValidState()
 					}
 				}.submit(AppExecutorUtil.getAppExecutorService()).onError{
-					if(it !is ProcessCanceledException){
+					if(it !is CancellationException){
 						LOG.error("Async update error fileType:${virtualFile?.fileType?.name} original stack:${originalStack.stackTraceToString()}", it)
 					}
 				}
