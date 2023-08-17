@@ -14,6 +14,7 @@ import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.impl.softwrap.mapping.IncrementalCacheUpdateEvent
 import com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapApplianceManager
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.TextRange
@@ -531,9 +532,17 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			val visLinesIterator = MyVisualLinesIterator(editor, startVisualLine)
 			if(reset){
 //				println(Throwable().stackTraceToString())
+				val originalStack = Throwable()
 				myResetDataPromise = ReadAction.nonBlocking<Unit> {
 //					val startTime = System.currentTimeMillis()
-					updateMinimapData(visLinesIterator, 0)
+					try {
+						updateMinimapData(visLinesIterator, 0)
+					}catch (e: Throwable){
+						if(e !is ProcessCanceledException){
+							LOG.error("Async update error fileType:${virtualFile?.fileType?.name} original stack:${originalStack.stackTraceToString()}", e)
+						}
+						throw e
+					}
 //					println("updateMinimapData time: ${System.currentTimeMillis() - startTime}")
 				}.coalesceBy(this).expireWith(this).finishOnUiThread(ModalityState.any()) {
 					myResetDataPromise = null
