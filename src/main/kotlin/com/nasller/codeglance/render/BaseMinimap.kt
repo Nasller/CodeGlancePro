@@ -203,9 +203,9 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, protected val
 		}
 	}
 
-	protected class OneLineHighlightDelegate(document: Document, private val startOffset: Int, private var endOffset: Int) : HighlighterIterator {
+	protected class OneLineHighlightDelegate(text: CharSequence, private val startOffset: Int, private var endOffset: Int) : HighlighterIterator {
 		private var start = startOffset
-		private val offsetLineIterator = document.immutableCharSequence.subSequence(startOffset,endOffset)
+		private val offsetLineIterator = text.subSequence(startOffset,endOffset)
 			.withIndex().filter { it.value == '\n' }.map { it.index }.iterator()
 		init {
 			if(offsetLineIterator.hasNext()){

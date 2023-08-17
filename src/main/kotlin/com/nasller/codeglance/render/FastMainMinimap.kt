@@ -236,12 +236,12 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						LineType.COMMENT, commentHighlighterEx = markCommentMap[start])
 				}else if(start < text.length && text.subSequence(start, end).isNotBlank()){
 					val hlIter = editor.highlighter.run {
-						if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(myDocument, start, end)
+						if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(text, start, end)
 						else{
 							val highlighterIterator = createIterator(start)
 							if(isLogFile){
 								if(highlighterIterator::class.java.name.contains("EmptyEditorHighlighter")){
-									OneLineHighlightDelegate(myDocument, start, end)
+									OneLineHighlightDelegate(text, start, end)
 								}else IdeLogFileHighlightDelegate(myDocument, highlighterIterator)
 							}else highlighterIterator
 						}
