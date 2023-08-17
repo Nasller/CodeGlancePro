@@ -489,17 +489,17 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			if(highlighter.isThinErrorStripeMark.not() && (Util.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
 						EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
 				val textLength = myDocument.textLength
-				val startOffset = MathUtil.clamp(highlighter.affectedAreaStartOffset, 0, textLength)
-				val endOffset = MathUtil.clamp(highlighter.affectedAreaEndOffset, 0, textLength)
-				if (startOffset > endOffset || startOffset >= textLength || endOffset < 0) return@invokeLaterIfNeeded
+				val start = MathUtil.clamp(highlighter.affectedAreaStartOffset, 0, textLength)
+				val end = MathUtil.clamp(highlighter.affectedAreaEndOffset, 0, textLength)
+				if (start >= end || start >= textLength || end < 0) return@invokeLaterIfNeeded
 				if(myDuringDocumentUpdate) {
-					myDocumentChangeStartOffset = min(myDocumentChangeStartOffset, startOffset)
-					myDocumentChangeEndOffset = max(myDocumentChangeEndOffset, endOffset)
+					myDocumentChangeStartOffset = min(myDocumentChangeStartOffset, start)
+					myDocumentChangeEndOffset = max(myDocumentChangeEndOffset, end)
 				}else if (myFoldingChangeEndOffset != Int.MIN_VALUE) {
-					myFoldingChangeStartOffset = min(myFoldingChangeStartOffset, startOffset)
-					myFoldingChangeEndOffset = max(myFoldingChangeEndOffset, endOffset)
+					myFoldingChangeStartOffset = min(myFoldingChangeStartOffset, start)
+					myFoldingChangeEndOffset = max(myFoldingChangeEndOffset, end)
 				}else {
-					doInvalidateRange(startOffset, endOffset)
+					doInvalidateRange(start, end)
 				}
 			}else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
 				glancePanel.repaint()
