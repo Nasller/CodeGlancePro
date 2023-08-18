@@ -6,7 +6,6 @@ import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.colors.CodeInsightColors
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
-import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.HighlighterLayer
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
@@ -106,11 +105,11 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		var startOffset = 0
 		var endOffset = editor.document.textLength
 		if (scrollState.visibleStart > 0) {
-			val offset = editor.visualLineStartOffset(fitLineToEditor(editor, getMyRenderVisualLine(scrollState.visibleStart))) - 1
+			val offset = editor.visualLineStartOffset(fitLineToEditor(editor, getMyRenderVisualLine(scrollState.visibleStart) - 1))
 			startOffset = if (offset > 0) offset else 0
 		}
 		if (scrollState.visibleEnd > 0) {
-			val offset = EditorUtil.getVisualLineEndOffset(editor, fitLineToEditor(editor, getMyRenderVisualLine(scrollState.visibleEnd))) + 1
+			val offset = editor.visualLineStartOffset(fitLineToEditor(editor, getMyRenderVisualLine(scrollState.visibleEnd) + 1))
 			endOffset = if (offset < endOffset) offset else endOffset
 		}
 		return Range(startOffset, endOffset)
