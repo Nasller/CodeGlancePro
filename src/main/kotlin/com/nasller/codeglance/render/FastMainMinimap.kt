@@ -96,8 +96,9 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 
 	@Suppress("UndesirableClassUsage")
 	private fun update(copyList: List<LineRenderData?>){
+		val pixelsPerLine = config.pixelsPerLine
 		val curImg = if(glancePanel.checkVisible()) BufferedImage(glancePanel.getConfigSize().width,
-			copyList.filterNotNull().sumOf { (it.y ?: config.pixelsPerLine) + (it.aboveBlockLine ?: 0) }, BufferedImage.TYPE_INT_ARGB)
+			copyList.filterNotNull().sumOf { (it.y ?: pixelsPerLine) + (it.aboveBlockLine ?: 0) }, BufferedImage.TYPE_INT_ARGB)
 		else null ?: return
 		val graphics = curImg.createGraphics()
 		val markAttributes by lazy(LazyThreadSafetyMode.NONE) {
@@ -111,7 +112,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 				Font.BOLD -> EditorFontType.BOLD
 				Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
 				else -> EditorFontType.PLAIN
-			}).deriveFont(config.markersScaleFactor * config.pixelsPerLine)
+			}).deriveFont(config.markersScaleFactor * pixelsPerLine)
 		}
 		val defaultRgb = editor.colorsScheme.defaultForeground.rgb
 		var totalY = 0
@@ -119,13 +120,13 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		val curRangeList = mutableListOf<Pair<Int, Range<Int>>>()
 		for ((index, it) in copyList.withIndex()) {
 			if(it == null) continue
-			val y = it.y ?: config.pixelsPerLine
+			val y = it.y ?: pixelsPerLine
 			val aboveBlockLine = it.aboveBlockLine ?: 0
 			//Coordinates
 			if(it.lineType == LineType.CUSTOM_FOLD){
-				curRangeList.add(index to Range(totalY, totalY + y - config.pixelsPerLine + aboveBlockLine))
+				curRangeList.add(index to Range(totalY, totalY + y - pixelsPerLine + aboveBlockLine))
 			}else if(aboveBlockLine > 0){
-				curRangeList.add(index - 1 to Range(totalY, totalY + y - config.pixelsPerLine + aboveBlockLine))
+				curRangeList.add(index - 1 to Range(totalY, totalY + y - pixelsPerLine + aboveBlockLine))
 			}
 			//Skipping
 			if(skipY > 0){
@@ -156,7 +157,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 									10 -> {//ENTER
 										if(it.lineType == LineType.CUSTOM_FOLD){
 											curX = 0
-											curY += config.pixelsPerLine
+											curY += pixelsPerLine
 										}else break@breakY
 									}
 									else -> curX += 1
@@ -173,7 +174,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						} else font
 						graphics.font = textFont
 						graphics.drawString(commentText, it.startX ?: 0,totalY + (graphics.getFontMetrics(textFont).height / 1.5).roundToInt())
-						skipY = (config.markersScaleFactor.toInt() - 1) * config.pixelsPerLine
+						skipY = (config.markersScaleFactor.toInt() - 1) * pixelsPerLine
 					}
 				}
 			}
