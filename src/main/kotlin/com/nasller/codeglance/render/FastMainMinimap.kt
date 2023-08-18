@@ -100,8 +100,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			copyList.filterNotNull().sumOf { (it.y ?: config.pixelsPerLine) + (it.aboveBlockLine ?: 0) }, BufferedImage.TYPE_INT_ARGB)
 		else null ?: return
 		val graphics = curImg.createGraphics()
-		graphics.composite = GlancePanel.CLEAR
-		graphics.fillRect(0, 0, curImg.width, curImg.height)
 		val markAttributes by lazy(LazyThreadSafetyMode.NONE) {
 			editor.colorsScheme.getAttributes(Util.MARK_COMMENT_ATTRIBUTES).also {
 				UISettings.setupAntialiasing(graphics)
