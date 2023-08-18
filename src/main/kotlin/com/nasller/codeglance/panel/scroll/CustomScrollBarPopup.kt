@@ -25,7 +25,7 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
 
     override fun invokePopup(comp: Component?, x: Int, y: Int) {
         val config = glancePanel.config
-        val actionGroup = DefaultActionGroup(
+        val actionGroup = object: DefaultActionGroup(
             DumbAwareToggleOptionAction(object : ToggleOptionAction.Option {
                 override fun getName(): String = message("popup.hover.minimap")
                 override fun isEnabled(): Boolean = config.isRightAligned && !glancePanel.isDefaultDisable
@@ -69,7 +69,7 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
                     config.singleFileVisibleButton = selected
                 }
             })
-        )
+        ){}
         glancePanel.psiDocumentManager.getPsiFile(glancePanel.editor.document)?.let {
             if (DaemonCodeAnalyzer.getInstance(glancePanel.project).isHighlightingAvailable(it)) {
                 actionGroup.addSeparator()
