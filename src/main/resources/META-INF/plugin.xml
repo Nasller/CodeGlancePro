@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.7.4</h3>
+		<ul>
+			<li></li>
+		</ul>
 		<h3>1.7.3</h3>
 		<ul>
 			<li>fix NegativeArraySizeException</li>
@@ -41,18 +45,6 @@
 		<ul>
 			<li>Add some range check</li>
 			<li>Fix softWrap listener</li>
-		</ul>
-		<h3>1.6.9</h3>
-		<ul>
-			<li>Fix various FastMinimap bug</li>
-			<li>Fix emptyLine</li>
-		</ul>
-		<h3>1.6.8</h3>
-		<ul>
-			<li>Fix ModalityState alarm</li>
-			<li>Fix console diff error</li>
-			<li>Speed up show minimap on scrollbar hover animation</li>
-			<li>BigFeature: make a new fast minimap render,experiments run on the Main and Console Editor</li>
 		</ul>
 	]]></change-notes>
 
