@@ -71,8 +71,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 					ApplicationManager.getApplication().executeOnPooledThread {
 						update(renderDataList.toList())
 						invokeLater(ModalityState.any()){
-							glancePanel.repaint()
 							lock.set(false)
+							glancePanel.repaint()
 							if (myRenderDirty) {
 								myRenderDirty = false
 								updateMinimapImage()

@@ -274,6 +274,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	}
 
 	override fun paintComponent(gfx: Graphics) {
+		super.paintComponent(gfx)
 		if(isReleased) return
 		val img = minimap.getImageOrUpdate() ?: return
 		with(gfx as Graphics2D){

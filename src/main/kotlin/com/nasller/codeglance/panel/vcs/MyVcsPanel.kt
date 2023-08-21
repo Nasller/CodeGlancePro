@@ -31,6 +31,7 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 	}
 
 	override fun paintComponent(gfx: Graphics) = glancePanel.run {
+		super.paintComponent(gfx)
 		with(gfx as Graphics2D){ paintVcs(getVisibleRangeOffset(),this@MyVcsPanel.width) }
 	}
 
