@@ -56,7 +56,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			 onSoftWrapRecalculationEnd(args[0] as IncrementalCacheUpdateEvent)
 		}else null
 	}.also { editor.softWrapModel.applianceManager.addSoftWrapListener(it) }
-	@Volatile
 	private var previewImg = EMPTY_IMG
 	@Volatile
 	private var myResetDataPromise: CancellablePromise<Unit>? = null
@@ -203,11 +202,9 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 			val start = visLinesIterator.getVisualLineStartOffset()
 			val end = visLinesIterator.getVisualLineEndOffset()
 			val visualLine = visLinesIterator.getVisualLine()
-			if(myResetDataPromise != null) {
-				ProgressManager.checkCanceled()
-				//Check invalid somethings in background task
-				if(visualLine >= renderDataList.size || start > end) return
-			}
+			ProgressManager.checkCanceled()
+			//Check invalid somethings in background task
+			if(visualLine >= renderDataList.size || start > end) return
 			//BLOCK_INLAY
 			val aboveBlockLine = visLinesIterator.getBlockInlaysAbove().sumOf { (it.heightInPixels * scrollState.scale).toInt() }
 				.run { if(this > 0) this else null }
@@ -544,7 +541,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						myResetChangeEndOffset = Int.MIN_VALUE
 						assertValidState()
 					}
-				}.submit(AppExecutorUtil.getAppExecutorService()).onError{
+				}.submit(fastMinimapBackendExecutor).onError{
 					if(it !is CancellationException){
 						LOG.error("Async update error fileType:${virtualFile?.fileType?.name} original stack:${originalStack.stackTraceToString()}", it)
 					}
@@ -661,6 +658,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		}
 		private val DefaultLineRenderData = LineRenderData(emptyArray(), null, null, null)
 		private val EMPTY_IMG = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB)
+		private val fastMinimapBackendExecutor = AppExecutorUtil.createBoundedApplicationPoolExecutor("FastMinimapBackendExecutor", 1)
 
 		private fun SoftWrapApplianceManager.addSoftWrapListener(listener: Any) {
 			(softWrapListeners.get(this) as MutableList<Any>).add(listener)
