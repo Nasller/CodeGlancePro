@@ -104,7 +104,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, protected val
 	}
 
 	protected fun BufferedImage.renderImage(x: Int, y: Int, char: Int, consumer: (() -> Unit)? = null) {
-		if (char !in 0..32 && x in 0 until width && 0 <= y && y + config.pixelsPerLine <= height) {
+		if (char !in 0..32 && x in 0 until width && 0 <= y && y + config.pixelsPerLine < height) {
 			consumer?.invoke()
 			if (config.clean) {
 				renderClean(x, y, char)

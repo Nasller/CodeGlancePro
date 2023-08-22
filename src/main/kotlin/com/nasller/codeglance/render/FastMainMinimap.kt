@@ -96,9 +96,10 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	@Suppress("UndesirableClassUsage")
 	private fun update(copyList: List<LineRenderData?>){
 		val pixelsPerLine = config.pixelsPerLine
-		val curImg = if(glancePanel.checkVisible()) BufferedImage(glancePanel.getConfigSize().width,
-			copyList.filterNotNull().sumOf { (it.y ?: pixelsPerLine) + (it.aboveBlockLine ?: 0) }, BufferedImage.TYPE_INT_ARGB)
-		else null ?: return
+		val curImg = if(glancePanel.checkVisible()) {
+			val height = copyList.filterNotNull().sumOf { (it.y ?: pixelsPerLine) + (it.aboveBlockLine ?: 0) } + (5 * config.pixelsPerLine)
+			BufferedImage(glancePanel.getConfigSize().width, height, BufferedImage.TYPE_INT_ARGB)
+		} else null ?: return
 		val graphics = curImg.createGraphics()
 		val markAttributes by lazy(LazyThreadSafetyMode.NONE) {
 			editor.colorsScheme.getAttributes(Util.MARK_COMMENT_ATTRIBUTES).also {
