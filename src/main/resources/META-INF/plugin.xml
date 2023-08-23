@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.7.5</h3>
+		<ul>
+			<li>Fix range check</li>
+		</ul>
 		<h3>1.7.4</h3>
 		<ul>
 			<li>Fix scroll performance</li>
@@ -41,11 +45,6 @@
 		<h3>1.7.1</h3>
 		<ul>
 			<li>fix nonblocking task calculate error</li>
-		</ul>
-		<h3>1.7.0</h3>
-		<ul>
-			<li>Add some range check</li>
-			<li>Fix softWrap listener</li>
 		</ul>
 	]]></change-notes>
 
