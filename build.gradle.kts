@@ -20,6 +20,10 @@ kotlin {
 	jvmToolchain(properties("javaVersion").toInt())
 }
 
+repositories {
+	mavenCentral()
+}
+
 intellij {
 	pluginName.set(properties("pluginName"))
 	version.set(properties("platformVersion"))
