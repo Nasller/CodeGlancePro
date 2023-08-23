@@ -54,7 +54,6 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		Disposer.register(editor.disposable, this)
 		Disposer.register(this, GlanceListener(this))
 		isOpaque = false
-		editor.component.isOpaque = false
 		isVisible = !isDefaultDisable
 		markCommentState.refreshMarkCommentHighlight(editor)
 		editor.putUserData(CURRENT_GLANCE, this)
@@ -276,12 +275,11 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	override fun paintComponent(gfx: Graphics) {
 		super.paintComponent(gfx)
 		if(isReleased) return
-		val img = minimap.getImageOrUpdate() ?: return
 		with(gfx as Graphics2D){
 			if(hideScrollBarListener.isNotRunning()) paintSomething()
-			if (editor.document.textLength != 0) {
+			minimap.getImageOrUpdate()?.let {
 				composite = srcOver0_8
-				drawImage(img, 0, 0, width, scrollState.drawHeight,
+				drawImage(it, 0, 0, width, scrollState.drawHeight,
 					0, scrollState.visibleStart, width, scrollState.visibleEnd, null)
 			}
 			scrollbar.paint(this)

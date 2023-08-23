@@ -70,7 +70,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 			curImg = getBufferedImage()
 			imgReference = MySoftReference.create(curImg, editor.editorKind != EditorKind.MAIN_EDITOR)
 		}
-		return if (editor.isDisposed || editor.document.lineCount <= 0) return null else curImg
+		return if(editor.isDisposed) return null else curImg
 	}
 
 	@Suppress("UndesirableClassUsage")
@@ -81,13 +81,21 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 		val curImg = getMinimapImage() ?: return
 		if(rangeList.size > 0) rangeList.clear()
 		val text = editor.document.immutableCharSequence
+		val graphics = curImg.createGraphics().apply {
+			setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+			composite = GlancePanel.CLEAR
+			fillRect(0, 0, curImg.width, curImg.height)
+		}
+		if(text.isEmpty()) {
+			graphics.dispose()
+			return
+		}
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val hlIter = editor.highlighter.createIterator(0).run {
 			if(isLogFile) IdeLogFileHighlightDelegate(editor.document,this) else this
 		}
 		val softWrapEnable = editor.softWrapModel.isSoftWrappingEnabled
 		val hasBlockInlay = editor.inlayModel.hasBlockElements()
-
 		var x = 0
 		var y = 0
 		var skipY = 0
@@ -106,12 +114,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 			moveCharIndex(it.code,null)
 			curImg.renderImage(x, y, it.code)
 		}
-		val g = curImg.createGraphics().apply {
-			setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-			composite = GlancePanel.CLEAR
-			fillRect(0, 0, curImg.width, curImg.height)
-		}
-		val highlight = makeMarkHighlight(text, g)
+		val highlight = makeMarkHighlight(text, graphics)
 		loop@ while (!hlIter.atEnd()) {
 			val start = hlIter.start
 			if(start > text.length) break@loop
@@ -147,8 +150,8 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 			} else {
 				val commentData = highlight[start]
 				if(commentData != null){
-					g.font = commentData.font
-					g.drawString(commentData.comment,2,y + commentData.fontHeight)
+					graphics.font = commentData.font
+					graphics.drawString(commentData.comment,2,y + commentData.fontHeight)
 					if (softWrapEnable) {
 						val softWraps = editor.softWrapModel.getSoftWrapsForRange(start, commentData.jumpEndOffset)
 						softWraps.forEachIndexed { index, softWrap ->
@@ -206,7 +209,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 				}
 			}
 		}
-		g.dispose()
+		graphics.dispose()
 	}
 
 	private fun makeMarkHighlight(text: CharSequence, graphics: Graphics2D):Map<Int,MarkCommentData>{
