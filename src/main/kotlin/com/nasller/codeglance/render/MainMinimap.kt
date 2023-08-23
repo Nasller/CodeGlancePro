@@ -114,6 +114,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 		val highlight = makeMarkHighlight(text, g)
 		loop@ while (!hlIter.atEnd()) {
 			val start = hlIter.start
+			if(start > text.length) break@loop
 			y = editor.document.getLineNumber(start) * config.pixelsPerLine + skipY
 			val color by lazy(LazyThreadSafetyMode.NONE){ runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() }
 			val region = editor.foldingModel.getCollapsedRegionAtOffset(start)
