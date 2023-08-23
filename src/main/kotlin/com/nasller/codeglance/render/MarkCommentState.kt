@@ -9,8 +9,9 @@ import java.util.concurrent.ConcurrentHashMap
 class MarkCommentState(val glancePanel: GlancePanel) {
 	private val markCommentMap = lazy { ConcurrentHashMap<Long,RangeHighlighterEx>() }
 
-	fun getAllMarkCommentHighlight(): Collection<RangeHighlighterEx> =
-		if(markCommentMap.isInitialized() && markCommentMap.value.isNotEmpty()) markCommentMap.value.values else emptyList()
+	fun getAllMarkCommentHighlight(): Collection<RangeHighlighterEx> = if(hasMarkCommentHighlight()) markCommentMap.value.values else emptyList()
+
+	fun hasMarkCommentHighlight(): Boolean = markCommentMap.isInitialized() && markCommentMap.value.isNotEmpty()
 
 	fun markCommentHighlightChange(highlighter: RangeHighlighterEx, remove: Boolean) : Boolean{
 		return if(Util.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey){

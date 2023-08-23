@@ -16,12 +16,15 @@ class MarkCommentVisitor : MyRainbowVisitor() {
 				val textRange = element.textRange
 				val index = text.indexOf('\n',it.range.last)
 				val blockCommentSuffix by lazy(LazyThreadSafetyMode.NONE) { getLanguageBlockCommentSuffix(element.language) ?: "" }
+				val start = it.range.last + textRange.startOffset + 1
 				val end = if (index > 0) index + textRange.startOffset else {
 					textRange.endOffset - if(index < 0 && blockCommentSuffix.isNotBlank() && text.endsWith(blockCommentSuffix)){
 						blockCommentSuffix.length
 					} else 0
 				}
-				addInfo(getInfo(it.range.last + textRange.startOffset + 1, end, Util.MARK_COMMENT_ATTRIBUTES))
+				if(start != end) {
+					addInfo(getInfo(start, end, Util.MARK_COMMENT_ATTRIBUTES))
+				}
 			}
 		}
 	}

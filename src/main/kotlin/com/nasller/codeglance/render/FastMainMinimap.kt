@@ -65,7 +65,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	override fun getImageOrUpdate() = previewImg
 
 	override fun updateMinimapImage(canUpdate: Boolean){
-		if (canUpdate && myDocument.textLength > 0) {
+		if (canUpdate) {
 			if(lock.compareAndSet(false,true)) {
 				val action = Runnable {
 					ApplicationManager.getApplication().executeOnPooledThread {
@@ -80,12 +80,10 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						}
 					}
 				}
-				if(editor.editorKind != EditorKind.CONSOLE){
+				if(glancePanel.markCommentState.hasMarkCommentHighlight()){
 					glancePanel.psiDocumentManager.performForCommittedDocument(myDocument, action)
 				}else action.run()
-			}else {
-				myRenderDirty = true
-			}
+			}else myRenderDirty = true
 		}
 	}
 
@@ -481,18 +479,15 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 
 	private fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
 		EdtInvocationManager.invokeLaterIfNeeded {
-			if (!glancePanel.checkVisible() || myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode ||
-				editor.foldingModel.isInBatchFoldingOperation || myDuringDocumentUpdate) return@invokeLaterIfNeeded
+			if (!glancePanel.checkVisible() || myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode
+				|| myDuringDocumentUpdate) return@invokeLaterIfNeeded
 			if(highlighter.isThinErrorStripeMark.not() && (Util.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
 						EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
 				val textLength = myDocument.textLength
 				val start = MathUtil.clamp(highlighter.affectedAreaStartOffset, 0, textLength)
 				val end = MathUtil.clamp(highlighter.affectedAreaEndOffset, 0, textLength)
-				if (start >= end || start >= textLength || end < 0) return@invokeLaterIfNeeded
-				if(myDuringDocumentUpdate) {
-					myDocumentChangeStartOffset = min(myDocumentChangeStartOffset, start)
-					myDocumentChangeEndOffset = max(myDocumentChangeEndOffset, end)
-				}else if (myFoldingChangeEndOffset != Int.MIN_VALUE) {
+				if (start > end || start >= textLength || end < 0) return@invokeLaterIfNeeded
+				if (myFoldingChangeEndOffset != Int.MIN_VALUE) {
 					myFoldingChangeStartOffset = min(myFoldingChangeStartOffset, start)
 					myFoldingChangeEndOffset = max(myFoldingChangeEndOffset, end)
 				}else {

@@ -48,7 +48,7 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 
 	override fun updateMinimapImage(canUpdate: Boolean){
 		if (canUpdate && lock.compareAndSet(false,true)) {
-			glancePanel.psiDocumentManager.performForCommittedDocument(editor.document){
+			val action = Runnable {
 				invokeLater(modalityState) {
 					try {
 						update()
@@ -58,6 +58,9 @@ class MainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?): BaseMini
 					}
 				}
 			}
+			if(glancePanel.markCommentState.hasMarkCommentHighlight()){
+				glancePanel.psiDocumentManager.performForCommittedDocument(editor.document, action)
+			}else action.run()
 		}
 	}
 
