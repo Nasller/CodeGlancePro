@@ -395,6 +395,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	override fun onFoldProcessingStart() {
+		if (myDocument.isInBulkUpdate) return
 		myFoldingBatchStart = true
 	}
 
@@ -404,9 +405,9 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 					editor.visibleLineCount != renderDataList.size)) {
 			doInvalidateRange(myFoldingChangeStartOffset, myFoldingChangeEndOffset)
 		}
+		myFoldingBatchStart = false
 		myFoldingChangeStartOffset = Int.MAX_VALUE
 		myFoldingChangeEndOffset = Int.MIN_VALUE
-		myFoldingBatchStart = false
 		assertValidState()
 	}
 
