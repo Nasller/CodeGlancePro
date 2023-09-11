@@ -14,7 +14,7 @@ plugins {
 
 group = properties("pluginGroup")
 version = properties("pluginVersion") + if(env.getOrDefault("snapshots","") == "true") "-SNAPSHOT"
-else if(env.getOrDefault("PUBLISH_CHANNEL","") == "Preview") "-nightly-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm")) else ""
+else if(env.getOrDefault("PUBLISH_CHANNEL","") == "Preview") "-SNAPSHOT-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm")) else ""
 
 kotlin {
 	jvmToolchain(properties("javaVersion").toInt())
