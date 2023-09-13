@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.7.6</h3>
+		<ul>
+			<li></li>
+		</ul>
 		<h3>1.7.5</h3>
 		<ul>
 			<li>Fix range check</li>
@@ -42,10 +46,6 @@
 			<li>fix a large file input freeze</li>
 			<li>fix xaml file freeze</li>
 		</ul>
-		<h3>1.7.1</h3>
-		<ul>
-			<li>fix nonblocking task calculate error</li>
-		</ul>
 	]]></change-notes>
 
 	<depends>com.intellij.modules.lang</depends>
@@ -56,10 +56,10 @@
 	</applicationListeners>
 
 	<actions>
-		<action id="CodeGlance.toggle" text="Toggle Current CodeGlance" class="com.nasller.codeglance.actions.ToggleVisibleAction" description="Toggles current CodeGlance on and off">
+		<action id="CodeGlancePro.toggle" text="Toggle Current CodeGlance" class="com.nasller.codeglance.actions.ToggleVisibleAction" description="Toggles current CodeGlance on and off">
 			<keyboard-shortcut first-keystroke="control shift G" keymap="$default" />
 		</action>
-		<action id="CodeGlance.disable" text="Toggle All CodeGlance" class="com.nasller.codeglance.actions.DisableByDefaultAction" description="Toggles all CodeGlance on and off">
+		<action id="CodeGlancePro.disable" text="Toggle All CodeGlance" class="com.nasller.codeglance.actions.DisableByDefaultAction" description="Toggles all CodeGlance on and off">
 			<keyboard-shortcut first-keystroke="control alt shift G" keymap="$default" />
 		</action>
 	</actions>
