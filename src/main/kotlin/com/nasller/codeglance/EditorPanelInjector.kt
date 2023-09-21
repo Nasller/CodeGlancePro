@@ -74,10 +74,10 @@ class GlobalLafManagerListener : LafManagerListener {
     }
 }
 
-private val firstRunEditor = firstRunEditor@ { info: EditorInfo, diffView: FrameDiffTool.DiffViewer? ->
+private fun firstRunEditor(info: EditorInfo, diffView: FrameDiffTool.DiffViewer?) {
     if(diffView != null) info.editor.putUserData(CURRENT_EDITOR_DIFF_VIEW, diffView)
     if(info.editor.isDisableExtensionFile() || !CodeGlanceConfigService.getConfig().editorKinds.contains(info.editor.editorKind)) {
-        return@firstRunEditor
+        return
     }
     val layout = (info.editor.component as? JPanel)?.layout
     if (layout is BorderLayout && layout.getLayoutComponent(info.place) == null) {
