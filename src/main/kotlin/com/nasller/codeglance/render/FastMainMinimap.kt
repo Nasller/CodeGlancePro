@@ -486,8 +486,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
 				val textLength = myDocument.textLength
 				val start = MathUtil.clamp(highlighter.affectedAreaStartOffset, 0, textLength)
-				val end = MathUtil.clamp(highlighter.affectedAreaEndOffset, 0, textLength)
-				if (start > end || start >= textLength || end < 0) return@invokeLaterIfNeeded
+				val end = MathUtil.clamp(highlighter.affectedAreaEndOffset, start, textLength)
+				if (start >= end || start >= textLength || end < 0) return@invokeLaterIfNeeded
 				if (myFoldingChangeEndOffset != Int.MIN_VALUE) {
 					myFoldingChangeStartOffset = min(myFoldingChangeStartOffset, start)
 					myFoldingChangeEndOffset = max(myFoldingChangeEndOffset, end)
