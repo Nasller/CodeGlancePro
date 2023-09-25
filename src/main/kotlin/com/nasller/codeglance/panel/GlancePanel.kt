@@ -2,6 +2,7 @@ package com.nasller.codeglance.panel
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.colors.CodeInsightColors
 import com.intellij.openapi.editor.colors.EditorColors
@@ -290,7 +291,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		val rangeOffset = getVisibleRangeOffset()
 		if (!config.hideOriginalScrollBar) paintVcs(rangeOffset,width)
 		val existLine by lazy((LazyThreadSafetyMode.NONE)) { mutableSetOf<Int>() }
-		if (editor.selectionModel.hasSelection()) paintSelection(existLine)
+		if (runReadAction { editor.selectionModel.hasSelection() }) paintSelection(existLine)
 		else paintCaretPosition()
 		if(config.showFilterMarkupHighlight) paintEditorFilterMarkupModel(rangeOffset,existLine)
 		if(config.showMarkupHighlight) paintEditorMarkupModel(rangeOffset,existLine)
