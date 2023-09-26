@@ -277,7 +277,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		super.paintComponent(gfx)
 		if(isReleased) return
 		with(gfx as Graphics2D){
-			if(hideScrollBarListener.isNotRunning()) paintSomething()
+			if(hideScrollBarListener.isNotRunning()) runReadAction { paintSomething() }
 			minimap.getImageOrUpdate()?.let {
 				composite = srcOver0_8
 				drawImage(it, 0, 0, width, scrollState.drawHeight,
@@ -291,7 +291,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		val rangeOffset = getVisibleRangeOffset()
 		if (!config.hideOriginalScrollBar) paintVcs(rangeOffset,width)
 		val existLine by lazy((LazyThreadSafetyMode.NONE)) { mutableSetOf<Int>() }
-		if (runReadAction { editor.selectionModel.hasSelection() }) paintSelection(existLine)
+		if (editor.selectionModel.hasSelection()) paintSelection(existLine)
 		else paintCaretPosition()
 		if(config.showFilterMarkupHighlight) paintEditorFilterMarkupModel(rangeOffset,existLine)
 		if(config.showMarkupHighlight) paintEditorMarkupModel(rangeOffset,existLine)
