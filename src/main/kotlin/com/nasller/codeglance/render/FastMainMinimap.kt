@@ -12,6 +12,7 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.impl.EditorImpl
+import com.intellij.openapi.editor.impl.HighlighterListener
 import com.intellij.openapi.editor.impl.softwrap.mapping.IncrementalCacheUpdateEvent
 import com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapApplianceManager
 import com.intellij.openapi.progress.ProgressManager
@@ -45,7 +46,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
-class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : BaseMinimap(glancePanel, virtualFile){
+class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : BaseMinimap(glancePanel, virtualFile), HighlighterListener{
 	private val myDocument = editor.document
 	override val rangeList: MutableList<Pair<Int, Range<Int>>> = ContainerUtil.createLockFreeCopyOnWriteList()
 	private val renderDataList = ObjectArrayList<LineRenderData>().also {
@@ -60,7 +61,10 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	@Volatile
 	private var myResetDataPromise: CancellablePromise<Unit>? = null
 	private var myRenderDirty = false
-	init { makeListener() }
+	init {
+		makeListener()
+		editor.addHighlighterListener(this, this)
+	}
 
 	override fun getImageOrUpdate() = previewImg
 
@@ -487,13 +491,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 				val textLength = myDocument.textLength
 				val start = MathUtil.clamp(highlighter.affectedAreaStartOffset, 0, textLength)
 				val end = MathUtil.clamp(highlighter.affectedAreaEndOffset, start, textLength)
-				if (start >= end || start >= textLength || end < 0) return@invokeLaterIfNeeded
-				if (myFoldingChangeEndOffset != Int.MIN_VALUE) {
-					myFoldingChangeStartOffset = min(myFoldingChangeStartOffset, start)
-					myFoldingChangeEndOffset = max(myFoldingChangeEndOffset, end)
-				}else {
-					doInvalidateRange(start, end)
-				}
+				if (start != end) invalidateRange(start, end)
 			}else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
 				glancePanel.repaint()
 			}
@@ -504,6 +502,26 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	override fun propertyChange(evt: PropertyChangeEvent) {
 		if (EditorEx.PROP_HIGHLIGHTER != evt.propertyName) return
 		resetMinimapData()
+	}
+
+	/** HighlighterListener */
+	override fun highlighterChanged(startOffset: Int, endOffset: Int) {
+		invalidateRange(startOffset, endOffset)
+	}
+
+	private fun invalidateRange(startOffset: Int, endOffset: Int) {
+		if (myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode) return
+		val textLength = myDocument.textLength
+		if (startOffset > endOffset || startOffset >= textLength || endOffset < 0) return
+		if (myDuringDocumentUpdate) {
+			myDocumentChangeStartOffset = min(myDocumentChangeStartOffset.toDouble(), startOffset.toDouble()).toInt()
+			myDocumentChangeEndOffset = max(myDocumentChangeEndOffset.toDouble(), endOffset.toDouble()).toInt()
+		} else if (myFoldingChangeEndOffset != Int.MIN_VALUE) {
+			myFoldingChangeStartOffset = min(myFoldingChangeStartOffset.toDouble(), startOffset.toDouble()).toInt()
+			myFoldingChangeEndOffset = max(myFoldingChangeEndOffset.toDouble(), endOffset.toDouble()).toInt()
+		} else {
+			doInvalidateRange(startOffset, endOffset)
+		}
 	}
 
 	private fun doInvalidateRange(startOffset: Int, endOffset: Int, reset: Boolean = false) {
