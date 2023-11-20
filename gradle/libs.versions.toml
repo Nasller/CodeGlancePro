@@ -1,5 +1,5 @@
 [versions]
-kotlin = "1.9.10"
+kotlin = "1.9.20"
 gradleIntelliJPlugin = "1.16.0"
 
 [plugins]
