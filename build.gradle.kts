@@ -32,8 +32,6 @@ intellij {
 	downloadSources.set(true)
 	// Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
 	plugins.set(properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty))
-	// languagePlugins=com.intellij.zh:222.202
-	env["languagePlugins"]?.let { plugins.add(it) }
 }
 
 tasks{
@@ -43,15 +41,6 @@ tasks{
         // Path to IDE distribution that will be used to run the IDE with the plugin.
         // ideDir.set(File("path to IDE-dependency"))
     }
-
-	buildSearchableOptions {
-		enabled = env["buildSearchableOptions.enabled"] == "true"
-		jvmArgs("-Dintellij.searchableOptions.i18n.enabled=true")
-	}
-
-	jarSearchableOptions {
-		include { it.name.contains(rootProject.name) }
-	}
 
 	signPlugin {
 		certificateChainFile.set(File(env.getOrDefault("CERTIFICATE_CHAIN", "$dir/pluginCert/chain.crt")))
