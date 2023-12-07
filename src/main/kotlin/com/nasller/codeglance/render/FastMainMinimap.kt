@@ -251,6 +251,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						var foldLineIndex = visLinesIterator.getStartFoldingIndex()
 						var width = 0
 						do {
+							ProgressManager.checkCanceled()
 							var curStart = hlIter.start.run{ if(start > this) start else this }
 							val curEnd = hlIter.end.run{ if(this - curStart > limitWidth) start + limitWidth else this }
 							if(width > limitWidth || curEnd > text.length || curStart > curEnd) break
