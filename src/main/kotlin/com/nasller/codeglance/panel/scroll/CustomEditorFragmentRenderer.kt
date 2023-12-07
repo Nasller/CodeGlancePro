@@ -15,7 +15,6 @@ import com.intellij.ui.*
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.ImageUtil
-import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
 import com.nasller.codeglance.panel.scroll.ScrollBar.Companion.PREVIEW_LINES
@@ -197,7 +196,7 @@ class CustomEditorFragmentRenderer(private val myEditor:EditorImpl){
 				GraphicsUtil.setupAAPainting(g2)
 				g2.clip = RoundRectangle2D.Double(0.0, 0.0, size.width - .5, size.height - .5, 2.0, 2.0)
 				UIUtil.drawImage(g2, myCacheLevel1!!, 0, 0, this)
-				if (StartupUiUtil.isUnderDarcula && !NewUiValue.isEnabled()) {
+				if (!JBColor.isBright() && !NewUiValue.isEnabled()) {
 					//Add glass effect
 					val s = Rectangle(0, 0, size.width, size.height)
 					val cx = size.width / 2.0

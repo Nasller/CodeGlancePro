@@ -67,11 +67,7 @@ class GlobalSettingsChangeListener : SettingsChangeListener{
 }
 
 class GlobalLafManagerListener : LafManagerListener {
-    private var isFirstSetup = true
-
-    override fun lookAndFeelChanged(source: LafManager) = if(isFirstSetup) isFirstSetup = false else {
-        processAllGlanceEditor { oldGlance, _ -> oldGlance?.apply{ refreshDataAndImage() } }
-    }
+    override fun lookAndFeelChanged(source: LafManager) = processAllGlanceEditor{ oldGlance, _ -> oldGlance?.apply{ refreshDataAndImage() } }
 }
 
 private fun firstRunEditor(info: EditorInfo, diffView: FrameDiffTool.DiffViewer?) {
