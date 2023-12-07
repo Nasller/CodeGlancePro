@@ -1,5 +1,6 @@
 package com.nasller.codeglance.render
 
+import com.intellij.concurrency.JobScheduler
 import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.application.*
 import com.intellij.openapi.diagnostic.Attachment
@@ -41,6 +42,7 @@ import java.awt.image.BufferedImage
 import java.beans.PropertyChangeEvent
 import java.lang.reflect.Proxy
 import java.util.concurrent.CancellationException
+import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -542,12 +544,8 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		try {
 			val visLinesIterator = MyVisualLinesIterator(editor, startVisualLine)
 			if(reset){
-//				println(Throwable().stackTraceToString())
-				val originalStack = Throwable()
 				myResetDataPromise = ReadAction.nonBlocking<Unit> {
-//					val startTime = System.currentTimeMillis()
 					updateMinimapData(visLinesIterator, 0)
-//					println("updateMinimapData time: ${System.currentTimeMillis() - startTime}")
 				}.coalesceBy(this).expireWith(this).finishOnUiThread(ModalityState.any()) {
 					myResetDataPromise = null
 					if (myResetChangeStartOffset <= myResetChangeEndOffset) {
@@ -557,14 +555,14 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						assertValidState()
 					}
 				}.submit(fastMinimapBackendExecutor).onError{
-					if(it !is CancellationException){
-						LOG.error("Async update error fileType:${virtualFile?.fileType?.name} original stack:${originalStack.stackTraceToString()}", it)
+					if(it !is CancellationException) {
+						JobScheduler.getScheduler().schedule({
+							invokeLater{ resetMinimapData() }
+						}, 500, TimeUnit.MILLISECONDS)
 					}
 				}
 			}else {
-//				val startTime = System.currentTimeMillis()
 				updateMinimapData(visLinesIterator, endVisualLine)
-//				println("updateMinimapData time: ${System.currentTimeMillis() - startTime}")
 			}
 		}catch (e: Throwable){
 			LOG.error("updateMinimapData error fileType:${virtualFile?.fileType?.name}", e)
