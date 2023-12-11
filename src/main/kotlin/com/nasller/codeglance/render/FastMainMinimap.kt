@@ -558,8 +558,10 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 						assertValidState()
 					}
 				}.submit(fastMinimapBackendExecutor).onError{
+					myResetDataPromise = null
 					if(it !is CancellationException){
 						LOG.error("Async update error fileType:${virtualFile?.fileType?.name} original stack:${originalStack.stackTraceToString()}", it)
+						invokeLater { resetMinimapData() }
 					}
 				}
 			}else {

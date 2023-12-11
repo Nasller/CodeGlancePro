@@ -24,9 +24,15 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.7.8</h3>
+		<ul>
+			<li>Fix setting export</li>
+			<li>Support 2023.3</li>
+		</ul>
 		<h3>1.7.7</h3>
 		<ul>
 			<li>Fix setting export</li>
+			<li>Support 2023.3</li>
 		</ul>
 		<h3>1.7.6</h3>
 		<ul>
@@ -41,10 +47,6 @@
 		<ul>
 			<li>Fix scroll performance</li>
 			<li>Create Bounded Executor</li>
-		</ul>
-		<h3>1.7.3</h3>
-		<ul>
-			<li>fix NegativeArraySizeException</li>
 		</ul>
 	]]></change-notes>
 
