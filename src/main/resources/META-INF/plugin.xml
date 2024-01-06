@@ -26,8 +26,7 @@
 	<change-notes><![CDATA[
 		<h3>1.7.8</h3>
 		<ul>
-			<li>Fix setting export</li>
-			<li>Support 2023.3</li>
+			<li>Make an empty minimap,and just show some highlighted information(make it like a small scrollbar)</li>
 		</ul>
 		<h3>1.7.7</h3>
 		<ul>

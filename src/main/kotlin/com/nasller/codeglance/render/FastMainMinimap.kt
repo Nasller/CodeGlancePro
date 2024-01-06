@@ -19,7 +19,6 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.DocumentEventUtil
 import com.intellij.util.DocumentUtil
 import com.intellij.util.MathUtil
@@ -46,7 +45,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
-class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : BaseMinimap(glancePanel, virtualFile), HighlighterListener{
+class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), HighlighterListener{
 	private val myDocument = editor.document
 	override val rangeList: MutableList<Pair<Int, Range<Int>>> = ContainerUtil.createLockFreeCopyOnWriteList()
 	private val renderDataList = ObjectArrayList<LineRenderData>().also {
@@ -375,8 +374,6 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 		assertValidState()
 	}
 
-	override fun getPriority(): Int = 170 //EditorDocumentPriorities
-
 	/** FoldingListener */
 	override fun onFoldRegionStateChange(region: FoldRegion) {
 		if (myDocument.isInBulkUpdate) return
@@ -615,7 +612,7 @@ class FastMainMinimap(glancePanel: GlancePanel, virtualFile: VirtualFile?) : Bas
 	}
 
 	override fun dispose() {
-		super.dispose()
+		rangeList.clear()
 		editor.softWrapModel.applianceManager.removeSoftWrapListener(mySoftWrapChangeListener)
 		previewImg.flush()
 	}

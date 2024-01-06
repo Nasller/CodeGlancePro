@@ -30,13 +30,13 @@ import kotlin.math.max
 import kotlin.math.min
 
 class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com.nasller.CodeGlancePro"){
-	private val editorKinds = mutableListOf<EditorKind>()
+	private val editorKinds = mutableSetOf<EditorKind>()
+	private val useEmptyMinimap = mutableSetOf<EditorKind>()
 	private lateinit var editorKindComboBox: ComboBox<EditorKind>
+	private lateinit var emptyMinimapComboBox: ComboBox<EditorKind>
 
 	override fun createPanel(): DialogPanel {
 		val config = CodeGlanceConfigService.getConfig()
-		editorKinds.clear()
-		editorKinds.addAll(config.editorKinds)
 		return panel {
 			group(message("settings.general")) {
 				val doubleNumberScrollListener: (e: MouseWheelEvent) -> Unit = {
@@ -64,7 +64,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 						.accessibleName(message("settings.alignment"))
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
-					comboBox(MouseJumpEnum.values().map { it.getMessage() }).label(message("settings.jump"))
+					comboBox(MouseJumpEnum.entries.map { it.getMessage() }).label(message("settings.jump"))
 						.bindItem({ config.jumpOnMouseDown.getMessage() }, { config.jumpOnMouseDown = MouseJumpEnum.findEnum(it) })
 						.accessibleName(message("settings.jump"))
 				}, {
@@ -88,7 +88,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 					spinner.value = newValue
 				}
 				twoColumnsRow({
-					comboBox(ClickTypeEnum.values().map { it.getMessage() }).label(message("settings.click"))
+					comboBox(ClickTypeEnum.entries.map { it.getMessage() }).label(message("settings.click"))
 						.bindItem({ config.clickType.getMessage() }, { config.clickType = ClickTypeEnum.findEnum(it) })
 						.accessibleName(message("settings.click"))
 				}, {
@@ -108,7 +108,8 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 							p.text = v
 						}, config::viewportColor.toMutableProperty())
 				}, {
-					editorKindComboBox = comboBox(EditorKind.values().toList(), EditorKindListCellRenderer()).label(message("settings.editor.kind")).applyToComponent {
+					editorKindComboBox = comboBox(EditorKind.entries, EditorKindListCellRenderer(editorKinds))
+						.label(message("settings.editor.kind")).applyToComponent {
 						isSwingPopup = false
 						addActionListener {
 							val kind = editorKindComboBox.item ?: return@addActionListener
@@ -148,10 +149,20 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 							addMouseWheelListener(doubleNumberScrollListener)
 						}
 				}).bottomGap(BottomGap.SMALL)
-				row {
+				twoColumnsRow({
 					textField().label(message("settings.markers.regex")).bindText(config::markRegex).accessibleName(message("settings.markers.regex"))
-				}.bottomGap(BottomGap.SMALL)
-				val widthList = EditorKind.values().toList().chunked(3)
+				},{
+					emptyMinimapComboBox = comboBox(EditorKind.entries, EditorKindListCellRenderer(useEmptyMinimap))
+						.label(message("settings.use.empty.minimap")).applyToComponent {
+						isSwingPopup = false
+						addActionListener {
+							val kind = emptyMinimapComboBox.item ?: return@addActionListener
+							if (!useEmptyMinimap.remove(kind)) useEmptyMinimap.add(kind)
+							emptyMinimapComboBox.repaint()
+						}
+					}.component
+				}).bottomGap(BottomGap.SMALL)
+				val widthList = EditorKind.entries.chunked(3)
 				widthList.forEachIndexed { index, it ->
 					row {
 						for (kind in it) {
@@ -233,6 +244,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 		super.apply()
 		CodeGlanceConfigService.getConfig().apply {
 			editorKinds = this@CodeGlanceConfigurable.editorKinds
+			useEmptyMinimap = this@CodeGlanceConfigurable.useEmptyMinimap
 			if((!isRightAligned || disabled) && hoveringToShowScrollBar) hoveringToShowScrollBar = false
 			Util.MARK_REGEX = if(markRegex.isNotBlank()) Regex(markRegex) else null
 		}
@@ -240,14 +252,19 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 	}
 
 	override fun isModified(): Boolean {
-		return super.isModified() || editorKinds != CodeGlanceConfigService.getConfig().editorKinds
+		return super.isModified() || editorKinds != CodeGlanceConfigService.getConfig().editorKinds ||
+				useEmptyMinimap != CodeGlanceConfigService.getConfig().useEmptyMinimap
 	}
 
 	override fun reset() {
 		super.reset()
+		val config = CodeGlanceConfigService.getConfig()
 		editorKinds.clear()
-		editorKinds.addAll(CodeGlanceConfigService.getConfig().editorKinds)
+		editorKinds.addAll(config.editorKinds)
+		useEmptyMinimap.clear()
+		useEmptyMinimap.addAll(config.useEmptyMinimap)
 		editorKindComboBox.repaint()
+		emptyMinimapComboBox.repaint()
 	}
 
 	private fun EditorKind.getMessageWidth() = when(this){
@@ -258,7 +275,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 		else -> message("settings.main.width")
 	}
 
-	private inner class EditorKindListCellRenderer : DefaultListCellRenderer() {
+	private inner class EditorKindListCellRenderer<T : Enum<T>>(private val data: MutableSet<T>) : DefaultListCellRenderer() {
 		private val container = JPanel(null)
 		private val checkBox = JBCheckBox()
 
@@ -281,12 +298,12 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 			super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
 			if (index == -1) {
 				checkBox.isVisible = false
-				text = editorKinds.minOrNull()?.name?.lowercase()?.replaceFirstChar { it.titlecase() } ?: ""
+				text = data.minOrNull()?.name?.lowercase()?.replaceFirstChar { it.titlecase() } ?: ""
 				return container
 			}
 			text = value.toString().lowercase().replaceFirstChar { it.titlecase() }
 			checkBox.isVisible = true
-			checkBox.isSelected = editorKinds.contains(value)
+			checkBox.isSelected = data.contains(value)
 			return container
 		}
 	}

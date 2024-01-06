@@ -1,11 +1,13 @@
 package com.nasller.codeglance.render
 
+import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.InlayModel
+import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
 import com.intellij.openapi.editor.ex.SoftWrapChangeListener
@@ -14,18 +16,24 @@ import com.intellij.openapi.editor.highlighter.HighlighterIterator
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.util.SystemInfoRt
+import com.intellij.psi.PsiComment
 import com.intellij.psi.tree.IElementType
+import com.intellij.psi.util.findParentOfType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
-import com.nasller.codeglance.config.CodeGlanceConfigService
+import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel
+import com.nasller.codeglance.util.Util
 import java.awt.Color
+import java.awt.Font
+import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.beans.PropertyChangeListener
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.roundToInt
 
-abstract class BaseMinimap(protected val glancePanel: GlancePanel, protected val virtualFile: VirtualFile?): InlayModel.Listener, PropertyChangeListener,
+abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.Listener, PropertyChangeListener,
 	PrioritizedDocumentListener, FoldingListener, MarkupModelListener, SoftWrapChangeListener, Disposable {
 	protected val editor = glancePanel.editor
 	protected val config
@@ -36,6 +44,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, protected val
 	protected val modalityState
 		get() = if (editor.editorKind != EditorKind.MAIN_EDITOR) ModalityState.any() else ModalityState.defaultModalityState()
 	protected abstract val rangeList: MutableList<Pair<Int, Range<Int>>>
+	protected val virtualFile = editor.virtualFile ?: glancePanel.psiDocumentManager.getPsiFile(glancePanel.editor.document)?.virtualFile
 	protected val isLogFile = virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
 	protected val lock = AtomicBoolean(false)
 	private val scaleBuffer = IntArray(4)
@@ -45,6 +54,8 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, protected val
 	abstract fun rebuildDataAndImage()
 
 	abstract fun updateMinimapImage(canUpdate: Boolean = glancePanel.checkVisible())
+
+	override fun getPriority(): Int = 170 //EditorDocumentPriorities
 
 	fun getMyRenderVisualLine(y: Int): Int {
 		var minus = 0
@@ -74,6 +85,10 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, protected val
 		}
 		return startAdd to endAdd
 	}
+
+	@Suppress("UndesirableClassUsage")
+	protected fun getBufferedImage() = BufferedImage(glancePanel.getConfigSize().width,
+		glancePanel.scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_INT_ARGB)
 
 	protected fun canUpdate() = glancePanel.checkVisible() && (editor.editorKind == EditorKind.CONSOLE || virtualFile == null
 			|| runReadAction { editor.highlighter !is EmptyEditorHighlighter })
@@ -188,8 +203,40 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, protected val
 		editor.filteredDocumentMarkupModel.addMarkupModelListener(this, this)
 	}
 
-	override fun dispose() {
-		rangeList.clear()
+	protected fun makeMarkHighlight(text: CharSequence, graphics: Graphics2D):Map<Int,MarkCommentData>{
+		val markCommentMap = glancePanel.markCommentState.getAllMarkCommentHighlight()
+		return if(markCommentMap.isNotEmpty()) {
+			val lineCount = editor.document.lineCount
+			val map = mutableMapOf<Int, MarkCommentData>()
+			val file = glancePanel.psiDocumentManager.getCachedPsiFile(editor.document)
+			val attributes = editor.colorsScheme.getAttributes(Util.MARK_COMMENT_ATTRIBUTES)
+			val font = editor.colorsScheme.getFont(
+				when (attributes.fontType) {
+					Font.ITALIC -> EditorFontType.ITALIC
+					Font.BOLD -> EditorFontType.BOLD
+					Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
+					else -> EditorFontType.PLAIN
+				}
+			).deriveFont(config.markersScaleFactor * config.pixelsPerLine)
+			for (highlighterEx in markCommentMap) {
+				val startOffset = highlighterEx.startOffset
+				file?.findElementAt(startOffset)?.findParentOfType<PsiComment>(false)?.let { comment ->
+					val textRange = comment.textRange
+					val commentText = text.substring(startOffset, highlighterEx.endOffset)
+					val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
+						UIUtil.getFontWithFallback(font).deriveFont(attributes.fontType, font.size2D)
+					} else font
+					val line = editor.document.getLineNumber(textRange.startOffset) + (config.markersScaleFactor.toInt() - 1)
+					val jumpEndOffset = if (lineCount <= line) text.length else editor.document.getLineEndOffset(line)
+					map[textRange.startOffset] = MarkCommentData(jumpEndOffset, commentText, textFont,
+						(graphics.getFontMetrics(textFont).height / 1.5).roundToInt())
+				}
+			}
+			graphics.color = attributes.foregroundColor ?: editor.colorsScheme.defaultForeground
+			graphics.composite = GlancePanel.srcOver
+			UISettings.setupAntialiasing(graphics)
+			map
+		} else emptyMap()
 	}
 
 	protected data class RangeHighlightColor(val startOffset: Int,val endOffset: Int,val foregroundColor: Color)
@@ -237,13 +284,14 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel, protected val
 		override fun getDocument() = throw UnsupportedOperationException()
 	}
 
+	protected data class MarkCommentData(var jumpEndOffset: Int, val comment: String, val font: Font, val fontHeight:Int)
+
 	companion object{
 		fun EditorKind.getMinimap(glancePanel: GlancePanel): BaseMinimap = glancePanel.run {
-			val visualFile = editor.virtualFile ?: psiDocumentManager.getPsiFile(glancePanel.editor.document)?.virtualFile
-			if(this@getMinimap == EditorKind.CONSOLE || (this@getMinimap == EditorKind.MAIN_EDITOR &&
-						CodeGlanceConfigService.getConfig().useFastMinimapForMain)) {
-				FastMainMinimap(this, visualFile)
-			}else MainMinimap(this, visualFile)
+			if(config.useEmptyMinimap.contains(this@getMinimap)) return EmptyMinimap(this)
+			if(this@getMinimap == EditorKind.CONSOLE || (this@getMinimap == EditorKind.MAIN_EDITOR && config.useFastMinimapForMain)) {
+				FastMainMinimap(this)
+			}else MainMinimap(this)
 		}
 	}
 }
