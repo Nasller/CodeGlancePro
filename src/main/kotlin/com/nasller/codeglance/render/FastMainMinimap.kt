@@ -90,9 +90,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		}
 	}
 
-	override fun rebuildDataAndImage() {
-		runInEdt(modalityState){ if(canUpdate()) resetMinimapData() }
-	}
+	override fun rebuildDataAndImage() = runInEdt(modalityState){ if(canUpdate()) resetMinimapData() }
 
 	@Suppress("UndesirableClassUsage")
 	private fun update(copyList: List<LineRenderData?>){
@@ -442,8 +440,6 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 			resetMinimapData()
 		}
 	}
-
-	override fun recalculationEnds() = Unit
 
 	private fun onSoftWrapRecalculationEnd(event: IncrementalCacheUpdateEvent) {
 		if (myDocument.isInBulkUpdate) return

@@ -54,8 +54,6 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		}
 	}
 
-	override fun rebuildDataAndImage() = updateMinimapImage(canUpdate())
-
 	private fun getMinimapImage(): BufferedImage? {
 		var curImg = imgReference.get()
 		if (curImg == null || curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
@@ -242,8 +240,6 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		}
 	}
 
-	override fun recalculationEnds() = Unit
-
 	/** MarkupModelListener */
 	override fun afterAdded(highlighter: RangeHighlighterEx) {
 		glancePanel.markCommentState.markCommentHighlightChange(highlighter, false)
@@ -274,15 +270,15 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		} else updateMinimapImage()
 	}
 
-	override fun dispose() {
-		rangeList.clear()
-		imgReference.clear{ flush() }
-	}
-
 	/** PropertyChangeListener */
 	override fun propertyChange(evt: PropertyChangeEvent) {
 		if (EditorEx.PROP_HIGHLIGHTER != evt.propertyName || evt.newValue is EmptyEditorHighlighter) return
 		updateMinimapImage()
+	}
+
+	override fun dispose() {
+		rangeList.clear()
+		imgReference.clear{ flush() }
 	}
 
 	private fun repaintOrRequest(request: Boolean = true) {

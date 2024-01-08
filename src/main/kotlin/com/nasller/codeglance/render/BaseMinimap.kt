@@ -51,11 +51,13 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 
 	abstract fun getImageOrUpdate(): BufferedImage?
 
-	abstract fun rebuildDataAndImage()
-
 	abstract fun updateMinimapImage(canUpdate: Boolean = glancePanel.checkVisible())
 
+	open fun rebuildDataAndImage() = updateMinimapImage(canUpdate())
+
 	override fun getPriority(): Int = 170 //EditorDocumentPriorities
+
+	override fun recalculationEnds() = Unit
 
 	fun getMyRenderVisualLine(y: Int): Int {
 		var minus = 0
