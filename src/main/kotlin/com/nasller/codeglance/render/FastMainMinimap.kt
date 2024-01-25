@@ -68,26 +68,25 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	override fun getImageOrUpdate() = previewImg
 
 	override fun updateMinimapImage(canUpdate: Boolean){
-		if (canUpdate) {
-			if(lock.compareAndSet(false,true)) {
-				val action = Runnable {
-					ApplicationManager.getApplication().executeOnPooledThread {
-						update(renderDataList.toList())
-						invokeLater(ModalityState.any()){
-							lock.set(false)
-							glancePanel.repaint()
-							if (myRenderDirty) {
-								myRenderDirty = false
-								updateMinimapImage()
-							}
+		if (!canUpdate) return
+		if(lock.compareAndSet(false,true)) {
+			val action = Runnable {
+				ApplicationManager.getApplication().executeOnPooledThread {
+					update(renderDataList.toList())
+					invokeLater(ModalityState.any()){
+						lock.set(false)
+						glancePanel.repaint()
+						if (myRenderDirty) {
+							myRenderDirty = false
+							updateMinimapImage()
 						}
 					}
 				}
-				if(glancePanel.markCommentState.hasMarkCommentHighlight()){
-					glancePanel.psiDocumentManager.performForCommittedDocument(myDocument, action)
-				}else action.run()
-			}else myRenderDirty = true
-		}
+			}
+			if(glancePanel.markCommentState.hasMarkCommentHighlight()){
+				glancePanel.psiDocumentManager.performForCommittedDocument(myDocument, action)
+			}else action.run()
+		}else myRenderDirty = true
 	}
 
 	override fun rebuildDataAndImage() = runInEdt(modalityState){ if(canUpdate()) resetMinimapData() }
@@ -318,25 +317,25 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		updateMinimapImage()
 	}
 
-	private fun MutableList<RenderData>.mergeSameRgbCharArray(): Array<RenderData>{
-		return if(isNotEmpty()){
-			if(size > 1){
-				var preData = get(0)
-				iterator().let { iter ->
-					if (iter.hasNext()) iter.next()// Skip first
-					while (iter.hasNext()){
-						val data = iter.next()
-						if(preData.rgb == data.rgb){
-							preData.renderChar += data.renderChar
-							iter.remove()
-						}else {
-							preData = data
-						}
+	private fun MutableList<RenderData>.mergeSameRgbCharArray(): Array<RenderData> = when (size){
+		0 -> emptyArray()
+		1 -> arrayOf(first())
+		else -> {
+			var preData = get(0)
+			iterator().let { iter ->
+				if (iter.hasNext()) iter.next()// Skip first
+				while (iter.hasNext()){
+					val data = iter.next()
+					if(preData.rgb == data.rgb){
+						preData.renderChar += data.renderChar
+						iter.remove()
+					}else {
+						preData = data
 					}
 				}
-				toTypedArray()
-			}else arrayOf(first())
-		}else emptyArray()
+			}
+			toTypedArray()
+		}
 	}
 
 	private fun resetMinimapData(){
