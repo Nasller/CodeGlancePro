@@ -40,6 +40,7 @@ import java.awt.image.BufferedImage
 import java.beans.PropertyChangeEvent
 import java.lang.reflect.Proxy
 import java.util.concurrent.CancellationException
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -57,9 +58,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		}else null
 	}.also { editor.softWrapModel.applianceManager.addSoftWrapListener(it) }
 	private var previewImg = EMPTY_IMG
-	@Volatile
-	private var myResetDataPromise: CancellablePromise<Unit>? = null
-	private var myRenderDirty = false
+	private val myRenderDirty = AtomicBoolean(false)
 	init {
 		makeListener()
 		editor.addHighlighterListener(this, this)
@@ -72,13 +71,16 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		if(lock.compareAndSet(false,true)) {
 			val action = Runnable {
 				ApplicationManager.getApplication().executeOnPooledThread {
-					update(renderDataList.toList())
-					invokeLater(ModalityState.any()){
-						lock.set(false)
-						glancePanel.repaint()
-						if (myRenderDirty) {
-							myRenderDirty = false
-							updateMinimapImage()
+					try {
+						update(renderDataList.toList())
+					}finally {
+						invokeLater(ModalityState.any()){
+							lock.set(false)
+							glancePanel.repaint()
+							if (myRenderDirty.get()) {
+								updateMinimapImage()
+								myRenderDirty.set(false)
+							}
 						}
 					}
 				}
@@ -86,7 +88,9 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 			if(glancePanel.markCommentState.hasMarkCommentHighlight()){
 				glancePanel.psiDocumentManager.performForCommittedDocument(myDocument, action)
 			}else action.run()
-		}else myRenderDirty = true
+		}else {
+			myRenderDirty.compareAndSet(false,true)
+		}
 	}
 
 	override fun rebuildDataAndImage() = runInEdt(modalityState){ if(canUpdate()) resetMinimapData() }
@@ -344,6 +348,8 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		doInvalidateRange(0, myDocument.textLength, true)
 	}
 
+	@Volatile
+	private var myResetDataPromise: CancellablePromise<Unit>? = null
 	private var myDirty = false
 	private var myFoldingBatchStart = false
 	private var myFoldingChangeStartOffset = Int.MAX_VALUE
