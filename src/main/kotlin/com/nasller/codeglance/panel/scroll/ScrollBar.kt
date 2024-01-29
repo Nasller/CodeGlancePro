@@ -2,7 +2,7 @@ package com.nasller.codeglance.panel.scroll
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightInfoType
-import com.intellij.diff.tools.combined.editors
+import com.intellij.diff.EditorDiffViewer
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.editor.ex.MarkupModelEx
@@ -178,7 +178,9 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		val action = {it: GlancePanel-> if(refreshImage) it.refreshDataAndImage() else it.refresh() }
 		val diffViewer = editor.getUserData(CURRENT_EDITOR_DIFF_VIEW)
 		if (diffViewer != null) {
-			diffViewer.editors.mapNotNull { it.getUserData(GlancePanel.CURRENT_GLANCE) }.forEach(action)
+			if (diffViewer is EditorDiffViewer) {
+				diffViewer.editors.mapNotNull { it.getUserData(GlancePanel.CURRENT_GLANCE) }.forEach(action)
+			}
 		} else {
 			action(glancePanel)
 		}
