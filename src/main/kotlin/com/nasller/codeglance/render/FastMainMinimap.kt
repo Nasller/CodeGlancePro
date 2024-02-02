@@ -513,11 +513,11 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		val textLength = myDocument.textLength
 		if (startOffset > endOffset || startOffset >= textLength || endOffset < 0) return
 		if (myDuringDocumentUpdate) {
-			myDocumentChangeStartOffset = min(myDocumentChangeStartOffset.toDouble(), startOffset.toDouble()).toInt()
-			myDocumentChangeEndOffset = max(myDocumentChangeEndOffset.toDouble(), endOffset.toDouble()).toInt()
+			myDocumentChangeStartOffset = min(myDocumentChangeStartOffset, startOffset)
+			myDocumentChangeEndOffset = max(myDocumentChangeEndOffset, endOffset)
 		} else if (myFoldingChangeEndOffset != Int.MIN_VALUE) {
-			myFoldingChangeStartOffset = min(myFoldingChangeStartOffset.toDouble(), startOffset.toDouble()).toInt()
-			myFoldingChangeEndOffset = max(myFoldingChangeEndOffset.toDouble(), endOffset.toDouble()).toInt()
+			myFoldingChangeStartOffset = min(myFoldingChangeStartOffset, startOffset)
+			myFoldingChangeEndOffset = max(myFoldingChangeEndOffset, endOffset)
 		} else {
 			doInvalidateRange(startOffset, endOffset)
 		}

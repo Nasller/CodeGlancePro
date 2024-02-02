@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.8.0</h3>
+		<ul>
+			<li></li>
+		</ul>
 		<h3>1.7.9</h3>
 		<ul>
 			<li>Support 2024.1-EAP</li>
@@ -41,10 +45,6 @@
 		<ul>
 			<li>Fix Selection</li>
 			<li>Support 2023.3-EAP</li>
-		</ul>
-		<h3>1.7.5</h3>
-		<ul>
-			<li>Fix range check</li>
 		</ul>
 	]]></change-notes>
 
