@@ -31,7 +31,6 @@ import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.beans.PropertyChangeListener
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.math.roundToInt
 
 abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.Listener, PropertyChangeListener,
 	PrioritizedDocumentListener, FoldingListener, MarkupModelListener, SoftWrapChangeListener, Disposable {
@@ -91,7 +90,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 
 	@Suppress("UndesirableClassUsage")
 	protected fun getBufferedImage() = BufferedImage(glancePanel.getConfigSize().width,
-		glancePanel.scrollState.documentHeight + (100 * scrollState.pixelsPerLine).toInt(), BufferedImage.TYPE_INT_ARGB)
+		glancePanel.scrollState.documentHeight + (100 * scrollState.getRenderHeight()), BufferedImage.TYPE_INT_ARGB)
 
 	protected fun canUpdate() = glancePanel.checkVisible() && (editor.editorKind == EditorKind.CONSOLE || virtualFile == null
 			|| runReadAction { editor.highlighter !is EmptyEditorHighlighter })
@@ -122,7 +121,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 	}
 
 	protected fun BufferedImage.renderImage(x: Int, y: Int, char: Int, consumer: (() -> Unit)? = null) {
-		if (char !in 0..32 && x in 0 until width && 0 <= y && y + scrollState.pixelsPerLine < height) {
+		if (char !in 0..32 && x in 0 until width && 0 <= y && y + scrollState.getRenderHeight() < height) {
 			consumer?.invoke()
 			if (config.clean) {
 				renderClean(x, y, char)
@@ -220,9 +219,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 					Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
 					else -> EditorFontType.PLAIN
 				}
-			).deriveFont(if(scrollState.pixelsPerLine > 1) {
-				(config.markersScaleFactor * scrollState.pixelsPerLine).toFloat()
-			} else config.markersScaleFactor)
+			).deriveFont(config.markersScaleFactor * 3)
 			for (highlighterEx in markCommentMap) {
 				val startOffset = highlighterEx.startOffset
 				file?.findElementAt(startOffset)?.findParentOfType<PsiComment>(false)?.let { comment ->
@@ -231,10 +228,9 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 					val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
 						UIUtil.getFontWithFallback(font).deriveFont(attributes.fontType, font.size2D)
 					} else font
-					val line = editor.document.getLineNumber(textRange.startOffset) + (config.markersScaleFactor.toInt() - 1)
+					val line = editor.document.getLineNumber(textRange.startOffset) + (font.size / scrollState.pixelsPerLine).toInt()
 					val jumpEndOffset = if (lineCount <= line) text.length else editor.document.getLineEndOffset(line)
-					map[textRange.startOffset] = MarkCommentData(jumpEndOffset, commentText, textFont,
-						(graphics.getFontMetrics(textFont).height / 1.5).roundToInt())
+					map[textRange.startOffset] = MarkCommentData(jumpEndOffset, commentText, textFont)
 				}
 			}
 			graphics.color = attributes.foregroundColor ?: editor.colorsScheme.defaultForeground
@@ -289,7 +285,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 		override fun getDocument() = throw UnsupportedOperationException()
 	}
 
-	protected data class MarkCommentData(var jumpEndOffset: Int, val comment: String, val font: Font, val fontHeight:Int)
+	protected data class MarkCommentData(var jumpEndOffset: Int, val comment: String, val font: Font)
 
 	companion object{
 		fun EditorKind.getMinimap(glancePanel: GlancePanel): BaseMinimap = glancePanel.run {

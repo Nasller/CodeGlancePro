@@ -99,8 +99,14 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	private fun update(copyList: List<LineRenderData?>){
 		val pixelsPerLine = scrollState.pixelsPerLine
 		val curImg = if(glancePanel.checkVisible()) {
-			val height = copyList.filterNotNull().sumOf { (it.y ?: pixelsPerLine) + it.aboveBlockLine } + (5 * scrollState.pixelsPerLine)
-			BufferedImage(glancePanel.getConfigSize().width, height.toInt(), BufferedImage.TYPE_INT_ARGB)
+			if(scrollState.pixelsPerLine < 1){
+				getBufferedImage()
+			}else {
+				val height = copyList.filterNotNull().sumOf {
+					it.getLineHeight(scrollState) + it.aboveBlockLine * scrollState.scale
+				} + (5 * scrollState.pixelsPerLine)
+				BufferedImage(glancePanel.getConfigSize().width, height.toInt(), BufferedImage.TYPE_INT_ARGB)
+			}
 		} else null ?: return
 		val graphics = curImg.createGraphics()
 		val markAttributes by lazy(LazyThreadSafetyMode.NONE) {
@@ -114,18 +120,21 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 				Font.BOLD -> EditorFontType.BOLD
 				Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
 				else -> EditorFontType.PLAIN
-			}).deriveFont(if(pixelsPerLine > 1) {
-				(config.markersScaleFactor * pixelsPerLine).toFloat()
-			} else config.markersScaleFactor)
+			}).deriveFont(config.markersScaleFactor * 3)
 		}
+		val docCommentRgb by lazy(LazyThreadSafetyMode.NONE){
+			editor.colorsScheme.getAttributes(DefaultLanguageHighlighterColors.DOC_COMMENT).foregroundColor?.rgb
+		}
+		val text = myDocument.immutableCharSequence
 		val defaultRgb = editor.colorsScheme.defaultForeground.rgb
 		var totalY = 0.0
 		var skipY = 0.0
+		var preSetPixelY = -1
 		val curRangeList = mutableListOf<Pair<Int, Range<Double>>>()
 		for ((index, it) in copyList.withIndex()) {
 			if(it == null) continue
-			val y = it.y ?: pixelsPerLine
-			val aboveBlockLine = it.aboveBlockLine
+			val y = it.getLineHeight(scrollState)
+			val aboveBlockLine = it.aboveBlockLine * scrollState.scale
 			//Coordinates
 			if(it.lineType == LineType.CUSTOM_FOLD){
 				curRangeList.add(index to Range(totalY, totalY + y - pixelsPerLine + aboveBlockLine))
@@ -143,28 +152,57 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 					skipY -= curY
 					continue
 				}
-			}else {
+			}else if(aboveBlockLine > 0){
 				totalY += aboveBlockLine
 			}
 			//Rendering
 			if(it !== DefaultLineRenderData){
 				when(it.lineType){
-					null, LineType.CUSTOM_FOLD -> {
+					null -> if(preSetPixelY != totalY.toInt()){
 						var curX = it.startX ?: 0
-						var curY = totalY
+						val curY = totalY.toInt()
 						breakY@ for (renderData in it.renderData) {
 							(renderData.rgb ?: defaultRgb).setColorRgb()
 							for (char in renderData.renderChar) {
-								curImg.renderImage(curX, curY.toInt(), char.code)
-								when (char.code) {
-									9 -> curX += 4 //TAB
-									10 -> {//ENTER
-										if(it.lineType == LineType.CUSTOM_FOLD){
-											curX = 0
-											curY += pixelsPerLine
-										}else break@breakY
+								curX += when (char.code) {
+									9 -> 4 //TAB
+									10 -> break@breakY
+									else -> {
+										curImg.renderImage(curX, curY, char.code)
+										1
 									}
-									else -> curX += 1
+								}
+							}
+						}
+					}
+					LineType.CUSTOM_FOLD -> if(it.customFoldRegion != null){
+						//this is render document
+						val foldRegion = it.customFoldRegion
+						val foldStartOffset = foldRegion.startOffset
+						val line = myDocument.getLineNumber(foldStartOffset) - 1 + (y / scrollState.pixelsPerLine).toInt()
+						val foldEndOffset = foldRegion.endOffset.run {
+							if(DocumentUtil.isValidLine(line, myDocument)) {
+								val lineEndOffset = myDocument.getLineEndOffset(line)
+								if(this < lineEndOffset) this else lineEndOffset
+							}else this
+						}
+						var curX = it.startX ?: 0
+						var curY = totalY
+						(docCommentRgb ?: defaultRgb).setColorRgb()
+						for (char in CharArrayUtil.fromSequence(text, foldStartOffset, foldEndOffset)) {
+							val renderY = curY.toInt()
+							when (char.code) {
+								9 -> curX += 4 //TAB
+								10 -> {//ENTER
+									curX = 0
+									preSetPixelY = renderY
+									curY += pixelsPerLine
+								}
+								else -> {
+									if(preSetPixelY != renderY){
+										curImg.renderImage(curX, renderY, char.code)
+									}
+									curX += 1
 								}
 							}
 						}
@@ -178,10 +216,11 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 						} else font
 						graphics.font = textFont
 						graphics.drawString(commentText, it.startX ?: 0,totalY.toInt() + (graphics.getFontMetrics(textFont).height / 1.5).roundToInt())
-						skipY = (config.markersScaleFactor.toInt() - 1) * pixelsPerLine
+						skipY = font.size - if(pixelsPerLine < 1) 0.0 else pixelsPerLine
 					}
 				}
 			}
+			preSetPixelY = totalY.toInt()
 			totalY += y
 		}
 		graphics.dispose()
@@ -197,9 +236,6 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 
 	private fun updateMinimapData(visLinesIterator: MyVisualLinesIterator, endVisualLine: Int){
 		val text = myDocument.immutableCharSequence
-		val docComment by lazy(LazyThreadSafetyMode.NONE){
-			editor.colorsScheme.getAttributes(DefaultLanguageHighlighterColors.DOC_COMMENT).foregroundColor
-		}
 		val markCommentMap = glancePanel.markCommentState.getAllMarkCommentHighlight()
 			.associateBy { DocumentUtil.getLineStartOffset(it.startOffset, myDocument) }
 		val limitWidth = glancePanel.getConfigSize().width
@@ -211,30 +247,17 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 			//Check invalid somethings in background task
 			if(visualLine >= renderDataList.size || start > end) return
 			//BLOCK_INLAY
-			val aboveBlockLine = visLinesIterator.getBlockInlaysAbove().sumOf { (it.heightInPixels * scrollState.scale) }
-				.run { if(this > 0) this else 0.0 }
+			val aboveBlockLine = visLinesIterator.getBlockInlaysAbove().sumOf { it.heightInPixels }
 			//CUSTOM_FOLD
 			var foldRegion = visLinesIterator.getCurrentFoldRegion()
 			var foldStartOffset = foldRegion?.startOffset ?: -1
 			if(foldRegion is CustomFoldRegion && foldStartOffset == start){
-				//jump over the fold line
-				val heightLine = (foldRegion.heightInPixels * scrollState.scale).run{
-					if(this < scrollState.pixelsPerLine) scrollState.pixelsPerLine else this
-				}
-				//this is render document
-				val line = myDocument.getLineNumber(foldStartOffset) - 1 + (heightLine / scrollState.pixelsPerLine)
-				val foldEndOffset = foldRegion.endOffset.run {
-					if(DocumentUtil.isValidLine(line.toInt(), myDocument)) {
-						val lineEndOffset = myDocument.getLineEndOffset(line.toInt())
-						if(this < lineEndOffset) this else lineEndOffset
-					}else this
-				}
-				renderDataList[visualLine] = LineRenderData(arrayOf(RenderData(CharArrayUtil.fromSequence(text, foldStartOffset,
-					foldEndOffset), docComment?.rgb)), null, heightLine, aboveBlockLine, LineType.CUSTOM_FOLD)
+				renderDataList[visualLine] = LineRenderData(emptyArray(), null, aboveBlockLine,
+						LineType.CUSTOM_FOLD, customFoldRegion = foldRegion)
 			}else {
 				//COMMENT
 				if(markCommentMap.containsKey(start)) {
-					renderDataList[visualLine] = LineRenderData(emptyArray(), 2, null, aboveBlockLine,
+					renderDataList[visualLine] = LineRenderData(emptyArray(), 2, aboveBlockLine,
 						LineType.COMMENT, commentHighlighterEx = markCommentMap[start])
 				}else if(start < text.length && text.subSequence(start, end).isNotBlank()){
 					val hlIter = editor.highlighter.run {
@@ -309,7 +332,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 							hlIter.advance()
 						}while (!hlIter.atEnd() && hlIter.start < end)
 						renderDataList[visualLine] = LineRenderData(renderList.mergeSameRgbCharArray(),
-							visLinesIterator.getStartsWithSoftWrap()?.indentInColumns, null, aboveBlockLine)
+							visLinesIterator.getStartsWithSoftWrap()?.indentInColumns, aboveBlockLine)
 					}else {
 						renderDataList[visualLine] = DefaultLineRenderData
 					}
@@ -620,17 +643,26 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		previewImg.flush()
 	}
 
-	private data class LineRenderData(val renderData: Array<RenderData>, val startX: Int?, var y: Double?, val aboveBlockLine: Double,
-									  val lineType: LineType? = null, val commentHighlighterEx: RangeHighlighterEx? = null) {
+	private data class LineRenderData(val renderData: Array<RenderData>, val startX: Int?,
+									  val aboveBlockLine: Int,
+									  val lineType: LineType? = null,
+									  val customFoldRegion: CustomFoldRegion? = null,
+									  val commentHighlighterEx: RangeHighlighterEx? = null) {
+		fun getLineHeight(scrollState: ScrollState) = if(lineType == LineType.CUSTOM_FOLD && customFoldRegion != null) {
+			(customFoldRegion.heightInPixels * scrollState.scale).run{
+				if(this < scrollState.pixelsPerLine) scrollState.pixelsPerLine else this
+			}
+		} else scrollState.pixelsPerLine
+
 		override fun equals(other: Any?): Boolean {
 			if (this === other) return true
 			if (javaClass != other?.javaClass) return false
 			other as LineRenderData
 			if (!renderData.contentEquals(other.renderData)) return false
 			if (startX != other.startX) return false
-			if (y != other.y) return false
 			if (aboveBlockLine != other.aboveBlockLine) return false
 			if (lineType != other.lineType) return false
+			if (customFoldRegion != other.customFoldRegion) return false
 			if (commentHighlighterEx != other.commentHighlighterEx) return false
 			return true
 		}
@@ -638,15 +670,22 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		override fun hashCode(): Int {
 			var result = renderData.contentHashCode()
 			result = 31 * result + (startX ?: 0)
-			result = 31 * result + (y?.hashCode() ?: 0)
-			result = 31 * result + aboveBlockLine.hashCode()
+			result = 31 * result + aboveBlockLine
 			result = 31 * result + (lineType?.hashCode() ?: 0)
+			result = 31 * result + (customFoldRegion?.hashCode() ?: 0)
 			result = 31 * result + (commentHighlighterEx?.hashCode() ?: 0)
 			return result
 		}
 	}
 
 	private data class RenderData(var renderChar: CharArray, val rgb: Int? = null){
+		init {
+			val index = renderChar.indexOf('\n')
+			if(index > 0) {
+				renderChar = renderChar.copyOfRange(0, index)
+			}
+		}
+
 		override fun equals(other: Any?): Boolean {
 			if (this === other) return true
 			if (javaClass != other?.javaClass) return false
@@ -674,7 +713,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		private val softWrapListeners = SoftWrapApplianceManager::class.java.getDeclaredField("myListeners").apply {
 			isAccessible = true
 		}
-		private val DefaultLineRenderData = LineRenderData(emptyArray(), null, null, 0.0)
+		private val DefaultLineRenderData = LineRenderData(emptyArray(), null, 0)
 		private val EMPTY_IMG = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB)
 		private val fastMinimapBackendExecutor = AppExecutorUtil.createBoundedApplicationPoolExecutor("FastMinimapBackendExecutor", 1)
 

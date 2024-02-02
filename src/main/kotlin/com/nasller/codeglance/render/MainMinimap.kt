@@ -20,6 +20,7 @@ import com.nasller.codeglance.util.Util
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.beans.PropertyChangeEvent
+import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
 class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
@@ -87,12 +88,14 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		val hasBlockInlay = editor.inlayModel.hasBlockElements()
 		var x = 0
 		var y = 0.0
+		var preSetPixelY = -1
 		var skipY = 0.0
 		val moveCharIndex = { code: Int,enterAction: (()->Unit)? ->
 			when (code) {
 				9 -> x += 4//TAB
 				10 -> {//ENTER
 					x = 0
+					preSetPixelY = y.toInt()
 					y += scrollState.pixelsPerLine
 					enterAction?.invoke()
 				}
@@ -100,8 +103,11 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 			}
 		}
 		val moveAndRenderChar = { it: Char ->
-			moveCharIndex(it.code,null)
-			curImg.renderImage(x, y.toInt(), it.code)
+			moveCharIndex(it.code, null)
+			val renderY = y.toInt()
+			if(renderY != preSetPixelY) {
+				curImg.renderImage(x, renderY, it.code)
+			}
 		}
 		val highlight = makeMarkHighlight(text, graphics)
 		loop@ while (!hlIter.atEnd()) {
@@ -124,7 +130,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 				} else {
 					(color ?: defaultColor).setColorRgb()
 					//jump over the fold line
-					val heightLine = (region.heightInPixels * scrollState.scale).toInt()
+					val heightLine = region.heightInPixels * scrollState.scale
 					skipY -= (foldLine + 1) * scrollState.pixelsPerLine - heightLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 					rangeList.add(Pair(editor.offsetToVisualLine(endOffset),
@@ -140,13 +146,16 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 				val commentData = highlight[start]
 				if(commentData != null){
 					graphics.font = commentData.font
-					graphics.drawString(commentData.comment,2,y.toInt() + commentData.fontHeight)
+					graphics.drawString(commentData.comment,2,y.toInt() + (graphics.getFontMetrics(commentData.font).height / 1.5).roundToInt())
 					if (softWrapEnable) {
 						val softWraps = editor.softWrapModel.getSoftWrapsForRange(start, commentData.jumpEndOffset)
 						softWraps.forEachIndexed { index, softWrap ->
 							softWrap.chars.forEach {char -> moveCharIndex(char.code) { skipY += scrollState.pixelsPerLine } }
 							if (index == softWraps.size - 1){
-								commentData.jumpEndOffset = DocumentUtil.getLineEndOffset(softWrap.end, editor.document)
+								val lineEndOffset = DocumentUtil.getLineEndOffset(softWrap.end, editor.document)
+								if(lineEndOffset > commentData.jumpEndOffset){
+									commentData.jumpEndOffset = lineEndOffset
+								}
 							}
 						}
 					}
@@ -157,12 +166,14 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 								val lineEndOffset = DocumentUtil.getLineEndOffset(startOffset, editor.document)
 								val sumBlock = editor.inlayModel.getBlockElementsInRange(startOffset, lineEndOffset)
 									.filter { it.placement == Inlay.Placement.ABOVE_LINE }
-									.sumOf { (it.heightInPixels * scrollState.scale).toInt() }
+									.sumOf { it.heightInPixels * scrollState.scale}
 								if (sumBlock > 0) {
 									rangeList.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
 									y += sumBlock
 									skipY += sumBlock
-									commentData.jumpEndOffset = lineEndOffset
+									if(lineEndOffset > commentData.jumpEndOffset){
+										commentData.jumpEndOffset = lineEndOffset
+									}
 								}
 							} }
 						}
@@ -182,16 +193,19 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 								val startOffset = offset + 1
 								val sumBlock = editor.inlayModel.getBlockElementsInRange(startOffset, DocumentUtil.getLineEndOffset(startOffset, editor.document))
 									.filter { it.placement == Inlay.Placement.ABOVE_LINE }
-									.sumOf { (it.heightInPixels * scrollState.scale).toInt() }
+									.sumOf { it.heightInPixels * scrollState.scale }
 								if (sumBlock > 0) {
 									rangeList.add(Pair(editor.offsetToVisualLine(startOffset) - 1, Range(y, y + sumBlock)))
 									y += sumBlock
 									skipY += sumBlock
 								}
 						} }
-						curImg.renderImage(x, y.toInt(), charCode) {
-							(highlightList.firstOrNull { offset >= it.startOffset && offset < it.endOffset }?.foregroundColor
-								?: color ?: defaultColor).setColorRgb()
+						val renderY = y.toInt()
+						if(renderY != preSetPixelY) {
+							curImg.renderImage(x, renderY, charCode) {
+								(highlightList.firstOrNull { offset >= it.startOffset && offset < it.endOffset }?.foregroundColor ?:
+								color ?: defaultColor).setColorRgb()
+							}
 						}
 					}
 					hlIter.advance()

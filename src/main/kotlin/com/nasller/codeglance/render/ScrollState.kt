@@ -6,25 +6,25 @@ import java.awt.Rectangle
 import kotlin.math.min
 
 class ScrollState {
-    var pixelsPerLine: Double = 0.0
+    var pixelsPerLine = 0.0
         private set
-    var scale: Double = 0.0
+    var scale = Double.NaN
         private set
-    var documentHeight: Int = 0
+    var documentHeight = Int.MIN_VALUE
         private set
-    var visibleStart: Int = 0
+    var visibleStart = 0
         private set
-    var visibleEnd: Int = 0
+    var visibleEnd = 0
         private set
-    var visibleHeight: Int = 0
+    var visibleHeight = 0
         private set
     //当前图片高度
-    var drawHeight: Int = 0
+    var drawHeight = 0
         private set
-    var viewportStart: Int = 0
+    var viewportStart = 0
         private set
     //矩形框高度
-    var viewportHeight: Int = 0
+    var viewportHeight = 0
         private set
 
     fun GlancePanel.computeDimensions(visibleArea: Rectangle): Boolean {
@@ -32,11 +32,11 @@ class ScrollState {
         val contentHeight = editor.contentComponent.height
         val newScale = config.pixelsPerLine.toDouble() / lineHeight
         val curDocumentHeight = (contentHeight * newScale).toInt()
-        if(config.editorSize == EditorSizeEnum.Fit && curDocumentHeight > visibleArea.height && visibleArea.height > 0) {
+        if(config.editorSize == EditorSizeEnum.Fit && curDocumentHeight > visibleArea.height) {
             val oldDocumentHeight = documentHeight.apply { documentHeight = visibleArea.height }
             scale = documentHeight.toDouble() / contentHeight
             pixelsPerLine = scale * lineHeight
-            if(oldDocumentHeight > 0 && oldDocumentHeight != documentHeight) {
+            if(oldDocumentHeight != Int.MIN_VALUE && documentHeight > 0 && oldDocumentHeight != documentHeight) {
                 refreshDataAndImage()
                 return false
             }
@@ -44,7 +44,7 @@ class ScrollState {
             pixelsPerLine = config.pixelsPerLine.toDouble()
             documentHeight = curDocumentHeight
             val oldScale = scale.apply { scale = newScale }
-            if(oldScale > 0 && oldScale != scale) {
+            if(!oldScale.isNaN() && oldScale != scale) {
                 refreshDataAndImage()
                 return false
             }

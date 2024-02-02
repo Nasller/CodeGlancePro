@@ -138,10 +138,10 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 					@Suppress("DialogTitleCapitalization")
 					label("ms").gap(RightGap.SMALL)
 				}, {
-					spinner(2.0..30.0, 0.1).label(message("settings.markers.scale"))
+					spinner(2.0..10.0, 0.1).label(message("settings.markers.scale"))
 						.bindValue(getter = { config.markersScaleFactor.toDouble() }, setter = { value: Double -> config.markersScaleFactor = value.toFloat() })
 						.applyToComponent {
-							toolTipText = "Scale factor for font of markers in minimap[2 - 30]"
+							toolTipText = "Scale factor for font of markers in minimap[2 - 10]"
 							addMouseWheelListener(doubleNumberScrollListener)
 						}
 				}).bottomGap(BottomGap.SMALL)
