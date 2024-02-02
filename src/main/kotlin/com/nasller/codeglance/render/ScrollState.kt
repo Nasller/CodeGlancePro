@@ -28,7 +28,7 @@ class ScrollState {
         private set
     private var initialized = false
 
-    fun GlancePanel.computeDimensions(visibleArea: Rectangle): Boolean {
+    fun GlancePanel.computeDimensions(visibleArea: Rectangle, visibleChange: Boolean): Boolean {
         val lineHeight = editor.lineHeight
         val contentHeight = editor.contentComponent.height
         val newScale = config.pixelsPerLine.toDouble() / lineHeight
@@ -42,17 +42,17 @@ class ScrollState {
             pixelsPerLine = scale * lineHeight
             if((oldDocumentHeight > 0 || !initialized) && oldDocumentHeight != documentHeight) {
                 initialized = true
-                if(documentHeight > 0) {
+                if(visibleChange && documentHeight > 0) {
                     refreshDataAndImage()
                     return false
                 }
             }
         }else {
-            initialized = true
             pixelsPerLine = config.pixelsPerLine.toDouble()
             documentHeight = curDocumentHeight
             val oldScale = scale.apply { scale = newScale }
-            if(!oldScale.isNaN() && oldScale != scale) {
+            if(!oldScale.isNaN() && visibleChange && oldScale != scale) {
+                initialized = true
                 refreshDataAndImage()
                 return false
             }

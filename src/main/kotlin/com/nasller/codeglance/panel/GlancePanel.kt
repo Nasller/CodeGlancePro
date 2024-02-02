@@ -76,9 +76,9 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		minimap.rebuildDataAndImage()
 	}
 
-	fun updateScrollState(visibleArea: Rectangle? = null) = scrollState.run {
+	fun updateScrollState(visibleArea: Rectangle? = null, visibleChange: Boolean = false) = scrollState.run {
 		val visible = visibleArea ?: editor.scrollingModel.visibleArea
-		val repaint = computeDimensions(visible)
+		val repaint = computeDimensions(visible, visibleChange)
 		recomputeVisible(visible)
 		return@run repaint
 	}
