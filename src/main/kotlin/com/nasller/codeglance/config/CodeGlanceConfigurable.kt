@@ -13,7 +13,9 @@ import com.intellij.ui.tabs.ColorButtonBase
 import com.intellij.util.ui.JBUI
 import com.nasller.codeglance.config.CodeGlanceConfig.Companion.getWidth
 import com.nasller.codeglance.config.CodeGlanceConfig.Companion.setWidth
+import com.nasller.codeglance.config.enums.BaseEnum
 import com.nasller.codeglance.config.enums.ClickTypeEnum
+import com.nasller.codeglance.config.enums.EditorSizeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.ui.ColorButton
@@ -56,6 +58,8 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 					comboBox(listOf(1, 2, 3, 4)).label(message("settings.pixels"))
 						.bindItem(config::pixelsPerLine.toNullableProperty())
 						.accessibleName(message("settings.pixels"))
+					comboBox(EditorSizeEnum.entries.map { it.name }).label(message("settings.editor.size"))
+						.bindItem({ config.editorSize.name }, { config.editorSize = enumValueOf(it!!) })
 				}, {
 					val items = listOf(message("settings.alignment.right"), message("settings.alignment.left"))
 					comboBox(items).label(message("settings.alignment"))
@@ -65,8 +69,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
 					comboBox(MouseJumpEnum.entries.map { it.getMessage() }).label(message("settings.jump"))
-						.bindItem({ config.jumpOnMouseDown.getMessage() }, { config.jumpOnMouseDown = MouseJumpEnum.findEnum(it) })
-						.accessibleName(message("settings.jump"))
+						.bindItem({ config.jumpOnMouseDown.getMessage() }, { config.jumpOnMouseDown = BaseEnum.findEnum(it) })
 				}, {
 					val items = arrayOf("Clean", "Accurate")
 					comboBox(DefaultComboBoxModel(items)).label(message("settings.render"))
@@ -89,12 +92,10 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 				}
 				twoColumnsRow({
 					comboBox(ClickTypeEnum.entries.map { it.getMessage() }).label(message("settings.click"))
-						.bindItem({ config.clickType.getMessage() }, { config.clickType = ClickTypeEnum.findEnum(it) })
-						.accessibleName(message("settings.click"))
+						.bindItem({ config.clickType.getMessage() }, { config.clickType = BaseEnum.findEnum(it) })
 				}, {
 					spinner(1..Int.MAX_VALUE, 10).label(message("settings.max.line"))
 						.bindIntValue(config::maxLinesCount)
-						.accessibleName(message("settings.max.line"))
 						.applyToComponent {
 							toolTipText = "1 - Int.Max lines"
 							addMouseWheelListener(numberScrollListener)
@@ -102,7 +103,6 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
 					cell(ColorButton(config.viewportColor, JBColor.WHITE)).label(message("settings.viewport.color"))
-						.accessibleName(message("settings.viewport.color"))
 						.bind({ it.text }, { p: ColorButtonBase, v: String ->
 							p.setColor(ColorUtil.fromHex(v))
 							p.text = v
@@ -120,7 +120,6 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
 					cell(ColorButton(config.viewportBorderColor, JBColor.WHITE)).label(message("settings.viewport.border.color"))
-						.accessibleName(message("settings.viewport.border.color"))
 						.bind({ it.text }, { p: ColorButtonBase, v: String ->
 							p.setColor(ColorUtil.fromHex(v))
 							p.text = v
@@ -128,12 +127,10 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 				}, {
 					comboBox(listOf(0, 1, 2, 3, 4)).label(message("settings.viewport.border.thickness"))
 						.bindItem(config::viewportBorderThickness.toNullableProperty())
-						.accessibleName(message("settings.viewport.border.thickness"))
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
 					spinner(0..2000, 50).label(message("popup.hover.minimap.delay"))
 						.bindIntValue(config::delayHoveringToShowScrollBar)
-						.accessibleName(message("popup.hover.minimap.delay"))
 						.applyToComponent {
 							toolTipText = "0 - 2000 ms"
 							addMouseWheelListener(numberScrollListener)
@@ -141,16 +138,15 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 					@Suppress("DialogTitleCapitalization")
 					label("ms").gap(RightGap.SMALL)
 				}, {
-					spinner(2.0..10.0, 0.1).label(message("settings.markers.scale"))
+					spinner(2.0..30.0, 0.1).label(message("settings.markers.scale"))
 						.bindValue(getter = { config.markersScaleFactor.toDouble() }, setter = { value: Double -> config.markersScaleFactor = value.toFloat() })
-						.accessibleName(message("settings.markers.scale"))
 						.applyToComponent {
-							toolTipText = "Scale factor for font of markers in minimap[2 - 10]"
+							toolTipText = "Scale factor for font of markers in minimap[2 - 30]"
 							addMouseWheelListener(doubleNumberScrollListener)
 						}
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
-					textField().label(message("settings.markers.regex")).bindText(config::markRegex).accessibleName(message("settings.markers.regex"))
+					textField().label(message("settings.markers.regex")).bindText(config::markRegex)
 				},{
 					emptyMinimapComboBox = comboBox(EditorKind.entries, EditorKindListCellRenderer(useEmptyMinimap))
 						.label(message("settings.use.empty.minimap")).applyToComponent {
@@ -168,7 +164,6 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 						for (kind in it) {
 							spinner(GlancePanel.MIN_WIDTH..GlancePanel.MAX_WIDTH, 5).label(kind.getMessageWidth())
 								.bindIntValue({ kind.getWidth() }, { kind.setWidth(it) })
-								.accessibleName(kind.getMessageWidth())
 								.applyToComponent {
 									toolTipText = "30 - 250 pixels"
 									addMouseWheelListener(numberScrollListener)
@@ -181,7 +176,6 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 				}
 				row {
 					textField().label(message("settings.disabled.language")).bindText(config::disableLanguageSuffix)
-						.accessibleName(message("settings.disabled.language"))
 				}
 			}
 			group(message("settings.option")) {

@@ -5,10 +5,12 @@ import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.util.messages.Topic
 import com.nasller.codeglance.config.enums.ClickTypeEnum
+import com.nasller.codeglance.config.enums.EditorSizeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 
 class CodeGlanceConfig : BaseState() {
 	var pixelsPerLine by property(4)
+	var editorSize by enum(EditorSizeEnum.Proportional)
 	var maxLinesCount by property(100000)
 	var disabled by property(false)
 	var singleFileVisibleButton by property(true)
@@ -42,7 +44,7 @@ class CodeGlanceConfig : BaseState() {
 	var diffTwoSide by property(true)
 	var diffThreeSide by property(true)
 	var diffThreeSideMiddle by property(false)
-	var editorKinds by setOf(mutableSetOf(EditorKind.MAIN_EDITOR, EditorKind.CONSOLE, EditorKind.PREVIEW, EditorKind.DIFF))
+	var editorKinds by setOf(mutableSetOf(EditorKind.MAIN_EDITOR, EditorKind.PREVIEW, EditorKind.DIFF))
 	var mainWidth by property(110)
 	var diffWidth by property(50)
 	var unTypedWidth by property(50)

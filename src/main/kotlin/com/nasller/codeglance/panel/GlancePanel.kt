@@ -49,7 +49,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val scrollbar = ScrollBar(this)
 	var myVcsPanel: MyVcsPanel? = null
 	val markCommentState = MarkCommentState(this)
-	private val minimap = editor.editorKind.getMinimap(this)
+	private val minimap = updateScrollState().run { editor.editorKind.getMinimap(this@GlancePanel) }
 	private var isReleased = false
 	init {
 		Disposer.register(editor.disposable, this)
@@ -59,7 +59,6 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		markCommentState.refreshMarkCommentHighlight(editor)
 		editor.putUserData(CURRENT_GLANCE, this)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, if (info.place == BorderLayout.LINE_START) PlaceIndex.Left else PlaceIndex.Right)
-		updateScrollState()
 		refreshDataAndImage()
 	}
 
@@ -75,9 +74,11 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		minimap.rebuildDataAndImage()
 	}
 
-	fun updateScrollState() = scrollState.run {
-		computeDimensions()
-		recomputeVisible(editor.scrollingModel.visibleArea)
+	fun updateScrollState(visibleArea: Rectangle? = null) = scrollState.run {
+		val visible = visibleArea ?: editor.scrollingModel.visibleArea
+		val repaint = computeDimensions(visible)
+		recomputeVisible(visible)
+		return@run repaint
 	}
 
 	fun checkVisible() = !isReleased && !editor.isDisposed && (config.hoveringToShowScrollBar || isVisible)
@@ -129,16 +130,17 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 				val start = editor.offsetToVisualLine(it.startOffset)
 				val end = editor.offsetToVisualLine(it.endOffset)
 				val documentLine = minimap.getMyRenderLine(start, end)
-				val sY = start * config.pixelsPerLine + documentLine.first - scrollState.visibleStart
-				val eY = end * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
+				val sY = start * scrollState.pixelsPerLine + documentLine.first - scrollState.visibleStart
+				val eY = end * scrollState.pixelsPerLine + documentLine.second - scrollState.visibleStart
 				if (sY >= 0 || eY >= 0) {
 					color = this
+					val height = scrollState.getRenderHeight()
 					if (sY == eY) {
-						fillRect(0, sY, width, config.pixelsPerLine)
+						fillRect(0, sY.toInt(), width, height)
 					} else {
-						fillRect(0, sY, width, config.pixelsPerLine)
-						if (eY + config.pixelsPerLine != sY) fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
-						fillRect(0, eY, width, config.pixelsPerLine)
+						fillRect(0, sY.toInt(), width, height)
+						if (eY + height != sY) fillRect(0, (sY + height).toInt(), width, (eY - sY - height).toInt())
+						fillRect(0, eY.toInt(), width, height)
 					}
 				}
 			}
@@ -154,22 +156,23 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 			val documentLine = minimap.getMyRenderLine(start.line, end.line)
 
 			val sX = start.column
-			val sY = start.line * config.pixelsPerLine + documentLine.first - scrollState.visibleStart
+			val sY = start.line * scrollState.pixelsPerLine + documentLine.first - scrollState.visibleStart
 			val eX = end.column + 1
-			val eY = end.line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
+			val eY = end.line * scrollState.pixelsPerLine + documentLine.second - scrollState.visibleStart
 			if (sY >= 0 || eY >= 0) {
 				setGraphics2DInfo(srcOver, editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR))
+				val height = scrollState.getRenderHeight()
 				// Single line is real easy
 				if (start.line == end.line) {
-					fillRect(sX, sY, eX - sX, config.pixelsPerLine)
+					fillRect(sX, sY.toInt(), eX - sX, height)
 				} else {
 					// Draw the line leading in
-					fillRect(sX, sY, width - sX, config.pixelsPerLine)
+					fillRect(sX, sY.toInt(), width - sX, height)
 					// Then the line at the end
-					fillRect(0, eY, eX, config.pixelsPerLine)
-					if (eY + config.pixelsPerLine != sY) {
+					fillRect(0, eY.toInt(), eX, height)
+					if (eY + height != sY) {
 						// And if there is anything in between, fill it in
-						fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
+						fillRect(0, (sY + height).toInt(), width, (eY - sY - height).toInt())
 					}
 				}
 				existLine.addAll(start.line..end.line)
@@ -182,8 +185,8 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		editor.caretModel.allCarets.forEach {
 			val line = it.visualPosition.line
 			val documentLine = minimap.getMyRenderLine(line, line)
-			val start = line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
-			if (start >= 0) fillRect(0, start, width, config.pixelsPerLine)
+			val start = line * scrollState.pixelsPerLine + documentLine.second - scrollState.visibleStart
+			if (start >= 0) fillRect(0, start.toInt(), width, scrollState.getRenderHeight())
 		}
 	}
 
@@ -222,9 +225,9 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		val end = it.endVis
 		val documentLine = minimap.getMyRenderLine(start.line, end.line)
 		var sX = if (start.column > width - MIN_GAP) width - MIN_GAP else start.column
-		val sY = start.line * config.pixelsPerLine + documentLine.first - scrollState.visibleStart
+		val sY = start.line * scrollState.pixelsPerLine + documentLine.first - scrollState.visibleStart
 		var eX = if (end.column > width - MIN_GAP) width else end.column
-		val eY = end.line * config.pixelsPerLine + documentLine.second - scrollState.visibleStart
+		val eY = end.line * scrollState.pixelsPerLine + documentLine.second - scrollState.visibleStart
 		if (sY >= 0 || eY >= 0) {
 			setGraphics2DInfo(if (it.fullLine && it.fullLineWithActualHighlight) srcOver0_6 else srcOver, it.color)
 			val collapsed = editor.foldingModel.getCollapsedRegionAtOffset(it.startOffset)
@@ -233,28 +236,30 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 					if(eX == width) sX = width - MIN_GAP
 					else eX += MIN_GAP - (eX - sX)
 				}
-				drawMarkOneLine(it, sY, sX, eX)
+				drawMarkOneLine(it, sY.toInt(), sX, eX)
 			} else if (collapsed != null) {
 				val startVis = editor.offsetToVisualPosition(collapsed.startOffset)
 				val endVis = editor.offsetToVisualPosition(collapsed.endOffset,false,true)
-				drawMarkOneLine(it, sY, startVis.column, endVis.column)
+				drawMarkOneLine(it, sY.toInt(), startVis.column, endVis.column)
 			} else {
-				fillRect(if (it.fullLine) 0 else sX, sY, if (it.fullLine) width else width - sX, config.pixelsPerLine)
-				if (eY + config.pixelsPerLine != sY) fillRect(0, sY + config.pixelsPerLine, width, eY - sY - config.pixelsPerLine)
-				fillRect(0, eY, if (it.fullLine) width else eX, config.pixelsPerLine)
+				val height = scrollState.getRenderHeight()
+				fillRect(if (it.fullLine) 0 else sX, sY.toInt(), if (it.fullLine) width else width - sX, height)
+				if (eY + height != sY) fillRect(0, (sY + scrollState.pixelsPerLine).toInt(), width, (eY - sY - scrollState.pixelsPerLine).toInt())
+				fillRect(0, eY.toInt(), if (it.fullLine) width else eX, height)
 			}
 		}
 	}
 
 	private fun Graphics2D.drawMarkOneLine(it: RangeHighlightColor, sY: Int, sX: Int, eX: Int) {
+		val height = scrollState.getRenderHeight()
 		if (it.fullLine && it.fullLineWithActualHighlight) {
-			fillRect(0, sY, width, config.pixelsPerLine)
+			fillRect(0, sY, width, height)
 			setGraphics2DInfo(srcOver, it.color.brighter())
-			fillRect(sX, sY, eX - sX, config.pixelsPerLine)
+			fillRect(sX, sY, eX - sX, height)
 		} else if (it.fullLine) {
-			fillRect(0, sY, width, config.pixelsPerLine)
+			fillRect(0, sY, width, height)
 		} else {
-			fillRect(sX, sY, eX - sX, config.pixelsPerLine)
+			fillRect(sX, sY, eX - sX, height)
 		}
 	}
 

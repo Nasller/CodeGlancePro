@@ -20,12 +20,14 @@ import java.beans.PropertyChangeEvent
 
 @Suppress("UnstableApiUsage")
 class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
-	override val rangeList: MutableList<Pair<Int, Range<Int>>> = mutableListOf()
-	private var imgReference = MySoftReference.create(getBufferedImage(), editor.editorKind != EditorKind.MAIN_EDITOR)
+	override val rangeList: MutableList<Pair<Int, Range<Double>>> = mutableListOf()
+	private var imgReference = lazy {
+		MySoftReference.create(getBufferedImage(), editor.editorKind != EditorKind.MAIN_EDITOR)
+	}
 	init { makeListener() }
 
 	override fun getImageOrUpdate(): BufferedImage? {
-		val img = imgReference.get()
+		val img = imgReference.value.get()
 		if(img == null) updateMinimapImage()
 		return img
 	}
@@ -49,11 +51,11 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 	}
 
 	private fun getMinimapImage(): BufferedImage? {
-		var curImg = imgReference.get()
+		var curImg = imgReference.value.get()
 		if (curImg == null || curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
 			curImg?.flush()
 			curImg = getBufferedImage()
-			imgReference = MySoftReference.create(curImg, editor.editorKind != EditorKind.MAIN_EDITOR)
+			imgReference = lazyOf(MySoftReference.create(curImg, editor.editorKind != EditorKind.MAIN_EDITOR))
 		}
 		return if(editor.isDisposed) return null else curImg
 	}
@@ -76,45 +78,45 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 		}
 		val softWrapEnable = editor.softWrapModel.isSoftWrappingEnabled
 		val hasBlockInlay = editor.inlayModel.hasBlockElements()
-		var y = 0
-		var skipY = 0
+		var y = 0.0
+		var skipY = 0.0
 		val moveCharIndex = moveCharIndex@{ code: Int, enterAction: (()->Unit)? ->
 			if(code != 10) {
 				return@moveCharIndex
 			}
-			y += config.pixelsPerLine
+			y += scrollState.pixelsPerLine
 			enterAction?.invoke()
 		}
 		val highlight = makeMarkHighlight(text, graphics)
 		loop@ while (!hlIter.atEnd()) {
 			val start = hlIter.start
 			if(start > text.length) break@loop
-			y = editor.document.getLineNumber(start) * config.pixelsPerLine + skipY
+			y = editor.document.getLineNumber(start) * scrollState.pixelsPerLine + skipY
 			val region = editor.foldingModel.getCollapsedRegionAtOffset(start)
 			if (region != null) {
 				val startLineNumber = editor.document.getLineNumber(region.startOffset)
 				val endOffset = region.endOffset
 				val foldLine = editor.document.getLineNumber(endOffset) - startLineNumber
 				if(region !is CustomFoldRegionImpl){
-					skipY -= foldLine * config.pixelsPerLine
+					skipY -= foldLine * scrollState.pixelsPerLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 				} else {
 					//jump over the fold line
 					val heightLine = (region.heightInPixels * scrollState.scale).toInt()
-					skipY -= (foldLine + 1) * config.pixelsPerLine - heightLine
+					skipY -= (foldLine + 1) * scrollState.pixelsPerLine - heightLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 					rangeList.add(Pair(editor.offsetToVisualLine(endOffset),
-						Range(y,editor.document.getLineNumber(hlIter.start) * config.pixelsPerLine + skipY)))
+						Range(y,editor.document.getLineNumber(hlIter.start) * scrollState.pixelsPerLine + skipY)))
 				}
 			} else {
 				val commentData = highlight[start]
 				if(commentData != null){
 					graphics.font = commentData.font
-					graphics.drawString(commentData.comment,2,y + commentData.fontHeight)
+					graphics.drawString(commentData.comment,2,y.toInt() + commentData.fontHeight)
 					if (softWrapEnable) {
 						val softWraps = editor.softWrapModel.getSoftWrapsForRange(start, commentData.jumpEndOffset)
 						softWraps.forEachIndexed { index, softWrap ->
-							softWrap.chars.forEach {char -> moveCharIndex(char.code) { skipY += config.pixelsPerLine } }
+							softWrap.chars.forEach {char -> moveCharIndex(char.code) { skipY += scrollState.pixelsPerLine } }
 							if (index == softWraps.size - 1){
 								commentData.jumpEndOffset = DocumentUtil.getLineEndOffset(softWrap.end, editor.document)
 							}
@@ -144,7 +146,7 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 						// Watch out for tokens that extend past the document
 						if (offset >= text.length) break@loop
 						if (softWrapEnable) editor.softWrapModel.getSoftWrap(offset)?.let { softWrap ->
-							softWrap.chars.forEach { moveCharIndex(it.code) { skipY += config.pixelsPerLine } }
+							softWrap.chars.forEach { moveCharIndex(it.code) { skipY += scrollState.pixelsPerLine } }
 						}
 						val charCode = text[offset].code
 						moveCharIndex(charCode) { if (hasBlockInlay) {
@@ -243,7 +245,9 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 
 	override fun dispose() {
 		rangeList.clear()
-		imgReference.clear{ flush() }
+		if(imgReference.isInitialized()){
+			imgReference.value.clear{ flush() }
+		}
 	}
 
 	private fun repaintOrRequest(request: Boolean = true) {

@@ -6,6 +6,7 @@ import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
 import com.nasller.codeglance.config.SettingsChangeListener
+import com.nasller.codeglance.config.enums.EditorSizeEnum
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.event.*
 
@@ -48,8 +49,14 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
 	/** VisibleAreaListener */
 	override fun visibleAreaChanged(e: VisibleAreaEvent) {
-		glancePanel.scrollState.recomputeVisible(e.newRectangle)
-		repaint()
+		if(glancePanel.config.editorSize == EditorSizeEnum.Fit){
+			if(glancePanel.updateScrollState(e.newRectangle)){
+				repaint()
+			}
+		}else {
+			glancePanel.scrollState.recomputeVisible(e.newRectangle)
+			repaint()
+		}
 	}
 
 	/** HierarchyBoundsListener */

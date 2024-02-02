@@ -1,11 +1,14 @@
 package com.nasller.codeglance.render
 
+import com.nasller.codeglance.config.enums.EditorSizeEnum
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Rectangle
 import kotlin.math.min
 
 class ScrollState {
-    var scale:Float = 0F
+    var pixelsPerLine: Double = 0.0
+        private set
+    var scale: Double = 0.0
         private set
     var documentHeight: Int = 0
         private set
@@ -24,11 +27,29 @@ class ScrollState {
     var viewportHeight: Int = 0
         private set
 
-    fun GlancePanel.computeDimensions() {
-        val oldScale = scale
-        scale = config.pixelsPerLine.toFloat() / editor.lineHeight
-        documentHeight = (editor.contentComponent.height * scale).toInt()
-        if(oldScale > 0 && oldScale != scale) refreshDataAndImage()
+    fun GlancePanel.computeDimensions(visibleArea: Rectangle): Boolean {
+        val lineHeight = editor.lineHeight
+        val contentHeight = editor.contentComponent.height
+        val newScale = config.pixelsPerLine.toDouble() / lineHeight
+        val curDocumentHeight = (contentHeight * newScale).toInt()
+        if(config.editorSize == EditorSizeEnum.Fit && curDocumentHeight > visibleArea.height && visibleArea.height > 0) {
+            val oldDocumentHeight = documentHeight.apply { documentHeight = visibleArea.height }
+            scale = documentHeight.toDouble() / contentHeight
+            pixelsPerLine = scale * lineHeight
+            if(oldDocumentHeight > 0 && oldDocumentHeight != documentHeight) {
+                refreshDataAndImage()
+                return false
+            }
+        }else {
+            pixelsPerLine = config.pixelsPerLine.toDouble()
+            documentHeight = curDocumentHeight
+            val oldScale = scale.apply { scale = newScale }
+            if(oldScale > 0 && oldScale != scale) {
+                refreshDataAndImage()
+                return false
+            }
+        }
+        return true
     }
 
     fun recomputeVisible(visibleArea: Rectangle) {
@@ -40,5 +61,9 @@ class ScrollState {
 
         visibleStart = ((viewportStart.toFloat() / (documentHeight - viewportHeight + 1)) * (documentHeight - visibleHeight + 1)).toInt().coerceAtLeast(0)
         visibleEnd = visibleStart + drawHeight
+    }
+
+    fun getRenderHeight(): Int {
+        return if(pixelsPerLine < 1) 1 else pixelsPerLine.toInt()
     }
 }

@@ -43,7 +43,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 	protected var softWrapEnabled = false
 	protected val modalityState
 		get() = if (editor.editorKind != EditorKind.MAIN_EDITOR) ModalityState.any() else ModalityState.defaultModalityState()
-	protected abstract val rangeList: MutableList<Pair<Int, Range<Int>>>
+	protected abstract val rangeList: MutableList<Pair<Int, Range<Double>>>
 	protected val virtualFile = editor.virtualFile ?: glancePanel.psiDocumentManager.getPsiFile(glancePanel.editor.document)?.virtualFile
 	protected val isLogFile = virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
 	protected val lock = AtomicBoolean(false)
@@ -60,20 +60,21 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 	override fun recalculationEnds() = Unit
 
 	fun getMyRenderVisualLine(y: Int): Int {
-		var minus = 0
+		if(y <= 0) return 0
+		var minus = 0.0
 		for (pair in rangeList) {
-			if (y in pair.second.from..pair.second.to) {
+			if (y.toFloat() in pair.second.from..pair.second.to) {
 				return pair.first
 			} else if (pair.second.to < y) {
 				minus += pair.second.to - pair.second.from
 			} else break
 		}
-		return (y - minus) / config.pixelsPerLine
+		return ((y - minus) / scrollState.pixelsPerLine).toInt()
 	}
 
-	fun getMyRenderLine(lineStart: Int, lineEnd: Int): Pair<Int, Int> {
-		var startAdd = 0
-		var endAdd = 0
+	fun getMyRenderLine(lineStart: Int, lineEnd: Int): Pair<Double, Double> {
+		var startAdd = 0.0
+		var endAdd = 0.0
 		for (pair in rangeList) {
 			if (pair.first in (lineStart + 1) until lineEnd) {
 				endAdd += pair.second.to - pair.second.from
@@ -90,7 +91,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 
 	@Suppress("UndesirableClassUsage")
 	protected fun getBufferedImage() = BufferedImage(glancePanel.getConfigSize().width,
-		glancePanel.scrollState.documentHeight + (100 * config.pixelsPerLine), BufferedImage.TYPE_INT_ARGB)
+		glancePanel.scrollState.documentHeight + (100 * scrollState.pixelsPerLine).toInt(), BufferedImage.TYPE_INT_ARGB)
 
 	protected fun canUpdate() = glancePanel.checkVisible() && (editor.editorKind == EditorKind.CONSOLE || virtualFile == null
 			|| runReadAction { editor.highlighter !is EmptyEditorHighlighter })
@@ -121,7 +122,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 	}
 
 	protected fun BufferedImage.renderImage(x: Int, y: Int, char: Int, consumer: (() -> Unit)? = null) {
-		if (char !in 0..32 && x in 0 until width && 0 <= y && y + config.pixelsPerLine < height) {
+		if (char !in 0..32 && x in 0 until width && 0 <= y && y + scrollState.pixelsPerLine < height) {
 			consumer?.invoke()
 			if (config.clean) {
 				renderClean(x, y, char)
@@ -136,7 +137,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 			in 33..126 -> 0.8f
 			else -> 0.4f
 		}
-		when (config.pixelsPerLine) {
+		when (scrollState.getRenderHeight()) {
 			// Can't show space between lines anymore. This looks rather ugly...
 			1 -> setPixel(x, y + 1, weight * 0.6f)
 			// Two lines we make the top line a little lighter to give the illusion of space between lines.
@@ -162,7 +163,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 	private fun BufferedImage.renderAccurate(x: Int, y: Int, char: Int) {
 		val topWeight = getTopWeight(char)
 		val bottomWeight = getBottomWeight(char)
-		when (config.pixelsPerLine) {
+		when (scrollState.getRenderHeight()) {
 			// Can't show space between lines anymore. This looks rather ugly...
 			1 -> setPixel(x, y + 1, (topWeight + bottomWeight) / 2)
 			// Two lines we make the top line a little lighter to give the illusion of space between lines.
@@ -219,7 +220,9 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 					Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
 					else -> EditorFontType.PLAIN
 				}
-			).deriveFont(config.markersScaleFactor * config.pixelsPerLine)
+			).deriveFont(if(scrollState.pixelsPerLine > 1) {
+				(config.markersScaleFactor * scrollState.pixelsPerLine).toFloat()
+			} else config.markersScaleFactor)
 			for (highlighterEx in markCommentMap) {
 				val startOffset = highlighterEx.startOffset
 				file?.findElementAt(startOffset)?.findParentOfType<PsiComment>(false)?.let { comment ->
@@ -290,10 +293,14 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 
 	companion object{
 		fun EditorKind.getMinimap(glancePanel: GlancePanel): BaseMinimap = glancePanel.run {
-			if(config.useEmptyMinimap.contains(this@getMinimap)) return EmptyMinimap(this)
-			if(this@getMinimap == EditorKind.CONSOLE || (this@getMinimap == EditorKind.MAIN_EDITOR && config.useFastMinimapForMain)) {
+			if(config.useEmptyMinimap.contains(this@getMinimap)) {
+				return EmptyMinimap(this)
+			}
+			return if(this@getMinimap == EditorKind.MAIN_EDITOR && config.useFastMinimapForMain) {
 				FastMainMinimap(this)
-			}else MainMinimap(this)
+			}else {
+				MainMinimap(this)
+			}
 		}
 	}
 }

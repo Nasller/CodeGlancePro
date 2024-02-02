@@ -26,12 +26,14 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	private val alarm by lazy {
 		SingleAlarm({ updateMinimapImage() }, 500, this, Alarm.ThreadToUse.POOLED_THREAD)
 	}
-	private var imgReference = MySoftReference.create(getBufferedImage(), editor.editorKind != EditorKind.MAIN_EDITOR)
-	override val rangeList: MutableList<Pair<Int, Range<Int>>> = mutableListOf()
+	private var imgReference = lazy {
+		MySoftReference.create(getBufferedImage(), editor.editorKind != EditorKind.MAIN_EDITOR)
+	}
+	override val rangeList: MutableList<Pair<Int, Range<Double>>> = mutableListOf()
 	init { makeListener() }
 
 	override fun getImageOrUpdate(): BufferedImage? {
-		val img = imgReference.get()
+		val img = imgReference.value.get()
 		if(img == null) updateMinimapImage()
 		return img
 	}
@@ -55,11 +57,11 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	}
 
 	private fun getMinimapImage(): BufferedImage? {
-		var curImg = imgReference.get()
+		var curImg = imgReference.value.get()
 		if (curImg == null || curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
 			curImg?.flush()
 			curImg = getBufferedImage()
-			imgReference = MySoftReference.create(curImg, editor.editorKind != EditorKind.MAIN_EDITOR)
+			imgReference = lazyOf(MySoftReference.create(curImg, editor.editorKind != EditorKind.MAIN_EDITOR))
 		}
 		return if(editor.isDisposed) return null else curImg
 	}
@@ -84,14 +86,14 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		val softWrapEnable = editor.softWrapModel.isSoftWrappingEnabled
 		val hasBlockInlay = editor.inlayModel.hasBlockElements()
 		var x = 0
-		var y = 0
-		var skipY = 0
+		var y = 0.0
+		var skipY = 0.0
 		val moveCharIndex = { code: Int,enterAction: (()->Unit)? ->
 			when (code) {
 				9 -> x += 4//TAB
 				10 -> {//ENTER
 					x = 0
-					y += config.pixelsPerLine
+					y += scrollState.pixelsPerLine
 					enterAction?.invoke()
 				}
 				else -> x += 1
@@ -99,13 +101,13 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		}
 		val moveAndRenderChar = { it: Char ->
 			moveCharIndex(it.code,null)
-			curImg.renderImage(x, y, it.code)
+			curImg.renderImage(x, y.toInt(), it.code)
 		}
 		val highlight = makeMarkHighlight(text, graphics)
 		loop@ while (!hlIter.atEnd()) {
 			val start = hlIter.start
 			if(start > text.length) break@loop
-			y = editor.document.getLineNumber(start) * config.pixelsPerLine + skipY
+			y = editor.document.getLineNumber(start) * scrollState.pixelsPerLine + skipY
 			val color by lazy(LazyThreadSafetyMode.NONE){ runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() }
 			val region = editor.foldingModel.getCollapsedRegionAtOffset(start)
 			if (region != null) {
@@ -117,19 +119,19 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 						(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor).setColorRgb()
 						StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach(moveAndRenderChar)
 					}
-					skipY -= foldLine * config.pixelsPerLine
+					skipY -= foldLine * scrollState.pixelsPerLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 				} else {
 					(color ?: defaultColor).setColorRgb()
 					//jump over the fold line
 					val heightLine = (region.heightInPixels * scrollState.scale).toInt()
-					skipY -= (foldLine + 1) * config.pixelsPerLine - heightLine
+					skipY -= (foldLine + 1) * scrollState.pixelsPerLine - heightLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 					rangeList.add(Pair(editor.offsetToVisualLine(endOffset),
-						Range(y,editor.document.getLineNumber(hlIter.start) * config.pixelsPerLine + skipY)))
+						Range(y, editor.document.getLineNumber(hlIter.start) * scrollState.pixelsPerLine + skipY)))
 					//this is render document
-					val line = startLineNumber - 1 + (heightLine / config.pixelsPerLine)
-					text.subSequence(start, if(DocumentUtil.isValidLine(line,editor.document)){
+					val line = startLineNumber - 1 + (heightLine / scrollState.pixelsPerLine).toInt()
+					text.subSequence(start, if(DocumentUtil.isValidLine(line, editor.document)){
 						val lineEndOffset = editor.document.getLineEndOffset(line)
 						if(endOffset < lineEndOffset) endOffset else lineEndOffset
 					}else endOffset).forEach(moveAndRenderChar)
@@ -138,11 +140,11 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 				val commentData = highlight[start]
 				if(commentData != null){
 					graphics.font = commentData.font
-					graphics.drawString(commentData.comment,2,y + commentData.fontHeight)
+					graphics.drawString(commentData.comment,2,y.toInt() + commentData.fontHeight)
 					if (softWrapEnable) {
 						val softWraps = editor.softWrapModel.getSoftWrapsForRange(start, commentData.jumpEndOffset)
 						softWraps.forEachIndexed { index, softWrap ->
-							softWrap.chars.forEach {char -> moveCharIndex(char.code) { skipY += config.pixelsPerLine } }
+							softWrap.chars.forEach {char -> moveCharIndex(char.code) { skipY += scrollState.pixelsPerLine } }
 							if (index == softWraps.size - 1){
 								commentData.jumpEndOffset = DocumentUtil.getLineEndOffset(softWrap.end, editor.document)
 							}
@@ -173,7 +175,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 						// Watch out for tokens that extend past the document
 						if (offset >= text.length) break@loop
 						if (softWrapEnable) editor.softWrapModel.getSoftWrap(offset)?.let { softWrap ->
-							softWrap.chars.forEach { moveCharIndex(it.code) { skipY += config.pixelsPerLine } }
+							softWrap.chars.forEach { moveCharIndex(it.code) { skipY += scrollState.pixelsPerLine } }
 						}
 						val charCode = text[offset].code
 						moveCharIndex(charCode) { if (hasBlockInlay) {
@@ -187,7 +189,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 									skipY += sumBlock
 								}
 						} }
-						curImg.renderImage(x, y, charCode) {
+						curImg.renderImage(x, y.toInt(), charCode) {
 							(highlightList.firstOrNull { offset >= it.startOffset && offset < it.endOffset }?.foregroundColor
 								?: color ?: defaultColor).setColorRgb()
 						}
@@ -278,7 +280,9 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 
 	override fun dispose() {
 		rangeList.clear()
-		imgReference.clear{ flush() }
+		if(imgReference.isInitialized()){
+			imgReference.value.clear{ flush() }
+		}
 	}
 
 	private fun repaintOrRequest(request: Boolean = true) {

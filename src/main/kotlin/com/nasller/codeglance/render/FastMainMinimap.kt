@@ -48,7 +48,7 @@ import kotlin.math.roundToInt
 @Suppress("UnstableApiUsage")
 class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), HighlighterListener{
 	private val myDocument = editor.document
-	override val rangeList: MutableList<Pair<Int, Range<Int>>> = ContainerUtil.createLockFreeCopyOnWriteList()
+	override val rangeList: MutableList<Pair<Int, Range<Double>>> = ContainerUtil.createLockFreeCopyOnWriteList()
 	private val renderDataList = ObjectArrayList<LineRenderData>().also {
 		it.addAll(ObjectArrayList.wrap(arrayOfNulls(editor.visibleLineCount)))
 	}
@@ -97,10 +97,10 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 
 	@Suppress("UndesirableClassUsage")
 	private fun update(copyList: List<LineRenderData?>){
-		val pixelsPerLine = config.pixelsPerLine
+		val pixelsPerLine = scrollState.pixelsPerLine
 		val curImg = if(glancePanel.checkVisible()) {
-			val height = copyList.filterNotNull().sumOf { (it.y ?: pixelsPerLine) + (it.aboveBlockLine ?: 0) } + (5 * config.pixelsPerLine)
-			BufferedImage(glancePanel.getConfigSize().width, height, BufferedImage.TYPE_INT_ARGB)
+			val height = copyList.filterNotNull().sumOf { (it.y ?: pixelsPerLine) + it.aboveBlockLine } + (5 * scrollState.pixelsPerLine)
+			BufferedImage(glancePanel.getConfigSize().width, height.toInt(), BufferedImage.TYPE_INT_ARGB)
 		} else null ?: return
 		val graphics = curImg.createGraphics()
 		val markAttributes by lazy(LazyThreadSafetyMode.NONE) {
@@ -114,16 +114,18 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 				Font.BOLD -> EditorFontType.BOLD
 				Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
 				else -> EditorFontType.PLAIN
-			}).deriveFont(config.markersScaleFactor * pixelsPerLine)
+			}).deriveFont(if(pixelsPerLine > 1) {
+				(config.markersScaleFactor * pixelsPerLine).toFloat()
+			} else config.markersScaleFactor)
 		}
 		val defaultRgb = editor.colorsScheme.defaultForeground.rgb
-		var totalY = 0
-		var skipY = 0
-		val curRangeList = mutableListOf<Pair<Int, Range<Int>>>()
+		var totalY = 0.0
+		var skipY = 0.0
+		val curRangeList = mutableListOf<Pair<Int, Range<Double>>>()
 		for ((index, it) in copyList.withIndex()) {
 			if(it == null) continue
 			val y = it.y ?: pixelsPerLine
-			val aboveBlockLine = it.aboveBlockLine ?: 0
+			val aboveBlockLine = it.aboveBlockLine
 			//Coordinates
 			if(it.lineType == LineType.CUSTOM_FOLD){
 				curRangeList.add(index to Range(totalY, totalY + y - pixelsPerLine + aboveBlockLine))
@@ -132,9 +134,9 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 			}
 			//Skipping
 			if(skipY > 0){
-				if(skipY in 1 .. aboveBlockLine){
+				if(skipY in 0.0 .. aboveBlockLine){
 					totalY += aboveBlockLine
-					skipY = 0
+					skipY = 0.0
 				}else {
 					val curY = aboveBlockLine + y
 					totalY += curY
@@ -153,7 +155,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 						breakY@ for (renderData in it.renderData) {
 							(renderData.rgb ?: defaultRgb).setColorRgb()
 							for (char in renderData.renderChar) {
-								curImg.renderImage(curX, curY, char.code)
+								curImg.renderImage(curX, curY.toInt(), char.code)
 								when (char.code) {
 									9 -> curX += 4 //TAB
 									10 -> {//ENTER
@@ -175,7 +177,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 							UIUtil.getFontWithFallback(font).deriveFont(markAttributes.fontType, font.size2D)
 						} else font
 						graphics.font = textFont
-						graphics.drawString(commentText, it.startX ?: 0,totalY + (graphics.getFontMetrics(textFont).height / 1.5).roundToInt())
+						graphics.drawString(commentText, it.startX ?: 0,totalY.toInt() + (graphics.getFontMetrics(textFont).height / 1.5).roundToInt())
 						skipY = (config.markersScaleFactor.toInt() - 1) * pixelsPerLine
 					}
 				}
@@ -209,21 +211,21 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 			//Check invalid somethings in background task
 			if(visualLine >= renderDataList.size || start > end) return
 			//BLOCK_INLAY
-			val aboveBlockLine = visLinesIterator.getBlockInlaysAbove().sumOf { (it.heightInPixels * scrollState.scale).toInt() }
-				.run { if(this > 0) this else null }
+			val aboveBlockLine = visLinesIterator.getBlockInlaysAbove().sumOf { (it.heightInPixels * scrollState.scale) }
+				.run { if(this > 0) this else 0.0 }
 			//CUSTOM_FOLD
 			var foldRegion = visLinesIterator.getCurrentFoldRegion()
 			var foldStartOffset = foldRegion?.startOffset ?: -1
 			if(foldRegion is CustomFoldRegion && foldStartOffset == start){
 				//jump over the fold line
-				val heightLine = (foldRegion.heightInPixels * scrollState.scale).toInt().run{
-					if(this < config.pixelsPerLine) config.pixelsPerLine else this
+				val heightLine = (foldRegion.heightInPixels * scrollState.scale).run{
+					if(this < scrollState.pixelsPerLine) scrollState.pixelsPerLine else this
 				}
 				//this is render document
-				val line = myDocument.getLineNumber(foldStartOffset) - 1 + (heightLine / config.pixelsPerLine)
+				val line = myDocument.getLineNumber(foldStartOffset) - 1 + (heightLine / scrollState.pixelsPerLine)
 				val foldEndOffset = foldRegion.endOffset.run {
-					if(DocumentUtil.isValidLine(line, myDocument)) {
-						val lineEndOffset = myDocument.getLineEndOffset(line)
+					if(DocumentUtil.isValidLine(line.toInt(), myDocument)) {
+						val lineEndOffset = myDocument.getLineEndOffset(line.toInt())
 						if(this < lineEndOffset) this else lineEndOffset
 					}else this
 				}
@@ -618,7 +620,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		previewImg.flush()
 	}
 
-	private data class LineRenderData(val renderData: Array<RenderData>, val startX: Int?, var y: Int?, val aboveBlockLine: Int?,
+	private data class LineRenderData(val renderData: Array<RenderData>, val startX: Int?, var y: Double?, val aboveBlockLine: Double,
 									  val lineType: LineType? = null, val commentHighlighterEx: RangeHighlighterEx? = null) {
 		override fun equals(other: Any?): Boolean {
 			if (this === other) return true
@@ -636,8 +638,8 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		override fun hashCode(): Int {
 			var result = renderData.contentHashCode()
 			result = 31 * result + (startX ?: 0)
-			result = 31 * result + (y ?: 0)
-			result = 31 * result + (aboveBlockLine ?: 0)
+			result = 31 * result + (y?.hashCode() ?: 0)
+			result = 31 * result + aboveBlockLine.hashCode()
 			result = 31 * result + (lineType?.hashCode() ?: 0)
 			result = 31 * result + (commentHighlighterEx?.hashCode() ?: 0)
 			return result
@@ -672,7 +674,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		private val softWrapListeners = SoftWrapApplianceManager::class.java.getDeclaredField("myListeners").apply {
 			isAccessible = true
 		}
-		private val DefaultLineRenderData = LineRenderData(emptyArray(), null, null, null)
+		private val DefaultLineRenderData = LineRenderData(emptyArray(), null, null, 0.0)
 		private val EMPTY_IMG = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB)
 		private val fastMinimapBackendExecutor = AppExecutorUtil.createBoundedApplicationPoolExecutor("FastMinimapBackendExecutor", 1)
 
