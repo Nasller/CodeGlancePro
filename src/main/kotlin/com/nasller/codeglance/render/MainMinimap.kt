@@ -117,8 +117,9 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 			val color by lazy(LazyThreadSafetyMode.NONE){ runCatching { hlIter.textAttributes.foregroundColor }.getOrNull() }
 			val region = editor.foldingModel.getCollapsedRegionAtOffset(start)
 			if (region != null) {
-				val startLineNumber = editor.document.getLineNumber(region.startOffset)
+				val startOffset = region.startOffset
 				val endOffset = region.endOffset
+				val startLineNumber = editor.document.getLineNumber(startOffset)
 				val foldLine = editor.document.getLineNumber(endOffset) - startLineNumber
 				if(region !is CustomFoldRegionImpl){
 					if(region.placeholderText.isNotBlank()) {
@@ -139,7 +140,8 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 					val line = startLineNumber - 1 + (heightLine / scrollState.pixelsPerLine).toInt()
 					text.subSequence(start, if(DocumentUtil.isValidLine(line, editor.document)){
 						val lineEndOffset = editor.document.getLineEndOffset(line)
-						if(endOffset < lineEndOffset) endOffset else lineEndOffset
+						if(endOffset < lineEndOffset || startOffset > lineEndOffset) endOffset
+						else lineEndOffset
 					}else endOffset).forEach(moveAndRenderChar)
 				}
 			} else {

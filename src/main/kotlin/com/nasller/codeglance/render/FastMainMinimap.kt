@@ -183,7 +183,8 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 						val foldEndOffset = foldRegion.endOffset.run {
 							if(DocumentUtil.isValidLine(line, myDocument)) {
 								val lineEndOffset = myDocument.getLineEndOffset(line)
-								if(this < lineEndOffset) this else lineEndOffset
+								if(this < lineEndOffset || foldStartOffset > lineEndOffset) this
+								else lineEndOffset
 							}else this
 						}
 						var curX = it.startX ?: 0
