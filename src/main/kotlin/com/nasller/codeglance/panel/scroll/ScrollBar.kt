@@ -76,7 +76,11 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	fun paint(gfx: Graphics2D) {
 		gfx.color = ColorUtil.fromHex(config.viewportColor)
 		gfx.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, visibleRectAlpha)
-		gfx.fillRoundRect(0, vOffset, glancePanel.width, scrollState.viewportHeight,5, 5)
+		if(scrollState.viewportHeight > MIN_VIEWPORT_HEIGHT) {
+			gfx.fillRoundRect(0, vOffset, glancePanel.width, scrollState.viewportHeight,5, 5)
+		}else {
+			gfx.fillRect(0, vOffset, glancePanel.width, scrollState.viewportHeight)
+		}
 		getBorderShape(vOffset, glancePanel.width, scrollState.viewportHeight, config.viewportBorderThickness)?.let {
 			gfx.composite = GlancePanel.srcOver
 			gfx.color = ColorUtil.fromHex(config.viewportBorderColor)
@@ -294,6 +298,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		private const val DEFAULT_ALPHA = 0.15f
 		private const val HOVER_ALPHA = 0.25f
 		private const val DRAG_ALPHA = 0.35f
+		private const val MIN_VIEWPORT_HEIGHT = 20
 		val PREVIEW_LINES = max(2, min(25, Integer.getInteger("preview.lines", 5)))
 
 		private fun createHint(me: MouseEvent): HintHint = HintHint(me)
@@ -305,10 +310,12 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 
 		private fun getBorderShape(y: Int, width: Int, height: Int, thickness: Int): Shape? {
 			if (width <= 0 || height <= 0 || thickness <= 0) return null
-			val outer = RoundRectangle2D.Float(0f, y.toFloat(), width.toFloat(), height.toFloat(), 5f, 5f)
-			val doubleThickness = 2 * thickness.toFloat()
+			val thicknessSize = if(height > MIN_VIEWPORT_HEIGHT) thickness else 1
+			val outer = if(height > MIN_VIEWPORT_HEIGHT) RoundRectangle2D.Float(0f, y.toFloat(), width.toFloat(), height.toFloat(), 5f, 5f)
+			else Rectangle2D.Float(0f, y.toFloat(), width.toFloat(), height.toFloat())
+			val doubleThickness = 2 * thicknessSize.toFloat()
 			if (width <= doubleThickness || height <= doubleThickness) return outer
-			val inner = Rectangle2D.Float(0f + thickness.toFloat(), y + thickness.toFloat(), width - doubleThickness, height - doubleThickness)
+			val inner = Rectangle2D.Float(0f + thicknessSize.toFloat(), y + thicknessSize.toFloat(), width - doubleThickness, height - doubleThickness)
 			val path = Path2D.Float(Path2D.WIND_EVEN_ODD)
 			path.append(outer, false)
 			path.append(inner, false)
