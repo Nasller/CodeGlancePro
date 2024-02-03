@@ -71,13 +71,15 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		if(lock.compareAndSet(false,true)) {
 			val action = Runnable {
 				ApplicationManager.getApplication().executeOnPooledThread {
+					val myScrollState = glancePanel.scrollState.clone()
 					try {
-						update(renderDataList.toList())
+						update(renderDataList.toList(), myScrollState)
 					}finally {
 						invokeLater(ModalityState.any()){
 							lock.set(false)
 							glancePanel.repaint()
-							if (myRenderDirty.get()) {
+							if (myRenderDirty.get() || myScrollState.scale != scrollState.scale ||
+									myScrollState.getRenderHeight() != scrollState.getRenderHeight()) {
 								updateMinimapImage()
 								myRenderDirty.set(false)
 							}
@@ -96,15 +98,17 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	override fun rebuildDataAndImage() = runInEdt(modalityState){ if(canUpdate()) resetMinimapData() }
 
 	@Suppress("UndesirableClassUsage")
-	private fun update(copyList: List<LineRenderData?>){
-		val pixelsPerLine = scrollState.pixelsPerLine
+	private fun update(copyList: List<LineRenderData?>, myScrollState: ScrollState) {
+		val pixelsPerLine = myScrollState.pixelsPerLine
+		val scale = myScrollState.scale
+		val renderHeight = myScrollState.getRenderHeight()
 		val curImg = if(glancePanel.checkVisible()) {
-			if(scrollState.pixelsPerLine < 1){
-				getBufferedImage()
+			if(pixelsPerLine < 1){
+				getBufferedImage(myScrollState)
 			}else {
 				val height = copyList.filterNotNull().sumOf {
-					it.getLineHeight(scrollState) + it.aboveBlockLine * scrollState.scale
-				} + (5 * scrollState.pixelsPerLine)
+					it.getLineHeight(pixelsPerLine, scale) + it.aboveBlockLine * scale
+				} + (5 * pixelsPerLine)
 				BufferedImage(glancePanel.getConfigSize().width, height.toInt(), BufferedImage.TYPE_INT_ARGB)
 			}
 		} else null ?: return
@@ -133,8 +137,8 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		val curRangeList = mutableListOf<Pair<Int, Range<Double>>>()
 		for ((index, it) in copyList.withIndex()) {
 			if(it == null) continue
-			val y = it.getLineHeight(scrollState)
-			val aboveBlockLine = it.aboveBlockLine * scrollState.scale
+			val y = it.getLineHeight(pixelsPerLine, scale)
+			val aboveBlockLine = it.aboveBlockLine * scale
 			//Coordinates
 			if(it.lineType == LineType.CUSTOM_FOLD){
 				curRangeList.add(index to Range(totalY, totalY + y - pixelsPerLine + aboveBlockLine))
@@ -168,7 +172,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 									9 -> 4 //TAB
 									10 -> break@breakY
 									else -> {
-										curImg.renderImage(curX, curY, char.code)
+										curImg.renderImage(curX, curY, char.code, renderHeight)
 										1
 									}
 								}
@@ -179,7 +183,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 						//this is render document
 						val foldRegion = it.customFoldRegion
 						val foldStartOffset = foldRegion.startOffset
-						val line = myDocument.getLineNumber(foldStartOffset) - 1 + (y / scrollState.pixelsPerLine).toInt()
+						val line = myDocument.getLineNumber(foldStartOffset) - 1 + (y / pixelsPerLine).toInt()
 						val foldEndOffset = foldRegion.endOffset.run {
 							if(DocumentUtil.isValidLine(line, myDocument)) {
 								val lineEndOffset = myDocument.getLineEndOffset(line)
@@ -201,7 +205,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 								}
 								else -> {
 									if(preSetPixelY != renderY){
-										curImg.renderImage(curX, renderY, char.code)
+										curImg.renderImage(curX, renderY, char.code, renderHeight)
 									}
 									curX += 1
 								}
@@ -649,11 +653,11 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 									  val lineType: LineType? = null,
 									  val customFoldRegion: CustomFoldRegion? = null,
 									  val commentHighlighterEx: RangeHighlighterEx? = null) {
-		fun getLineHeight(scrollState: ScrollState) = if(lineType == LineType.CUSTOM_FOLD && customFoldRegion != null) {
-			(customFoldRegion.heightInPixels * scrollState.scale).run{
-				if(this < scrollState.pixelsPerLine) scrollState.pixelsPerLine else this
+		fun getLineHeight(pixelsPerLine: Double, scale: Double) = if(lineType == LineType.CUSTOM_FOLD && customFoldRegion != null) {
+			(customFoldRegion.heightInPixels * scale).run{
+				if(this < pixelsPerLine) pixelsPerLine else this
 			}
-		} else scrollState.pixelsPerLine
+		} else pixelsPerLine
 
 		override fun equals(other: Any?): Boolean {
 			if (this === other) return true

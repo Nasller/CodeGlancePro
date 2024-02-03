@@ -28,7 +28,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		SingleAlarm({ updateMinimapImage() }, 500, this, Alarm.ThreadToUse.POOLED_THREAD)
 	}
 	private var imgReference = lazy {
-		MySoftReference.create(getBufferedImage(), editor.editorKind != EditorKind.MAIN_EDITOR)
+		MySoftReference.create(getBufferedImage(scrollState), editor.editorKind != EditorKind.MAIN_EDITOR)
 	}
 	override val rangeList: MutableList<Pair<Int, Range<Double>>> = mutableListOf()
 	init { makeListener() }
@@ -61,7 +61,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		var curImg = imgReference.value.get()
 		if (curImg == null || curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
 			curImg?.flush()
-			curImg = getBufferedImage()
+			curImg = getBufferedImage(scrollState)
 			imgReference = lazyOf(MySoftReference.create(curImg, editor.editorKind != EditorKind.MAIN_EDITOR))
 		}
 		return if(editor.isDisposed) return null else curImg
@@ -86,6 +86,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		}
 		val softWrapEnable = editor.softWrapModel.isSoftWrappingEnabled
 		val hasBlockInlay = editor.inlayModel.hasBlockElements()
+		val renderHeight = scrollState.getRenderHeight()
 		var x = 0
 		var y = 0.0
 		var preSetPixelY = -1
@@ -106,7 +107,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 			moveCharIndex(it.code, null)
 			val renderY = y.toInt()
 			if(renderY != preSetPixelY) {
-				curImg.renderImage(x, renderY, it.code)
+				curImg.renderImage(x, renderY, it.code, renderHeight)
 			}
 		}
 		val highlight = makeMarkHighlight(text, graphics)
@@ -204,7 +205,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 						} }
 						val renderY = y.toInt()
 						if(renderY != preSetPixelY) {
-							curImg.renderImage(x, renderY, charCode) {
+							curImg.renderImage(x, renderY, charCode, renderHeight) {
 								(highlightList.firstOrNull { offset >= it.startOffset && offset < it.endOffset }?.foregroundColor ?:
 								color ?: defaultColor).setColorRgb()
 							}

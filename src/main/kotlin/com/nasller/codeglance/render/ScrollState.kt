@@ -3,9 +3,10 @@ package com.nasller.codeglance.render
 import com.nasller.codeglance.config.enums.EditorSizeEnum
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Rectangle
+import kotlin.math.max
 import kotlin.math.min
 
-class ScrollState {
+class ScrollState : Cloneable{
     var pixelsPerLine = 0.0
         private set
     var scale = Double.NaN
@@ -34,7 +35,7 @@ class ScrollState {
         val newScale = config.pixelsPerLine.toDouble() / lineHeight
         val curDocumentHeight = (contentHeight * newScale).toInt()
         if(config.editorSize == EditorSizeEnum.Fit && curDocumentHeight > visibleArea.height) {
-            if(visibleArea.height == 0 && initialized) {
+            if(visibleArea.height < 1 && initialized) {
                 return true
             }
             val oldDocumentHeight = documentHeight.apply { documentHeight = visibleArea.height }
@@ -42,7 +43,7 @@ class ScrollState {
             pixelsPerLine = scale * lineHeight
             if((oldDocumentHeight > 0 || !initialized) && oldDocumentHeight != documentHeight) {
                 initialized = true
-                if(visibleChange && documentHeight > 0) {
+                if(visibleChange && documentHeight > 0 && pixelsPerLine > 0) {
                     refreshDataAndImage()
                     return false
                 }
@@ -51,7 +52,7 @@ class ScrollState {
             pixelsPerLine = config.pixelsPerLine.toDouble()
             documentHeight = curDocumentHeight
             val oldScale = scale.apply { scale = newScale }
-            if(!oldScale.isNaN() && visibleChange && oldScale != scale) {
+            if(visibleChange && !oldScale.isNaN() && oldScale != scale) {
                 initialized = true
                 refreshDataAndImage()
                 return false
@@ -71,7 +72,9 @@ class ScrollState {
         visibleEnd = visibleStart + drawHeight
     }
 
-    fun getRenderHeight(): Int {
-        return if(pixelsPerLine < 1) 1 else pixelsPerLine.toInt()
+    fun getRenderHeight() = max(1.0, pixelsPerLine).toInt()
+
+    public override fun clone(): ScrollState {
+        return super.clone() as ScrollState
     }
 }

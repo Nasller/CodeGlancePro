@@ -59,7 +59,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		markCommentState.refreshMarkCommentHighlight(editor)
 		editor.putUserData(CURRENT_GLANCE, this)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, if (info.place == BorderLayout.LINE_START) PlaceIndex.Left else PlaceIndex.Right)
-		if(scrollState.documentHeight > 0){
+		if(scrollState.documentHeight > 0 && scrollState.pixelsPerLine > 0) {
 			refreshDataAndImage()
 		}
 	}

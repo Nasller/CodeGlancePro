@@ -89,8 +89,8 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 	}
 
 	@Suppress("UndesirableClassUsage")
-	protected fun getBufferedImage() = BufferedImage(glancePanel.getConfigSize().width,
-		glancePanel.scrollState.documentHeight + (100 * scrollState.getRenderHeight()), BufferedImage.TYPE_INT_ARGB)
+	protected fun getBufferedImage(scrollState: ScrollState) = BufferedImage(glancePanel.getConfigSize().width,
+			scrollState.documentHeight + (100 * scrollState.getRenderHeight()), BufferedImage.TYPE_INT_ARGB)
 
 	protected fun canUpdate() = glancePanel.checkVisible() && (editor.editorKind == EditorKind.CONSOLE || virtualFile == null
 			|| runReadAction { editor.highlighter !is EmptyEditorHighlighter })
@@ -120,23 +120,23 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 		scaleBuffer[2] = (this shr 0) and 0xFF //BLUE
 	}
 
-	protected fun BufferedImage.renderImage(x: Int, y: Int, char: Int, consumer: (() -> Unit)? = null) {
-		if (char !in 0..32 && x in 0 until width && 0 <= y && y + scrollState.getRenderHeight() < height) {
+	protected fun BufferedImage.renderImage(x: Int, y: Int, char: Int,pixelsPerLine: Int, consumer: (() -> Unit)? = null) {
+		if (char !in 0..32 && x in 0 until width && 0 <= y && y + pixelsPerLine < height) {
 			consumer?.invoke()
 			if (config.clean) {
-				renderClean(x, y, char)
+				renderClean(x, y, char, pixelsPerLine)
 			} else {
-				renderAccurate(x, y, char)
+				renderAccurate(x, y, char, pixelsPerLine)
 			}
 		}
 	}
 
-	private fun BufferedImage.renderClean(x: Int, y: Int, char: Int) {
+	private fun BufferedImage.renderClean(x: Int, y: Int, char: Int, pixelsPerLine: Int) {
 		val weight = when (char) {
 			in 33..126 -> 0.8f
 			else -> 0.4f
 		}
-		when (scrollState.getRenderHeight()) {
+		when (pixelsPerLine) {
 			// Can't show space between lines anymore. This looks rather ugly...
 			1 -> setPixel(x, y + 1, weight * 0.6f)
 			// Two lines we make the top line a little lighter to give the illusion of space between lines.
@@ -159,10 +159,10 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 		}
 	}
 
-	private fun BufferedImage.renderAccurate(x: Int, y: Int, char: Int) {
+	private fun BufferedImage.renderAccurate(x: Int, y: Int, char: Int, pixelsPerLine: Int) {
 		val topWeight = getTopWeight(char)
 		val bottomWeight = getBottomWeight(char)
-		when (scrollState.getRenderHeight()) {
+		when (pixelsPerLine) {
 			// Can't show space between lines anymore. This looks rather ugly...
 			1 -> setPixel(x, y + 1, (topWeight + bottomWeight) / 2)
 			// Two lines we make the top line a little lighter to give the illusion of space between lines.

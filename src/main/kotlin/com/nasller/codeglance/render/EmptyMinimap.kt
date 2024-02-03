@@ -23,7 +23,7 @@ import kotlin.math.roundToInt
 class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 	override val rangeList: MutableList<Pair<Int, Range<Double>>> = mutableListOf()
 	private var imgReference = lazy {
-		MySoftReference.create(getBufferedImage(), editor.editorKind != EditorKind.MAIN_EDITOR)
+		MySoftReference.create(getBufferedImage(scrollState), editor.editorKind != EditorKind.MAIN_EDITOR)
 	}
 	init { makeListener() }
 
@@ -55,7 +55,7 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 		var curImg = imgReference.value.get()
 		if (curImg == null || curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
 			curImg?.flush()
-			curImg = getBufferedImage()
+			curImg = getBufferedImage(scrollState)
 			imgReference = lazyOf(MySoftReference.create(curImg, editor.editorKind != EditorKind.MAIN_EDITOR))
 		}
 		return if(editor.isDisposed) return null else curImg
