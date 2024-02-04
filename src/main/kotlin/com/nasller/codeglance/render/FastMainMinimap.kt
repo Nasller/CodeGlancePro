@@ -75,7 +75,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 					try {
 						update(renderDataList.toList(), myScrollState)
 					}finally {
-						invokeLater(ModalityState.any()){
+						invokeLater(modalityState){
 							lock.set(false)
 							glancePanel.repaint()
 							if (myRenderDirty.get() || myScrollState.scale != scrollState.scale ||
@@ -310,7 +310,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 								val highlightList = getHighlightColor(curStart, curEnd)
 								if(highlightList.isNotEmpty()){
 									if(highlightList.size == 1 && highlightList.first().run{ startOffset == curStart && endOffset == curEnd }){
-										renderList.add(RenderData(renderStr, highlightList.first().foregroundColor.rgb))
+										renderList.add(RenderData(renderStr.firstLine(), highlightList.first().foregroundColor.rgb))
 									}else {
 										val lexerColor = runCatching { hlIter.textAttributes.foregroundColor }.getOrNull()
 											?: editor.colorsScheme.defaultForeground
@@ -331,7 +331,8 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 										}
 									}
 								}else {
-									renderList.add(RenderData(renderStr, runCatching { hlIter.textAttributes.foregroundColor?.rgb }.getOrNull()))
+									renderList.add(RenderData(renderStr.firstLine(),
+										runCatching { hlIter.textAttributes.foregroundColor?.rgb }.getOrNull()))
 								}
 							}
 							hlIter.advance()
@@ -360,8 +361,9 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 				if (iter.hasNext()) iter.next()// Skip first
 				while (iter.hasNext()){
 					val data = iter.next()
-					if(preData.rgb == data.rgb){
+					if(preData.rgb == null || data.rgb == null || preData.rgb == data.rgb){
 						preData.renderChar += data.renderChar
+						preData.rgb = preData.rgb ?: data.rgb
 						iter.remove()
 					}else {
 						preData = data
@@ -683,14 +685,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		}
 	}
 
-	private data class RenderData(var renderChar: CharArray, val rgb: Int? = null){
-		init {
-			val index = renderChar.indexOf('\n')
-			if(index > 0) {
-				renderChar = renderChar.copyOfRange(0, index)
-			}
-		}
-
+	private data class RenderData(var renderChar: CharArray, var rgb: Int? = null){
 		override fun equals(other: Any?): Boolean {
 			if (this === other) return true
 			if (javaClass != other?.javaClass) return false
@@ -728,6 +723,11 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 
 		private fun SoftWrapApplianceManager.removeSoftWrapListener(listener: Any) {
 			(softWrapListeners.get(this) as MutableList<Any>).remove(listener)
+		}
+
+		private fun CharArray.firstLine(): CharArray{
+			val index = indexOf('\n')
+			return if(index > 0) copyOfRange(0, index) else this
 		}
 	}
 }

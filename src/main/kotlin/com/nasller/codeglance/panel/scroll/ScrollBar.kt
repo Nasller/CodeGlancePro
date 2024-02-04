@@ -15,6 +15,7 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.MouseEventAdapter
 import com.nasller.codeglance.CURRENT_EDITOR_DIFF_VIEW
 import com.nasller.codeglance.config.CodeGlanceConfig.Companion.setWidth
+import com.nasller.codeglance.config.SettingsChangePublisher
 import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
@@ -179,7 +180,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 
 	private fun resizeGlancePanel(refreshImage: Boolean) {
 		if(!resizing) return
-		val action = {it: GlancePanel-> if(refreshImage) it.refreshDataAndImage() else it.refresh() }
+		val action = {it: GlancePanel-> if(refreshImage) SettingsChangePublisher.refreshDataAndImage() else it.refresh() }
 		val diffViewer = editor.getUserData(CURRENT_EDITOR_DIFF_VIEW)
 		if (diffViewer != null) {
 			if (diffViewer is EditorDiffViewer) {

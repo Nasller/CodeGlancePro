@@ -26,6 +26,7 @@ import com.nasller.codeglance.panel.scroll.CustomScrollBarPopup
 import com.nasller.codeglance.panel.scroll.ScrollBar
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import com.nasller.codeglance.render.BaseMinimap.Companion.getMinimap
+import com.nasller.codeglance.render.FastMainMinimap
 import com.nasller.codeglance.render.MarkCommentState
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
@@ -75,6 +76,8 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		revalidate()
 		minimap.rebuildDataAndImage()
 	}
+
+	fun refreshImage() = if(minimap is FastMainMinimap) minimap.updateMinimapImage() else minimap.rebuildDataAndImage()
 
 	fun updateScrollState(visibleArea: Rectangle? = null, visibleChange: Boolean = false) = scrollState.run {
 		val visible = visibleArea ?: editor.scrollingModel.visibleArea

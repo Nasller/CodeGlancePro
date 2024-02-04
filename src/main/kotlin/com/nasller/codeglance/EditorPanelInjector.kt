@@ -21,6 +21,7 @@ import com.intellij.openapi.util.Key
 import com.intellij.ui.components.JBPanel
 import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.config.SettingsChangeListener
+import com.nasller.codeglance.config.SettingsChangePublisher
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import java.awt.BorderLayout
@@ -67,7 +68,7 @@ class GlobalSettingsChangeListener : SettingsChangeListener{
 }
 
 class GlobalLafManagerListener : LafManagerListener {
-    override fun lookAndFeelChanged(source: LafManager) = processAllGlanceEditor{ oldGlance, _ -> oldGlance?.apply{ refreshDataAndImage() } }
+    override fun lookAndFeelChanged(source: LafManager) = SettingsChangePublisher.refreshDataAndImage(true)
 }
 
 private fun firstRunEditor(info: EditorInfo, diffView: FrameDiffTool.DiffViewer?) {
