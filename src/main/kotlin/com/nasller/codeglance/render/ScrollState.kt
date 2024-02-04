@@ -42,9 +42,9 @@ class ScrollState : Cloneable{
             scale = documentHeight.toDouble() / contentHeight
             pixelsPerLine = scale * lineHeight
             if((oldDocumentHeight > 0 || !initialized) && oldDocumentHeight != documentHeight) {
-                initialized = true
+                val oldInitialized = initialized.apply { initialized = true }
                 if(visibleChange && documentHeight > 0 && pixelsPerLine > 0) {
-                    refreshImage()
+                    if(oldInitialized) refreshImage() else refreshDataAndImage()
                     return false
                 }
             }

@@ -361,7 +361,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 				if (iter.hasNext()) iter.next()// Skip first
 				while (iter.hasNext()){
 					val data = iter.next()
-					if(preData.rgb == null || data.rgb == null || preData.rgb == data.rgb){
+					if(preData.canMerge || data.canMerge || preData.rgb == data.rgb){
 						preData.renderChar += data.renderChar
 						preData.rgb = preData.rgb ?: data.rgb
 						iter.remove()
@@ -686,6 +686,8 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	}
 
 	private data class RenderData(var renderChar: CharArray, var rgb: Int? = null){
+		val canMerge: Boolean
+			get() = renderChar.isEmpty() || renderChar.all { it.isWhitespace() }
 		override fun equals(other: Any?): Boolean {
 			if (this === other) return true
 			if (javaClass != other?.javaClass) return false
