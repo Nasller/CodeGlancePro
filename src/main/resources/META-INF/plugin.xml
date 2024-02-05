@@ -27,6 +27,7 @@
 		<h3>1.8.0</h3>
 		<ul>
 			<li>Support Fit minimap same like VsCode</li>
+			<li>Disable console minimap by default</li>
 		</ul>
 		<h3>1.7.9</h3>
 		<ul>
