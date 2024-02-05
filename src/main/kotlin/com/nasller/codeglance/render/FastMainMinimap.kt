@@ -101,7 +101,6 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	private fun update(copyList: List<LineRenderData?>, myScrollState: ScrollState) {
 		val pixelsPerLine = myScrollState.pixelsPerLine
 		val scale = myScrollState.scale
-		val renderHeight = myScrollState.getRenderHeight()
 		val curImg = if(glancePanel.checkVisible()) {
 			if(pixelsPerLine < 1){
 				getBufferedImage(myScrollState)
@@ -112,6 +111,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 				BufferedImage(glancePanel.getConfigSize().width, height.toInt(), BufferedImage.TYPE_INT_ARGB)
 			}
 		} else null ?: return
+		val renderHeight = myScrollState.getRenderHeight()
 		val graphics = curImg.createGraphics()
 		val markAttributes by lazy(LazyThreadSafetyMode.NONE) {
 			editor.colorsScheme.getAttributes(Util.MARK_COMMENT_ATTRIBUTES).also {
@@ -129,7 +129,6 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		val docCommentRgb by lazy(LazyThreadSafetyMode.NONE){
 			editor.colorsScheme.getAttributes(DefaultLanguageHighlighterColors.DOC_COMMENT).foregroundColor?.rgb
 		}
-		val text = myDocument.immutableCharSequence
 		val defaultRgb = editor.colorsScheme.defaultForeground.rgb
 		var totalY = 0.0
 		var skipY = 0.0
@@ -194,7 +193,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 						var curX = it.startX ?: 0
 						var curY = totalY
 						(docCommentRgb ?: defaultRgb).setColorRgb()
-						for (char in CharArrayUtil.fromSequence(text, foldStartOffset, foldEndOffset)) {
+						for (char in myDocument.getText(TextRange(foldStartOffset, foldEndOffset))) {
 							val renderY = curY.toInt()
 							when (char.code) {
 								9 -> curX += 4 //TAB
