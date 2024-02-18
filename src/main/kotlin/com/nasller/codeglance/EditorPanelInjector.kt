@@ -68,7 +68,7 @@ class GlobalSettingsChangeListener : SettingsChangeListener{
 }
 
 class GlobalLafManagerListener : LafManagerListener {
-    override fun lookAndFeelChanged(source: LafManager) = SettingsChangePublisher.refreshDataAndImage(true)
+    override fun lookAndFeelChanged(source: LafManager) = SettingsChangePublisher.refreshDataAndImage()
 }
 
 private fun firstRunEditor(info: EditorInfo, diffView: FrameDiffTool.DiffViewer?) {

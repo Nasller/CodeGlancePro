@@ -46,7 +46,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	override fun onHoveringOriginalScrollBarChanged(value: Boolean) = if (value) glancePanel.hideScrollBarListener.addHideScrollBarListener()
 	else glancePanel.hideScrollBarListener.removeHideScrollBarListener()
 
-	override fun refreshDataAndImage(justImage: Boolean) = if(justImage) glancePanel.refreshImage() else glancePanel.refreshDataAndImage()
+	override fun refreshDataAndImage() = glancePanel.refreshDataAndImage()
 
 	/** VisibleAreaListener */
 	override fun visibleAreaChanged(e: VisibleAreaEvent) {

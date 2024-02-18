@@ -85,7 +85,7 @@ val SettingsChangePublisher: SettingsChangeListener = ApplicationManager.getAppl
 interface SettingsChangeListener {
 	fun onHoveringOriginalScrollBarChanged(value: Boolean) {}
 
-	fun refreshDataAndImage(justImage: Boolean = false) {}
+	fun refreshDataAndImage() {}
 
 	fun onGlobalChanged() {}
 
