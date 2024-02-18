@@ -50,7 +50,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 
 	abstract fun getImageOrUpdate(): BufferedImage?
 
-	abstract fun updateMinimapImage(canUpdate: Boolean = glancePanel.checkVisible() && scrollState.pixelsPerLine > 0)
+	abstract fun updateMinimapImage(canUpdate: Boolean = glancePanel.checkVisible())
 
 	open fun rebuildDataAndImage() = updateMinimapImage(canUpdate())
 
