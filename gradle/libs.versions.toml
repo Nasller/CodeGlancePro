@@ -1,6 +1,6 @@
 [versions]
-kotlin = "1.9.21"
-gradleIntelliJPlugin = "1.17.1"
+kotlin = "1.9.22"
+gradleIntelliJPlugin = "1.17.2"
 
 [plugins]
 gradleIntelliJPlugin = { id = "org.jetbrains.intellij", version.ref = "gradleIntelliJPlugin" }
