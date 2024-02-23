@@ -22,5 +22,6 @@ Show/Hide or Enable/Disable Minimap
 * Settings > Other Settings > CodeGlance Pro
 
 ## EAP Version
-In case you are using an EAP version of any IDEA flavor, just add the EAP channel: `https://plugins.jetbrains.com/plugins/eap/18824`.
+In case you are using an EAP version of any IDEA flavor,
+just add the EAP channel: `https://plugins.jetbrains.com/plugins/eap/18824` or `https://plugins.jetbrains.com/plugins/eap/list`.
 See JetBrains documentation for more details: https://www.jetbrains.com/help/idea/managing-plugins.html#repos
