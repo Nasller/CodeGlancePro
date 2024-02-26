@@ -283,7 +283,6 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	}
 
 	override fun paintComponent(gfx: Graphics) {
-		super.paintComponent(gfx)
 		if(isReleased) return
 		with(gfx as Graphics2D){
 			if(hideScrollBarListener.isNotRunning()) runReadAction { paintSomething() }

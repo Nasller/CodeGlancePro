@@ -26,14 +26,22 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	}
 
 	/** CaretListener */
-	override fun caretPositionChanged(event: CaretEvent) = repaint()
+	override fun caretPositionChanged(event: CaretEvent) {
+		if(event.oldPosition.line != event.newPosition.line) {
+			repaint()
+		}
+	}
 
 	override fun caretAdded(event: CaretEvent) = repaint()
 
 	override fun caretRemoved(event: CaretEvent) = repaint()
 
 	/** SelectionListener */
-	override fun selectionChanged(e: SelectionEvent) = repaint()
+	override fun selectionChanged(e: SelectionEvent) {
+		if(e.editor.selectionModel.hasSelection()){
+			repaint()
+		}
+	}
 
 	/** ComponentAdapter */
 	override fun componentResized(componentEvent: ComponentEvent) = glancePanel.run {
