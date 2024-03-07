@@ -16,6 +16,7 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
+import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.Range
 import com.nasller.codeglance.EditorInfo
 import com.nasller.codeglance.config.CodeGlanceConfig.Companion.getWidth
@@ -286,6 +287,8 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		super.paintComponent(gfx)
 		if(isReleased) return
 		with(gfx as Graphics2D){
+			val sysScale = JBUIScale.sysScale(graphicsConfiguration).toDouble()
+			scale(sysScale, sysScale)
 			if(hideScrollBarListener.isNotRunning()) runReadAction { paintSomething() }
 			minimap.getImageOrUpdate()?.let {
 				composite = srcOver0_8

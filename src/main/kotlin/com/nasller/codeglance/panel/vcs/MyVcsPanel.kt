@@ -3,6 +3,7 @@ package com.nasller.codeglance.panel.vcs
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.util.Disposer
+import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.ui.MouseEventAdapter
 import com.nasller.codeglance.listener.MyVcsListener
 import com.nasller.codeglance.panel.GlancePanel
@@ -33,7 +34,11 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 	override fun paintComponent(gfx: Graphics) = glancePanel.run {
 		super.paintComponent(gfx)
 		if(glancePanel.isReleased) return
-		with(gfx as Graphics2D){ paintVcs(getVisibleRangeOffset(),this@MyVcsPanel.width) }
+		with(gfx as Graphics2D){
+			val sysScale = JBUIScale.sysScale(graphicsConfiguration).toDouble()
+			scale(sysScale, sysScale)
+			paintVcs(getVisibleRangeOffset(),this@MyVcsPanel.width)
+		}
 	}
 
 	private inner class MouseHandler : MouseAdapter() {

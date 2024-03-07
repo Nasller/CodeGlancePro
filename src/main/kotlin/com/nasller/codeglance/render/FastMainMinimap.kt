@@ -27,6 +27,7 @@ import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.text.CharArrayUtil
 import com.intellij.util.ui.EdtInvocationManager
+import com.intellij.util.ui.ImageUtil
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MyVisualLinesIterator
@@ -97,7 +98,6 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 
 	override fun rebuildDataAndImage() = runInEdt(modalityState){ if(canUpdate()) resetMinimapData() }
 
-	@Suppress("UndesirableClassUsage")
 	private fun update(copyList: List<LineRenderData?>, myScrollState: ScrollState) {
 		val pixelsPerLine = myScrollState.pixelsPerLine
 		val scale = myScrollState.scale
@@ -108,7 +108,8 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 				val height = copyList.filterNotNull().sumOf {
 					it.getLineHeight(pixelsPerLine, scale) + it.aboveBlockLine * scale
 				} + (5 * pixelsPerLine)
-				BufferedImage(glancePanel.getConfigSize().width, height.toInt(), BufferedImage.TYPE_INT_ARGB)
+				ImageUtil.createImage(glancePanel.graphicsConfiguration, glancePanel.getConfigSize().width,
+					height.toInt(), BufferedImage.TYPE_INT_ARGB)
 			}
 		} else null ?: return
 		val renderHeight = myScrollState.getRenderHeight()
@@ -644,8 +645,8 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	}
 
 	override fun dispose() {
-		rangeList.clear()
 		editor.softWrapModel.applianceManager.removeSoftWrapListener(mySoftWrapChangeListener)
+		rangeList.clear()
 		previewImg.flush()
 	}
 
@@ -705,7 +706,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 
 	private enum class LineType{COMMENT, CUSTOM_FOLD}
 
-	@Suppress("UNCHECKED_CAST", "UndesirableClassUsage")
+	@Suppress("UNCHECKED_CAST")
 	companion object{
 		private val LOG = LoggerFactory.getLogger(FastMainMinimap::class.java)
 		private const val HOOK_ON_RECALCULATION_END_METHOD = "onRecalculationEnd"
@@ -715,7 +716,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 			isAccessible = true
 		}
 		private val DefaultLineRenderData = LineRenderData(emptyArray(), null, 0)
-		private val EMPTY_IMG = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB)
+		private val EMPTY_IMG = ImageUtil.createImage(1,1, BufferedImage.TYPE_INT_ARGB)
 		private val fastMinimapBackendExecutor = AppExecutorUtil.createBoundedApplicationPoolExecutor("FastMinimapBackendExecutor", 1)
 
 		private fun SoftWrapApplianceManager.addSoftWrapListener(listener: Any) {

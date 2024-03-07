@@ -22,6 +22,7 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.findParentOfType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
+import com.intellij.util.ui.ImageUtil
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.Util
@@ -88,8 +89,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 		return startAdd to endAdd
 	}
 
-	@Suppress("UndesirableClassUsage")
-	protected fun getBufferedImage(scrollState: ScrollState) = BufferedImage(glancePanel.getConfigSize().width,
+	protected fun getBufferedImage(scrollState: ScrollState) = ImageUtil.createImage(glancePanel.graphicsConfiguration, glancePanel.getConfigSize().width,
 			scrollState.documentHeight + (100 * scrollState.getRenderHeight()), BufferedImage.TYPE_INT_ARGB)
 
 	protected fun canUpdate() = glancePanel.checkVisible() && (editor.editorKind == EditorKind.CONSOLE || virtualFile == null
