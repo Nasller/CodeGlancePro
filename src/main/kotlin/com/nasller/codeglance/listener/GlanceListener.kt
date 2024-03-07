@@ -37,11 +37,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	override fun caretRemoved(event: CaretEvent) = repaint()
 
 	/** SelectionListener */
-	override fun selectionChanged(e: SelectionEvent) {
-		if(e.editor.selectionModel.hasSelection()){
-			repaint()
-		}
-	}
+	override fun selectionChanged(e: SelectionEvent) = repaint()
 
 	/** ComponentAdapter */
 	override fun componentResized(componentEvent: ComponentEvent) = glancePanel.run {
