@@ -47,10 +47,10 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val myPopHandler = CustomScrollBarPopup(this)
 	val hideScrollBarListener = HideScrollBarListener(this)
 	val scrollbar = ScrollBar(this)
-	var myVcsPanel: MyVcsPanel? = null
 	val markCommentState = MarkCommentState(this)
+	var myVcsPanel: MyVcsPanel? = null
+	var isReleased = false
 	private val minimap = updateScrollState().run { editor.editorKind.getMinimap(this@GlancePanel) }
-	private var isReleased = false
 	init {
 		Disposer.register(editor.disposable, this)
 		Disposer.register(this, GlanceListener(this))
@@ -283,6 +283,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	}
 
 	override fun paintComponent(gfx: Graphics) {
+		super.paintComponent(gfx)
 		if(isReleased) return
 		with(gfx as Graphics2D){
 			if(hideScrollBarListener.isNotRunning()) runReadAction { paintSomething() }
