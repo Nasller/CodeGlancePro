@@ -26,7 +26,6 @@ import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import java.awt.BorderLayout
 import java.awt.Color
-import javax.swing.JPanel
 
 val CURRENT_EDITOR_DIFF_VIEW = Key<FrameDiffTool.DiffViewer>("CURRENT_EDITOR_DIFF_VIEW")
 
@@ -76,7 +75,7 @@ private fun firstRunEditor(info: EditorInfo, diffView: FrameDiffTool.DiffViewer?
     if(info.editor.isDisableExtensionFile() || !CodeGlanceConfigService.getConfig().editorKinds.contains(info.editor.editorKind)) {
         return
     }
-    val layout = (info.editor.component as? JPanel)?.layout
+    val layout = info.editor.component.layout
     if (layout is BorderLayout && layout.getLayoutComponent(info.place) == null) {
         setMyPanel(info).apply { changeOriginScrollBarWidth() }
     }
@@ -112,7 +111,7 @@ private fun processAllGlanceEditor(action: (oldGlance:GlancePanel?, EditorInfo)-
         val where = if (CodeGlanceConfigService.getConfig().isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
         for (editor in EditorFactory.getInstance().allEditors.filterIsInstance<EditorImpl>()) {
             val info = EditorInfo(editor, where)
-            val layout = (info.editor.component as? JPanel)?.layout
+            val layout = info.editor.component.layout
             if (layout is BorderLayout) {
                 action(((layout.getLayoutComponent(BorderLayout.LINE_END) ?:
                 layout.getLayoutComponent(BorderLayout.LINE_START)) as? MyPanel)?.panel, info)
@@ -125,7 +124,7 @@ private fun processAllGlanceEditor(action: (oldGlance:GlancePanel?, EditorInfo)-
 
 private fun setMyPanel(info: EditorInfo): GlancePanel {
     val glancePanel = GlancePanel(info)
-    info.editor.apply{ component.add(MyPanel(glancePanel), info.place) }
+    info.editor.component.add(MyPanel(glancePanel), info.place)
     glancePanel.hideScrollBarListener.addHideScrollBarListener()
     return glancePanel
 }
