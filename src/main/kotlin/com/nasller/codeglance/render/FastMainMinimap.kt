@@ -18,7 +18,7 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
-import com.intellij.ui.scale.JBUIScale
+import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.DocumentEventUtil
 import com.intellij.util.DocumentUtil
 import com.intellij.util.MathUtil
@@ -119,14 +119,14 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 				GraphicsUtil.setupAAPainting(graphics)
 			}
 		}
-		val sysScale = JBUIScale.sysScale(glancePanel)
+		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
 		val font by lazy(LazyThreadSafetyMode.NONE) {
 			editor.colorsScheme.getFont(when (markAttributes.fontType) {
 				Font.ITALIC -> EditorFontType.ITALIC
 				Font.BOLD -> EditorFontType.BOLD
 				Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
 				else -> EditorFontType.PLAIN
-			}).deriveFont(config.markersScaleFactor * 3 / sysScale)
+			}).deriveFont(config.markersScaleFactor * 3 / pixScale.toFloat())
 		}
 		val docCommentRgb by lazy(LazyThreadSafetyMode.NONE){
 			editor.colorsScheme.getAttributes(DefaultLanguageHighlighterColors.DOC_COMMENT).foregroundColor?.rgb
@@ -221,8 +221,8 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 							UIUtil.getFontWithFallback(font).deriveFont(markAttributes.fontType, font.size2D)
 						} else font
 						graphics.font = textFont
-						graphics.drawString(commentText, it.startX ?: 0,totalY.toInt() + (textFont.size / sysScale).toInt())
-						skipY = textFont.size * sysScale - if(pixelsPerLine < 1) 0.0 else pixelsPerLine
+						graphics.drawString(commentText, it.startX ?: 0,totalY.toInt() + (textFont.size / pixScale).toInt())
+						skipY = textFont.size * pixScale - if(pixelsPerLine < 1) 0.0 else pixelsPerLine
 					}
 				}
 			}

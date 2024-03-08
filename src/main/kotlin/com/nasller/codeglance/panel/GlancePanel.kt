@@ -16,7 +16,8 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
-import com.intellij.ui.scale.JBUIScale
+import com.intellij.ui.scale.DerivedScaleType
+import com.intellij.ui.scale.ScaleContext
 import com.intellij.util.Range
 import com.nasller.codeglance.EditorInfo
 import com.nasller.codeglance.config.CodeGlanceConfig.Companion.getWidth
@@ -51,6 +52,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val markCommentState = MarkCommentState(this)
 	var myVcsPanel: MyVcsPanel? = null
 	var isReleased = false
+	val scaleContext = ScaleContext.create(this)
 	private val minimap = updateScrollState().run { editor.editorKind.getMinimap(this@GlancePanel) }
 	init {
 		Disposer.register(editor.disposable, this)
@@ -287,8 +289,8 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		super.paintComponent(gfx)
 		if(isReleased) return
 		with(gfx as Graphics2D){
-			val sysScale = JBUIScale.sysScale(this).toDouble()
-			scale(sysScale, sysScale)
+			val pixScale = scaleContext.getScale(DerivedScaleType.PIX_SCALE)
+			scale(pixScale, pixScale)
 			if(hideScrollBarListener.isNotRunning()) runReadAction { paintSomething() }
 			minimap.getImageOrUpdate()?.let {
 				composite = srcOver0_8

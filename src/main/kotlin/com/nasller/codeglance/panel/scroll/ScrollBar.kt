@@ -20,6 +20,7 @@ import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
+import com.nasller.codeglance.util.Util.alignedToY
 import java.awt.AlphaComposite
 import java.awt.Cursor
 import java.awt.Graphics2D
@@ -97,6 +98,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 
 	override fun mousePressed(e: MouseEvent) {
 		if (e.button != MouseEvent.BUTTON1) return
+		e.translatePoint(e.x, e.y.alignedToY(glancePanel))
 		when {
 			isInResizeGutter(e.x) -> {
 				resizing = true
@@ -113,6 +115,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	override fun mouseDragged(e: MouseEvent) {
+		e.translatePoint(e.x, e.y.alignedToY(glancePanel))
 		if (resizing) {
 			val newWidth = if(editor.getUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX) == GlancePanel.PlaceIndex.Left)
 				widthStart + e.xOnScreen - resizeStart
@@ -135,6 +138,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	override fun mouseReleased(e: MouseEvent) {
+		e.translatePoint(e.x, e.y.alignedToY(glancePanel))
 		val action = {
 			resizeGlancePanel(true)
 			updateAlpha(e.y)
@@ -147,6 +151,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	override fun mouseMoved(e: MouseEvent) {
+		e.translatePoint(e.x, e.y.alignedToY(glancePanel))
 		val isInRect = updateAlpha(e.y)
 		if (isInResizeGutter(e.x)) {
 			glancePanel.cursor = Cursor(Cursor.W_RESIZE_CURSOR)
@@ -171,6 +176,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			if (myLastVisualLine < editor.visibleLineCount - 1 && units > 0 || myLastVisualLine > 0 && units < 0) {
 				myWheelAccumulator += units
 			}
+			e.translatePoint(e.x, e.y.alignedToY(glancePanel))
 			showToolTipByMouseMove(e)
 		} else {
 			if(hasEditorPreviewHint) hideMyEditorPreviewHint()

@@ -3,11 +3,12 @@ package com.nasller.codeglance.panel.vcs
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.util.Disposer
-import com.intellij.ui.scale.JBUIScale
+import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.ui.MouseEventAdapter
 import com.nasller.codeglance.listener.MyVcsListener
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
+import com.nasller.codeglance.util.Util.alignedToY
 import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.Graphics
@@ -35,8 +36,8 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 		super.paintComponent(gfx)
 		if(glancePanel.isReleased) return
 		with(gfx as Graphics2D){
-			val sysScale = JBUIScale.sysScale(this).toDouble()
-			scale(sysScale, sysScale)
+			val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
+			scale(pixScale, pixScale)
 			paintVcs(getVisibleRangeOffset(),this@MyVcsPanel.width)
 		}
 	}
@@ -53,6 +54,7 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 
 		override fun mouseMoved(e: MouseEvent) {
 			if(glancePanel.config.showVcsHighlight.not()) return
+			e.translatePoint(e.x, e.y.alignedToY(glancePanel))
 			val rangeOffset = glancePanel.getVisibleRangeOffset()
 			val process = editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from,rangeOffset.to) {
 				if (it.isThinErrorStripeMark) it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {

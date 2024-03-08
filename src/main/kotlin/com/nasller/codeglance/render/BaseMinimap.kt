@@ -19,7 +19,7 @@ import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.psi.PsiComment
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.findParentOfType
-import com.intellij.ui.scale.JBUIScale
+import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.ui.GraphicsUtil
@@ -213,7 +213,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 			val map = mutableMapOf<Int, MarkCommentData>()
 			val file = glancePanel.psiDocumentManager.getCachedPsiFile(editor.document)
 			val attributes = editor.colorsScheme.getAttributes(Util.MARK_COMMENT_ATTRIBUTES)
-			val sysScale = JBUIScale.sysScale(glancePanel)
+			val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
 			val font = editor.colorsScheme.getFont(
 				when (attributes.fontType) {
 					Font.ITALIC -> EditorFontType.ITALIC
@@ -221,7 +221,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 					Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
 					else -> EditorFontType.PLAIN
 				}
-			).deriveFont(config.markersScaleFactor * 3 / sysScale)
+			).deriveFont(config.markersScaleFactor * 3 / pixScale.toFloat())
 			for (highlighterEx in markCommentMap) {
 				val startOffset = highlighterEx.startOffset
 				file?.findElementAt(startOffset)?.findParentOfType<PsiComment>(false)?.let { comment ->
@@ -231,7 +231,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 						UIUtil.getFontWithFallback(font).deriveFont(attributes.fontType, font.size2D)
 					} else font
 					val line = editor.document.getLineNumber(textRange.startOffset) +
-							(textFont.size * sysScale / scrollState.pixelsPerLine).toInt()
+							(textFont.size * pixScale / scrollState.pixelsPerLine).toInt()
 					val jumpEndOffset = if (lineCount <= line) text.length else editor.document.getLineEndOffset(line)
 					map[textRange.startOffset] = MarkCommentData(jumpEndOffset, commentText, textFont)
 				}

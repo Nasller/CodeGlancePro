@@ -9,7 +9,7 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
-import com.intellij.ui.scale.JBUIScale
+import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.nasller.codeglance.panel.GlancePanel
@@ -77,7 +77,7 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 		}
 		val softWrapEnable = editor.softWrapModel.isSoftWrappingEnabled
 		val hasBlockInlay = editor.inlayModel.hasBlockElements()
-		val sysScale = JBUIScale.sysScale(glancePanel)
+		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
 		var y = 0.0
 		var skipY = 0.0
 		val moveCharIndex = moveCharIndex@{ code: Int, enterAction: (()->Unit)? ->
@@ -112,7 +112,7 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 				val commentData = highlight[start]
 				if(commentData != null){
 					graphics.font = commentData.font
-					graphics.drawString(commentData.comment,2,y.toInt() + (commentData.font.size / sysScale).toInt())
+					graphics.drawString(commentData.comment,2,y.toInt() + (commentData.font.size / pixScale).toInt())
 					if (softWrapEnable) {
 						val softWraps = editor.softWrapModel.getSoftWrapsForRange(start, commentData.jumpEndOffset)
 						softWraps.forEachIndexed { index, softWrap ->
