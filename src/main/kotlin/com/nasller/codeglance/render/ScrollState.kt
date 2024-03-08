@@ -1,5 +1,6 @@
 package com.nasller.codeglance.render
 
+import com.intellij.ui.scale.JBUIScale
 import com.nasller.codeglance.config.enums.EditorSizeEnum
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Rectangle
@@ -33,7 +34,7 @@ class ScrollState : Cloneable{
         val lineHeight = editor.lineHeight
         val contentHeight = editor.contentComponent.height
         val newScale = config.pixelsPerLine.toDouble() / lineHeight
-        val curDocumentHeight = (contentHeight * newScale).toInt()
+        val curDocumentHeight = (contentHeight * newScale * JBUIScale.sysScale(this)).toInt()
         if(config.editorSize == EditorSizeEnum.Fit && curDocumentHeight > visibleArea.height) {
             if(visibleArea.height < 1 && initialized) {
                 return true

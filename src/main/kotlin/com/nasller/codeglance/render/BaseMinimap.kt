@@ -1,6 +1,5 @@
 package com.nasller.codeglance.render
 
-import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.runReadAction
@@ -20,8 +19,10 @@ import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.psi.PsiComment
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.findParentOfType
+import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
+import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.ImageUtil
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel
@@ -212,6 +213,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 			val map = mutableMapOf<Int, MarkCommentData>()
 			val file = glancePanel.psiDocumentManager.getCachedPsiFile(editor.document)
 			val attributes = editor.colorsScheme.getAttributes(Util.MARK_COMMENT_ATTRIBUTES)
+			val sysScale = JBUIScale.sysScale(glancePanel)
 			val font = editor.colorsScheme.getFont(
 				when (attributes.fontType) {
 					Font.ITALIC -> EditorFontType.ITALIC
@@ -219,7 +221,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 					Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
 					else -> EditorFontType.PLAIN
 				}
-			).deriveFont(config.markersScaleFactor * 3)
+			).deriveFont(config.markersScaleFactor * 3 / sysScale)
 			for (highlighterEx in markCommentMap) {
 				val startOffset = highlighterEx.startOffset
 				file?.findElementAt(startOffset)?.findParentOfType<PsiComment>(false)?.let { comment ->
@@ -228,14 +230,15 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 					val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
 						UIUtil.getFontWithFallback(font).deriveFont(attributes.fontType, font.size2D)
 					} else font
-					val line = editor.document.getLineNumber(textRange.startOffset) + (font.size / scrollState.pixelsPerLine).toInt()
+					val line = editor.document.getLineNumber(textRange.startOffset) +
+							(textFont.size * sysScale / scrollState.pixelsPerLine).toInt()
 					val jumpEndOffset = if (lineCount <= line) text.length else editor.document.getLineEndOffset(line)
 					map[textRange.startOffset] = MarkCommentData(jumpEndOffset, commentText, textFont)
 				}
 			}
 			graphics.color = attributes.foregroundColor ?: editor.colorsScheme.defaultForeground
 			graphics.composite = GlancePanel.srcOver
-			UISettings.setupAntialiasing(graphics)
+			GraphicsUtil.setupAAPainting(graphics)
 			map
 		} else emptyMap()
 	}

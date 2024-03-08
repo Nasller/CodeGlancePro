@@ -1,6 +1,5 @@
 package com.nasller.codeglance.render
 
-import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.application.*
 import com.intellij.openapi.diagnostic.Attachment
 import com.intellij.openapi.editor.*
@@ -19,6 +18,7 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.DocumentEventUtil
 import com.intellij.util.DocumentUtil
 import com.intellij.util.MathUtil
@@ -27,6 +27,7 @@ import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.text.CharArrayUtil
 import com.intellij.util.ui.EdtInvocationManager
+import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.ImageUtil
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel
@@ -44,7 +45,6 @@ import java.util.concurrent.CancellationException
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
 class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), HighlighterListener{
@@ -116,16 +116,17 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		val graphics = curImg.createGraphics()
 		val markAttributes by lazy(LazyThreadSafetyMode.NONE) {
 			editor.colorsScheme.getAttributes(Util.MARK_COMMENT_ATTRIBUTES).also {
-				UISettings.setupAntialiasing(graphics)
+				GraphicsUtil.setupAAPainting(graphics)
 			}
 		}
+		val sysScale = JBUIScale.sysScale(glancePanel)
 		val font by lazy(LazyThreadSafetyMode.NONE) {
 			editor.colorsScheme.getFont(when (markAttributes.fontType) {
 				Font.ITALIC -> EditorFontType.ITALIC
 				Font.BOLD -> EditorFontType.BOLD
 				Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
 				else -> EditorFontType.PLAIN
-			}).deriveFont(config.markersScaleFactor * 3)
+			}).deriveFont(config.markersScaleFactor * 3 / sysScale)
 		}
 		val docCommentRgb by lazy(LazyThreadSafetyMode.NONE){
 			editor.colorsScheme.getAttributes(DefaultLanguageHighlighterColors.DOC_COMMENT).foregroundColor?.rgb
@@ -220,8 +221,8 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 							UIUtil.getFontWithFallback(font).deriveFont(markAttributes.fontType, font.size2D)
 						} else font
 						graphics.font = textFont
-						graphics.drawString(commentText, it.startX ?: 0,totalY.toInt() + (graphics.getFontMetrics(textFont).height / 1.5).roundToInt())
-						skipY = font.size - if(pixelsPerLine < 1) 0.0 else pixelsPerLine
+						graphics.drawString(commentText, it.startX ?: 0,totalY.toInt() + (textFont.size / sysScale).toInt())
+						skipY = textFont.size * sysScale - if(pixelsPerLine < 1) 0.0 else pixelsPerLine
 					}
 				}
 			}

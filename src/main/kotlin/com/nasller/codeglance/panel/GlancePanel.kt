@@ -162,7 +162,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 
 			val sX = start.column
 			val sY = start.line * scrollState.pixelsPerLine + documentLine.first - scrollState.visibleStart
-			val eX = end.column + 1
+			val eX = end.column
 			val eY = end.line * scrollState.pixelsPerLine + documentLine.second - scrollState.visibleStart
 			if (sY >= 0 || eY >= 0) {
 				setGraphics2DInfo(srcOver, editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR))
@@ -287,7 +287,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		super.paintComponent(gfx)
 		if(isReleased) return
 		with(gfx as Graphics2D){
-			val sysScale = JBUIScale.sysScale(graphicsConfiguration).toDouble()
+			val sysScale = JBUIScale.sysScale(this).toDouble()
 			scale(sysScale, sysScale)
 			if(hideScrollBarListener.isNotRunning()) runReadAction { paintSomething() }
 			minimap.getImageOrUpdate()?.let {

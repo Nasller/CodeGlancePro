@@ -10,6 +10,7 @@ import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.Alarm
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
@@ -17,10 +18,8 @@ import com.intellij.util.SingleAlarm
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MySoftReference
 import com.nasller.codeglance.util.Util
-import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.beans.PropertyChangeEvent
-import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
 class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
@@ -72,7 +71,6 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		if(rangeList.size > 0) rangeList.clear()
 		val text = editor.document.immutableCharSequence
 		val graphics = curImg.createGraphics().apply {
-			setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
 			composite = GlancePanel.CLEAR
 			fillRect(0, 0, curImg.width, curImg.height)
 		}
@@ -87,6 +85,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		val softWrapEnable = editor.softWrapModel.isSoftWrappingEnabled
 		val hasBlockInlay = editor.inlayModel.hasBlockElements()
 		val renderHeight = scrollState.getRenderHeight()
+		val sysScale = JBUIScale.sysScale(glancePanel)
 		var x = 0
 		var y = 0.0
 		var preSetPixelY = -1
@@ -149,7 +148,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 				val commentData = highlight[start]
 				if(commentData != null){
 					graphics.font = commentData.font
-					graphics.drawString(commentData.comment,2,y.toInt() + (graphics.getFontMetrics(commentData.font).height / 1.5).roundToInt())
+					graphics.drawString(commentData.comment,2,y.toInt() + (commentData.font.size / sysScale).toInt())
 					if (softWrapEnable) {
 						val softWraps = editor.softWrapModel.getSoftWrapsForRange(start, commentData.jumpEndOffset)
 						softWraps.forEachIndexed { index, softWrap ->
