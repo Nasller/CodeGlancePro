@@ -1,20 +1,24 @@
 package com.nasller.codeglance.listener
 
+import com.intellij.ide.ui.UISettings
+import com.intellij.ide.ui.UISettingsListener
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
+import com.intellij.ui.scale.UserScaleContext
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.config.enums.EditorSizeEnum
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.event.*
 
 class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(), SettingsChangeListener, CaretListener,
-	VisibleAreaListener, SelectionListener, HierarchyBoundsListener, HierarchyListener, Disposable {
+	VisibleAreaListener, SelectionListener, HierarchyBoundsListener, HierarchyListener, UISettingsListener, UserScaleContext.UpdateListener, Disposable {
 	init {
 		glancePanel.addHierarchyListener(this)
 		glancePanel.addHierarchyBoundsListener(this)
+		glancePanel.scaleContext.addUpdateListener(this)
 		glancePanel.editor.let {
 			it.contentComponent.addComponentListener(this)
 			it.selectionModel.addSelectionListener(this, glancePanel)
@@ -22,7 +26,10 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 			it.caretModel.addCaretListener(this, glancePanel)
 			it.markupModel.addMarkupModelListener(glancePanel, GlanceOtherListener(glancePanel))
 		}
-		ApplicationManager.getApplication().messageBus.connect(glancePanel).subscribe(SettingsChangeListener.TOPIC, this)
+		ApplicationManager.getApplication().messageBus.connect(glancePanel).apply {
+			subscribe(SettingsChangeListener.TOPIC, this@GlanceListener)
+			subscribe(UISettingsListener.TOPIC, this@GlanceListener)
+		}
 	}
 
 	/** CaretListener */
@@ -77,6 +84,17 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	override fun hierarchyChanged(e: HierarchyEvent) {
 		if (checkWithGlance {config.autoCalWidthInSplitterMode && !config.hoveringToShowScrollBar} &&
 			e.changeFlags and HierarchyEvent.PARENT_CHANGED.toLong() != 0L) glancePanel.refresh()
+	}
+
+	/** UISettingsListener */
+	override fun uiSettingsChanged(uiSettings: UISettings) {
+		glancePanel.scaleContext.update()
+	}
+
+	/** UserScaleContext.UpdateListener */
+	override fun contextUpdated() {
+		glancePanel.updateScrollState(visibleChange = true)
+		glancePanel.refreshDataAndImage()
 	}
 
 	private fun repaint() = if (checkWithGlance()) glancePanel.repaint() else Unit

@@ -98,7 +98,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 
 	override fun mousePressed(e: MouseEvent) {
 		if (e.button != MouseEvent.BUTTON1) return
-		e.translatePoint(e.x, e.y.alignedToY(glancePanel))
+		e.translatePoint(e.x, e.y.alignedToY(glancePanel) - e.y)
 		when {
 			isInResizeGutter(e.x) -> {
 				resizing = true
@@ -115,7 +115,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	override fun mouseDragged(e: MouseEvent) {
-		e.translatePoint(e.x, e.y.alignedToY(glancePanel))
+		e.translatePoint(e.x, e.y.alignedToY(glancePanel) - e.y)
 		if (resizing) {
 			val newWidth = if(editor.getUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX) == GlancePanel.PlaceIndex.Left)
 				widthStart + e.xOnScreen - resizeStart
@@ -138,7 +138,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	override fun mouseReleased(e: MouseEvent) {
-		e.translatePoint(e.x, e.y.alignedToY(glancePanel))
+		e.translatePoint(e.x, e.y.alignedToY(glancePanel) - e.y)
 		val action = {
 			resizeGlancePanel(true)
 			updateAlpha(e.y)
@@ -151,7 +151,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	override fun mouseMoved(e: MouseEvent) {
-		e.translatePoint(e.x, e.y.alignedToY(glancePanel))
+		e.translatePoint(e.x, e.y.alignedToY(glancePanel) - e.y)
 		val isInRect = updateAlpha(e.y)
 		if (isInResizeGutter(e.x)) {
 			glancePanel.cursor = Cursor(Cursor.W_RESIZE_CURSOR)
@@ -176,7 +176,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			if (myLastVisualLine < editor.visibleLineCount - 1 && units > 0 || myLastVisualLine > 0 && units < 0) {
 				myWheelAccumulator += units
 			}
-			e.translatePoint(e.x, e.y.alignedToY(glancePanel))
+			e.translatePoint(e.x, e.y.alignedToY(glancePanel) - e.y)
 			showToolTipByMouseMove(e)
 		} else {
 			if(hasEditorPreviewHint) hideMyEditorPreviewHint()
