@@ -28,6 +28,7 @@ import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.Util
+import com.nasller.codeglance.util.Util.mapSmart
 import java.awt.Color
 import java.awt.Font
 import java.awt.Graphics2D
@@ -108,7 +109,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 			if (list.size > 1) {
 				ContainerUtil.quickSort(list, IterationState.createByLayerThenByAttributesComparator(editor.colorsScheme))
 			}
-			list.map { RangeHighlightColor(it.affectedAreaStartOffset, it.affectedAreaEndOffset, it.getTextAttributes(editor.colorsScheme)?.foregroundColor!!) }
+			list.mapSmart { RangeHighlightColor(it.affectedAreaStartOffset, it.affectedAreaEndOffset, it.getTextAttributes(editor.colorsScheme)?.foregroundColor!!) }
 		}.getOrElse { emptyList() }
 		else emptyList()
 	}
