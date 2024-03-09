@@ -516,14 +516,17 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 
 	private fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
 		EdtInvocationManager.invokeLaterIfNeeded {
-			if (!glancePanel.checkVisible() || myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode
-				|| myDuringDocumentUpdate) return@invokeLaterIfNeeded
+			if (!glancePanel.checkVisible() || myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || myDuringDocumentUpdate) {
+				return@invokeLaterIfNeeded
+			}
 			if(highlighter.isThinErrorStripeMark.not() && (Util.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
 						EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
 				val textLength = myDocument.textLength
 				val start = MathUtil.clamp(highlighter.affectedAreaStartOffset, 0, textLength)
 				val end = MathUtil.clamp(highlighter.affectedAreaEndOffset, start, textLength)
-				if (start != end) invalidateRange(start, end)
+				if (start != end) {
+					invalidateRange(start, end)
+				}
 			}else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
 				glancePanel.repaint()
 			}
@@ -542,9 +545,8 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	}
 
 	private fun invalidateRange(startOffset: Int, endOffset: Int) {
-		if (myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode) return
-		val textLength = myDocument.textLength
-		if (startOffset > endOffset || startOffset >= textLength || endOffset < 0) return
+		if (myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode ||
+				startOffset > endOffset || startOffset >= myDocument.textLength || endOffset < 0) return
 		if (myDuringDocumentUpdate) {
 			myDocumentChangeStartOffset = min(myDocumentChangeStartOffset, startOffset)
 			myDocumentChangeEndOffset = max(myDocumentChangeEndOffset, endOffset)
@@ -561,10 +563,19 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		val startVisualLine = editor.offsetToVisualLine(startOffset, false)
 		val endVisualLine = editor.offsetToVisualLine(endOffset, true)
 		val lineDiff = editor.visibleLineCount - renderDataList.size
-		if (lineDiff > 0) {
-			renderDataList.addAll(startVisualLine, ObjectArrayList.wrap(arrayOfNulls(lineDiff)))
-		}else if (lineDiff < 0) {
-			renderDataList.removeElements(startVisualLine, startVisualLine - lineDiff)
+		try {
+			if (lineDiff > 0) {
+				renderDataList.addAll(startVisualLine, ObjectArrayList.wrap(arrayOfNulls(lineDiff)))
+			}else if (lineDiff < 0) {
+				renderDataList.removeElements(startVisualLine, startVisualLine - lineDiff)
+			}
+		}catch (e: IndexOutOfBoundsException) {
+			LOG.error("File: ${virtualFile?.name} FileType: ${virtualFile?.fileType?.name ?: "Unknown"} " +
+					"RenderDataList.Size: ${renderDataList.size} VisibleLineCount: ${editor.visibleLineCount} " +
+					"startVisualLine: $startVisualLine endVisualLine: $endVisualLine " +
+					"Text: ${editor.document.getText(TextRange(startOffset, endOffset))}", e)
+			invokeLater { rebuildDataAndImage() }
+			return
 		}
 		submitUpdateMinimapDataTask(startVisualLine, endVisualLine, reset)
 	}
@@ -606,7 +617,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	}
 
 	//check has background tasks
-	private fun checkProcessReset(startOffset: Int, endOffset: Int,reset: Boolean): Boolean{
+	private fun checkProcessReset(startOffset: Int, endOffset: Int, reset: Boolean): Boolean{
 		if (myResetDataPromise != null) {
 			if(myResetDataPromise?.isDone == false){
 				if(reset) {
