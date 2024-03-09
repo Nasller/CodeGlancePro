@@ -161,7 +161,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 
 			val sX = start.column
 			val sY = start.line * scrollState.pixelsPerLine + documentLine.first - scrollState.visibleStart
-			val eX = end.column + 1
+			val eX = end.column
 			val eY = end.line * scrollState.pixelsPerLine + documentLine.second - scrollState.visibleStart
 			if (sY >= 0 || eY >= 0) {
 				setGraphics2DInfo(srcOver, editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR))

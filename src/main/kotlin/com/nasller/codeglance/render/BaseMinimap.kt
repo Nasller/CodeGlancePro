@@ -10,10 +10,12 @@ import com.intellij.openapi.editor.InlayModel
 import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
+import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.SoftWrapChangeListener
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.highlighter.HighlighterIterator
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
+import com.intellij.openapi.editor.impl.view.IterationState
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfoRt
@@ -22,6 +24,7 @@ import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.findParentOfType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
+import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.Util
@@ -97,13 +100,15 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 
 	protected fun getHighlightColor(startOffset: Int, endOffset: Int): List<RangeHighlightColor>{
 		return if(config.syntaxHighlight) runCatching {
-			val list = mutableListOf<RangeHighlightColor>()
+			val list = mutableListOf<RangeHighlighterEx>()
 			editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(startOffset, endOffset) {
-				val foregroundColor = it.getTextAttributes(editor.colorsScheme)?.foregroundColor
-				if (foregroundColor != null) list.add(RangeHighlightColor(it.startOffset, it.endOffset, foregroundColor))
+				it.getTextAttributes(editor.colorsScheme)?.foregroundColor?.apply { list.add(it) }
 				return@processRangeHighlightersOverlappingWith true
 			}
-			list
+			if (list.size > 1) {
+				ContainerUtil.quickSort(list, IterationState.createByLayerThenByAttributesComparator(editor.colorsScheme))
+			}
+			list.map { RangeHighlightColor(it.affectedAreaStartOffset, it.affectedAreaEndOffset, it.getTextAttributes(editor.colorsScheme)?.foregroundColor!!) }
 		}.getOrElse { emptyList() }
 		else emptyList()
 	}
