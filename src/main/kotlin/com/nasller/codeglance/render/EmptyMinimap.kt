@@ -12,6 +12,7 @@ import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
+import com.intellij.util.ui.GraphicsUtil
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MySoftReference
 import com.nasller.codeglance.util.Util
@@ -63,11 +64,14 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 	private fun update() {
 		val curImg = getMinimapImage() ?: return
 		if(rangeList.size > 0) rangeList.clear()
-		val text = editor.document.immutableCharSequence
+		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
 		val graphics = curImg.createGraphics().apply {
+			scale(1.0, pixScale)
 			composite = GlancePanel.CLEAR
 			fillRect(0, 0, curImg.width, curImg.height)
+			GraphicsUtil.setupAAPainting(this)
 		}
+		val text = editor.document.immutableCharSequence
 		if(text.isEmpty()) {
 			graphics.dispose()
 			return
@@ -77,7 +81,6 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 		}
 		val softWrapEnable = editor.softWrapModel.isSoftWrappingEnabled
 		val hasBlockInlay = editor.inlayModel.hasBlockElements()
-		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
 		var y = 0.0
 		var skipY = 0.0
 		val moveCharIndex = moveCharIndex@{ code: Int, enterAction: (()->Unit)? ->

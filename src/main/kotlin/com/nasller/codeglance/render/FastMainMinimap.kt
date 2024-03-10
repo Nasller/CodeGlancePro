@@ -113,13 +113,14 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 			}
 		} else null ?: return
 		val renderHeight = myScrollState.getRenderHeight()
-		val graphics = curImg.createGraphics()
-		val markAttributes by lazy(LazyThreadSafetyMode.NONE) {
-			editor.colorsScheme.getAttributes(Util.MARK_COMMENT_ATTRIBUTES).also {
-				GraphicsUtil.setupAAPainting(graphics)
-			}
-		}
 		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
+		val graphics = curImg.createGraphics().apply {
+			scale(1.0, pixScale)
+			GraphicsUtil.setupAAPainting(this)
+		}
+		val markAttributes by lazy(LazyThreadSafetyMode.NONE) {
+			editor.colorsScheme.getAttributes(Util.MARK_COMMENT_ATTRIBUTES)
+		}
 		val font by lazy(LazyThreadSafetyMode.NONE) {
 			editor.colorsScheme.getFont(when (markAttributes.fontType) {
 				Font.ITALIC -> EditorFontType.ITALIC

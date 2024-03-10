@@ -25,7 +25,6 @@ import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.containers.ContainerUtil
-import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.ImageUtil
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel
@@ -244,7 +243,6 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 			}
 			graphics.color = attributes.foregroundColor ?: editor.colorsScheme.defaultForeground
 			graphics.composite = GlancePanel.srcOver
-			GraphicsUtil.setupAAPainting(graphics)
 			map
 		} else emptyMap()
 	}

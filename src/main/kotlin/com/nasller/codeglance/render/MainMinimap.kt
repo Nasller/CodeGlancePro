@@ -15,6 +15,7 @@ import com.intellij.util.Alarm
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.SingleAlarm
+import com.intellij.util.ui.GraphicsUtil
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MySoftReference
 import com.nasller.codeglance.util.Util
@@ -69,11 +70,14 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	private fun update() {
 		val curImg = getMinimapImage() ?: return
 		if(rangeList.size > 0) rangeList.clear()
-		val text = editor.document.immutableCharSequence
+		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
 		val graphics = curImg.createGraphics().apply {
+			scale(1.0, pixScale)
 			composite = GlancePanel.CLEAR
 			fillRect(0, 0, curImg.width, curImg.height)
+			GraphicsUtil.setupAAPainting(this)
 		}
+		val text = editor.document.immutableCharSequence
 		if(text.isEmpty()) {
 			graphics.dispose()
 			return
@@ -85,7 +89,6 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		val softWrapEnable = editor.softWrapModel.isSoftWrappingEnabled
 		val hasBlockInlay = editor.inlayModel.hasBlockElements()
 		val renderHeight = scrollState.getRenderHeight()
-		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
 		var x = 0
 		var y = 0.0
 		var preSetPixelY = -1

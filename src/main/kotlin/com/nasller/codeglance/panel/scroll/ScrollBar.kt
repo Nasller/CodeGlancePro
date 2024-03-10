@@ -11,6 +11,7 @@ import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.HintHint
 import com.intellij.util.Alarm
+import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.MouseEventAdapter
 import com.nasller.codeglance.CURRENT_EDITOR_DIFF_VIEW
@@ -78,6 +79,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	fun paint(gfx: Graphics2D) {
 		gfx.color = ColorUtil.fromHex(config.viewportColor)
 		gfx.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, visibleRectAlpha)
+		val gfxConfig = GraphicsUtil.setupAAPainting(gfx)
 		if(scrollState.viewportHeight > MIN_VIEWPORT_HEIGHT) {
 			gfx.fillRoundRect(0, vOffset, glancePanel.width, scrollState.viewportHeight,5, 5)
 		}else {
@@ -88,6 +90,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			gfx.color = ColorUtil.fromHex(config.viewportBorderColor)
 			gfx.fill(it)
 		}
+		gfxConfig.restore()
 	}
 
 	fun clear() = myEditorFragmentRenderer.clearHint()

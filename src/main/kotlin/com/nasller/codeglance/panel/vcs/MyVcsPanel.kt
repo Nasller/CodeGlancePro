@@ -37,7 +37,7 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 		if(glancePanel.isReleased) return
 		with(gfx as Graphics2D){
 			val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
-			scale(pixScale, pixScale)
+			scale(1.0, pixScale)
 			paintVcs(getVisibleRangeOffset(),this@MyVcsPanel.width)
 		}
 	}

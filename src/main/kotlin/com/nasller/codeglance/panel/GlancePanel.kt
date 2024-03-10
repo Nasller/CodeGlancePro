@@ -290,7 +290,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		if(isReleased) return
 		with(gfx as Graphics2D){
 			val pixScale = scaleContext.getScale(DerivedScaleType.PIX_SCALE)
-			scale(pixScale, pixScale)
+			scale(1.0, pixScale)
 			if(hideScrollBarListener.isNotRunning()) runReadAction { paintSomething() }
 			minimap.getImageOrUpdate()?.let {
 				composite = srcOver0_8
