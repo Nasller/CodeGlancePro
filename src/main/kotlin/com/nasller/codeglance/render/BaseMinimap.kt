@@ -236,7 +236,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 						UIUtil.getFontWithFallback(font).deriveFont(attributes.fontType, font.size2D)
 					} else font
 					val line = editor.document.getLineNumber(textRange.startOffset) +
-							(textFont.size * pixScale / scrollState.pixelsPerLine).toInt()
+							(textFont.size / scrollState.pixelsPerLine * pixScale).toInt() + 1
 					val jumpEndOffset = if (lineCount <= line) text.length else editor.document.getLineEndOffset(line)
 					map[textRange.startOffset] = MarkCommentData(jumpEndOffset, commentText, textFont)
 				}

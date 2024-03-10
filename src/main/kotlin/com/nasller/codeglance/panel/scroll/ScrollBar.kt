@@ -22,10 +22,7 @@ import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
 import com.nasller.codeglance.util.Util.alignedToY
-import java.awt.AlphaComposite
-import java.awt.Cursor
-import java.awt.Graphics2D
-import java.awt.Shape
+import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
@@ -101,24 +98,23 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 
 	override fun mousePressed(e: MouseEvent) {
 		if (e.button != MouseEvent.BUTTON1) return
-		e.translatePoint(e.x, e.y.alignedToY(glancePanel) - e.y)
+		val alignedToY = e.y.alignedToY(glancePanel)
 		when {
 			isInResizeGutter(e.x) -> {
 				resizing = true
 				resizeStart = e.xOnScreen
 				widthStart = glancePanel.width
 			}
-			isInRect(e.y) || MouseJumpEnum.NONE == config.jumpOnMouseDown -> dragMove(e.y)
+			isInRect(alignedToY) || MouseJumpEnum.NONE == config.jumpOnMouseDown -> dragMove(alignedToY)
 			MouseJumpEnum.MOUSE_DOWN == config.jumpOnMouseDown -> jumpToLineAt(e.y) {
 				visibleRectAlpha = DEFAULT_ALPHA
 				glancePanel.cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
-				dragMove(e.y)
+				dragMove(alignedToY)
 			}
 		}
 	}
 
 	override fun mouseDragged(e: MouseEvent) {
-		e.translatePoint(e.x, e.y.alignedToY(glancePanel) - e.y)
 		if (resizing) {
 			val newWidth = if(editor.getUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX) == GlancePanel.PlaceIndex.Left)
 				widthStart + e.xOnScreen - resizeStart
@@ -126,7 +122,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			editor.editorKind.setWidth(newWidth.coerceIn(GlancePanel.MIN_WIDTH, GlancePanel.MAX_WIDTH))
 			resizeGlancePanel(false)
 		} else if (dragging) {
-			val delta = (dragStartDelta + (e.y - dragStart)).toFloat()
+			val delta = (dragStartDelta + (e.y.alignedToY(glancePanel) - dragStart)).toFloat()
 			val newPos = if (scrollState.documentHeight < scrollState.visibleHeight)
 			// Full doc fits into minimap, use exact value
 				delta
@@ -141,10 +137,9 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	override fun mouseReleased(e: MouseEvent) {
-		e.translatePoint(e.x, e.y.alignedToY(glancePanel) - e.y)
 		val action = {
 			resizeGlancePanel(true)
-			updateAlpha(e.y)
+			updateAlpha(e.y.alignedToY(glancePanel))
 			dragging = false
 			resizing = false
 			hoveringOverAndHideScrollBar(e)
@@ -154,8 +149,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	override fun mouseMoved(e: MouseEvent) {
-		e.translatePoint(e.x, e.y.alignedToY(glancePanel) - e.y)
-		val isInRect = updateAlpha(e.y)
+		val isInRect = updateAlpha(e.y.alignedToY(glancePanel))
 		if (isInResizeGutter(e.x)) {
 			glancePanel.cursor = Cursor(Cursor.W_RESIZE_CURSOR)
 		} else if (!isInRect && !resizing && !dragging && showMyEditorPreviewHint(e)) {
@@ -179,7 +173,6 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			if (myLastVisualLine < editor.visibleLineCount - 1 && units > 0 || myLastVisualLine > 0 && units < 0) {
 				myWheelAccumulator += units
 			}
-			e.translatePoint(e.x, e.y.alignedToY(glancePanel) - e.y)
 			showToolTipByMouseMove(e)
 		} else {
 			if(hasEditorPreviewHint) hideMyEditorPreviewHint()
@@ -221,16 +214,15 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	private fun showToolTipByMouseMove(e: MouseEvent) {
-		val y = e.y + myWheelAccumulator
+		val y = e.y.alignedToY(glancePanel) + myWheelAccumulator
 		val visualLine = fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(y + scrollState.visibleStart))
 		myLastVisualLine = visualLine
-		val point = SwingUtilities.convertPoint(glancePanel, 0, if (y > 0 && y < scrollState.drawHeight) y else if (y <= 0) 0 else scrollState.drawHeight,
+		val point = SwingUtilities.convertPoint(glancePanel, 0, if (e.y > 0 && e.y < scrollState.drawHeight) e.y else if (e.y <= 0) 0 else scrollState.drawHeight,
 			editor.scrollPane.verticalScrollBar)
-		val me = MouseEvent(editor.scrollPane.verticalScrollBar, e.id, e.`when`, e.modifiersEx, 1, point.y, e.clickCount, e.isPopupTrigger)
 		val highlighters = mutableListOf<RangeHighlighterEx>()
 		collectRangeHighlighters(editor.markupModel, visualLine, highlighters)
 		collectRangeHighlighters(editor.filteredDocumentMarkupModel, visualLine, highlighters)
-		myEditorFragmentRenderer.show(visualLine, highlighters, createHint(me))
+		myEditorFragmentRenderer.show(visualLine, highlighters, createHint(editor.scrollPane.verticalScrollBar, Point(1, point.y)))
 	}
 
 	private fun collectRangeHighlighters(markupModel: MarkupModelEx, visualLine: Int, highlighters: MutableCollection<in RangeHighlighterEx>) {
@@ -289,7 +281,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	private fun jumpToLineAt(y: Int, action: () -> Unit) {
 		hideMyEditorPreviewHint()
 		val visualLine = if(config.clickType == ClickTypeEnum.CODE_POSITION){
-			fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(y + scrollState.visibleStart))
+			fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(y.alignedToY(glancePanel) + scrollState.visibleStart))
 		}else{
 			if(scrollState.drawHeight == scrollState.visibleHeight){
 				editor.yToVisualLine((y / scrollState.visibleHeight.toFloat() * editor.contentComponent.height).roundToInt())
@@ -311,12 +303,13 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		private const val MIN_VIEWPORT_HEIGHT = 20
 		val PREVIEW_LINES = max(2, min(25, Integer.getInteger("preview.lines", 5)))
 
-		private fun createHint(me: MouseEvent): HintHint = HintHint(me)
+		private fun createHint(component: Component, point: Point): HintHint = HintHint(component, point)
 			.setAwtTooltip(true)
 			.setPreferredPosition(Balloon.Position.atLeft)
 			.setBorderInsets(JBUI.insets(CustomEditorFragmentRenderer.EDITOR_FRAGMENT_POPUP_BORDER))
 			.setShowImmediately(true)
 			.setAnimationEnabled(false)
+			.setStatus(HintHint.Status.Info)
 
 		private fun getBorderShape(y: Int, width: Int, height: Int, thickness: Int): Shape? {
 			if (width <= 0 || height <= 0 || thickness <= 0) return null

@@ -27,7 +27,6 @@ import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.text.CharArrayUtil
 import com.intellij.util.ui.EdtInvocationManager
-import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.ImageUtil
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel
@@ -105,20 +104,18 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 			if(pixelsPerLine < 1){
 				getBufferedImage(myScrollState)
 			}else {
-				val height = copyList.filterNotNull().sumOf {
+				val height = (copyList.filterNotNull().sumOf {
 					it.getLineHeight(pixelsPerLine, scale) + it.aboveBlockLine * scale
-				} + (5 * pixelsPerLine)
+				} + (5 * pixelsPerLine)).toInt()
 				ImageUtil.createImage(glancePanel.graphicsConfiguration, glancePanel.getConfigSize().width,
-					height.toInt(), BufferedImage.TYPE_INT_ARGB)
+					height, BufferedImage.TYPE_INT_ARGB)
 			}
 		} else null ?: return
 		val renderHeight = myScrollState.getRenderHeight()
 		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
-		val graphics = curImg.createGraphics().apply {
-			scale(1.0, pixScale)
-			GraphicsUtil.setupAAPainting(this)
-		}
+		val graphics = curImg.createGraphics()
 		val markAttributes by lazy(LazyThreadSafetyMode.NONE) {
+			graphics.composite = GlancePanel.srcOver
 			editor.colorsScheme.getAttributes(Util.MARK_COMMENT_ATTRIBUTES)
 		}
 		val font by lazy(LazyThreadSafetyMode.NONE) {
@@ -215,15 +212,16 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 						}
 					}
 					LineType.COMMENT -> {
-						graphics.composite = GlancePanel.srcOver
 						graphics.color = markAttributes.foregroundColor
 						val commentText = myDocument.getText(TextRange(it.commentHighlighterEx!!.startOffset, it.commentHighlighterEx.endOffset))
 						val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
 							UIUtil.getFontWithFallback(font).deriveFont(markAttributes.fontType, font.size2D)
 						} else font
 						graphics.font = textFont
-						graphics.drawString(commentText, it.startX ?: 0,totalY.toInt() + (textFont.size / pixScale).toInt())
-						skipY = textFont.size * pixScale - if(pixelsPerLine < 1) 0.0 else pixelsPerLine
+						graphics.drawString(commentText, it.startX ?: 0,totalY.toInt() +
+								(textFont.size / pixScale + (if(pixScale != 1.0) pixelsPerLine else 0.0)).toInt())
+						skipY = textFont.size * pixScale - (if(pixelsPerLine < 1) 0.0 else pixelsPerLine) -
+								(if(pixScale != 1.0) pixelsPerLine else 0.0)
 					}
 				}
 			}

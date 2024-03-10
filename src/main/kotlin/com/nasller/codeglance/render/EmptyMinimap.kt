@@ -12,7 +12,6 @@ import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
-import com.intellij.util.ui.GraphicsUtil
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MySoftReference
 import com.nasller.codeglance.util.Util
@@ -64,18 +63,16 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 	private fun update() {
 		val curImg = getMinimapImage() ?: return
 		if(rangeList.size > 0) rangeList.clear()
-		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
 		val graphics = curImg.createGraphics().apply {
-			scale(1.0, pixScale)
 			composite = GlancePanel.CLEAR
 			fillRect(0, 0, curImg.width, curImg.height)
-			GraphicsUtil.setupAAPainting(this)
 		}
 		val text = editor.document.immutableCharSequence
 		if(text.isEmpty()) {
 			graphics.dispose()
 			return
 		}
+		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
 		val hlIter = editor.highlighter.createIterator(0).run {
 			if(isLogFile) IdeLogFileHighlightDelegate(editor.document,this) else this
 		}
@@ -115,7 +112,8 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 				val commentData = highlight[start]
 				if(commentData != null){
 					graphics.font = commentData.font
-					graphics.drawString(commentData.comment,2,y.toInt() + (commentData.font.size / pixScale).toInt())
+					graphics.drawString(commentData.comment,2,y.toInt() + (graphics.getFontMetrics(commentData.font).height * pixScale -
+							(if(pixScale != 1.0) scrollState.pixelsPerLine else 0.0)).toInt())
 					if (softWrapEnable) {
 						val softWraps = editor.softWrapModel.getSoftWrapsForRange(start, commentData.jumpEndOffset)
 						softWraps.forEachIndexed { index, softWrap ->
