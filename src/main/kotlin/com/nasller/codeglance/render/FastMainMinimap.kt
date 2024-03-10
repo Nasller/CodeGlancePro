@@ -27,6 +27,7 @@ import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.text.CharArrayUtil
 import com.intellij.util.ui.EdtInvocationManager
+import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.ImageUtil
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel
@@ -212,6 +213,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 						}
 					}
 					LineType.COMMENT -> {
+						val config = GraphicsUtil.setupAAPainting(graphics)
 						graphics.color = markAttributes.foregroundColor
 						val commentText = myDocument.getText(TextRange(it.commentHighlighterEx!!.startOffset, it.commentHighlighterEx.endOffset))
 						val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
@@ -222,6 +224,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 								(textFont.size / pixScale + (if(pixScale != 1.0) pixelsPerLine else 0.0)).toInt())
 						skipY = textFont.size * pixScale - (if(pixelsPerLine < 1) 0.0 else pixelsPerLine) -
 								(if(pixScale != 1.0) pixelsPerLine else 0.0)
+						config.restore()
 					}
 				}
 			}
