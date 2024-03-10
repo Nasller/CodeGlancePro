@@ -114,8 +114,8 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 				if(commentData != null){
 					val config = GraphicsUtil.setupAAPainting(graphics)
 					graphics.font = commentData.font
-					graphics.drawString(commentData.comment,2,y.toInt() + (graphics.getFontMetrics(commentData.font).height * pixScale -
-							(if(pixScale != 1.0) scrollState.pixelsPerLine else 0.0)).toInt())
+					graphics.drawString(commentData.comment,2,y.toInt() + (commentData.font.size * pixScale -
+							(if(pixScale != 1.0) scrollState.pixelsPerLine - 1 else 0.0)).toInt())
 					config.restore()
 					if (softWrapEnable) {
 						val softWraps = editor.softWrapModel.getSoftWrapsForRange(start, commentData.jumpEndOffset)
