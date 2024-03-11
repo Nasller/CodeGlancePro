@@ -81,7 +81,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		minimap.rebuildDataAndImage()
 	}
 
-	fun updateScrollState(visibleArea: Rectangle? = null, visibleChange: Boolean = false) = scrollState.run {
+	fun updateScrollState(visibleArea: Rectangle? = null, visibleChange: Boolean = true) = scrollState.run {
 		val visible = visibleArea ?: editor.scrollingModel.visibleArea
 		val repaint = computeDimensions(visible, visibleChange)
 		recomputeVisible(visible)
@@ -294,6 +294,9 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 			if(hideScrollBarListener.isNotRunning()) runReadAction { paintSomething() }
 			minimap.getImageOrUpdate()?.let {
 				composite = srcOver0_8
+				if(pixScale != 1.0){
+					gfx.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+				}
 				drawImage(it, 0, 0, width, scrollState.drawHeight,
 					0, scrollState.visibleStart, width, scrollState.visibleEnd, null)
 			}

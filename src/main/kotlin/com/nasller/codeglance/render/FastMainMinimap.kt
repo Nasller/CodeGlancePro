@@ -222,8 +222,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 						graphics.font = textFont
 						graphics.drawString(commentText, it.startX ?: 0,totalY.toInt() +
 								(textFont.size / pixScale + (if(pixScale != 1.0) pixelsPerLine else 0.0)).toInt())
-						skipY = textFont.size * pixScale - (if(pixelsPerLine < 1) 0.0 else pixelsPerLine) -
-								(if(pixScale != 1.0) pixelsPerLine else 0.0)
+						skipY = textFont.size * pixScale - (if(pixelsPerLine < 1) 0.0 else pixelsPerLine)
 						config.restore()
 					}
 				}

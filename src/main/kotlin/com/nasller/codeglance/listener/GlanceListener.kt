@@ -48,7 +48,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
 	/** ComponentAdapter */
 	override fun componentResized(componentEvent: ComponentEvent) = glancePanel.run {
-		if(glancePanel.updateScrollState(visibleChange = true)){
+		if(glancePanel.updateScrollState()){
 			repaint()
 		}
 	}
@@ -62,7 +62,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 	/** VisibleAreaListener */
 	override fun visibleAreaChanged(e: VisibleAreaEvent) {
 		if(glancePanel.config.editorSize == EditorSizeEnum.Fit){
-			if(glancePanel.updateScrollState(e.newRectangle, true)){
+			if(glancePanel.updateScrollState(e.newRectangle)){
 				repaint()
 			}
 		}else {
@@ -93,7 +93,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 
 	/** UserScaleContext.UpdateListener */
 	override fun contextUpdated() {
-		glancePanel.updateScrollState(visibleChange = true)
+		glancePanel.updateScrollState()
 		glancePanel.refreshDataAndImage()
 	}
 
