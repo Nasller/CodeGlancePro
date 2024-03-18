@@ -11,6 +11,7 @@ import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.SoftWrapChangeListener
+import com.intellij.openapi.editor.ex.util.EditorUIUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.highlighter.HighlighterIterator
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
@@ -25,6 +26,7 @@ import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.containers.ContainerUtil
+import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.ImageUtil
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel
@@ -240,8 +242,11 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 					map[textRange.startOffset] = MarkCommentData(jumpEndOffset, commentText, textFont)
 				}
 			}
-			graphics.color = attributes.foregroundColor ?: editor.colorsScheme.defaultForeground
 			graphics.composite = GlancePanel.srcOver
+			graphics.color = attributes.foregroundColor ?: editor.colorsScheme.defaultForeground
+			EditorUIUtil.setupAntialiasing(graphics)
+			GraphicsUtil.setupAAPainting(graphics)
+			graphics.scale(pixScale, pixScale)
 			map
 		} else emptyMap()
 	}

@@ -35,7 +35,7 @@ class ScrollState : Cloneable{
         val contentHeight = editor.contentComponent.height
         val newScale = config.pixelsPerLine.toDouble() / lineHeight
         val curDocumentHeight = (contentHeight * newScale * scaleContext.getScale(DerivedScaleType.PIX_SCALE)).toInt()
-            if(config.editorSize == EditorSizeEnum.Fit && curDocumentHeight > visibleArea.height) {
+        if(config.editorSize == EditorSizeEnum.Fit && curDocumentHeight > visibleArea.height) {
             if(visibleArea.height < 1 && initialized) {
                 return true
             }

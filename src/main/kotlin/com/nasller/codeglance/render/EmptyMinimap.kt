@@ -12,7 +12,6 @@ import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
-import com.intellij.util.ui.GraphicsUtil
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MySoftReference
 import com.nasller.codeglance.util.Util
@@ -112,11 +111,9 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 			} else {
 				val commentData = highlight[start]
 				if(commentData != null){
-					val config = GraphicsUtil.setupAAPainting(graphics)
 					graphics.font = commentData.font
-					graphics.drawString(commentData.comment,2,y.toInt() + (commentData.font.size * pixScale -
-							(if(pixScale != 1.0) scrollState.pixelsPerLine - 1 else 0.0)).toInt())
-					config.restore()
+					graphics.drawString(commentData.comment,2, ((y + commentData.font.size * pixScale -
+							(if(pixScale != 1.0) scrollState.pixelsPerLine - 1 else 0.0)) / pixScale).toInt())
 					if (softWrapEnable) {
 						val softWraps = editor.softWrapModel.getSoftWrapsForRange(start, commentData.jumpEndOffset)
 						softWraps.forEachIndexed { index, softWrap ->

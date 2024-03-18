@@ -8,6 +8,7 @@ import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
+import com.intellij.openapi.editor.ex.util.EditorUIUtil
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.impl.EditorImpl
@@ -117,6 +118,9 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		val graphics = curImg.createGraphics()
 		val markAttributes by lazy(LazyThreadSafetyMode.NONE) {
 			graphics.composite = GlancePanel.srcOver
+			EditorUIUtil.setupAntialiasing(graphics)
+			GraphicsUtil.setupAAPainting(graphics)
+			graphics.scale(pixScale, pixScale)
 			editor.colorsScheme.getAttributes(Util.MARK_COMMENT_ATTRIBUTES)
 		}
 		val font by lazy(LazyThreadSafetyMode.NONE) {
@@ -213,17 +217,15 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 						}
 					}
 					LineType.COMMENT -> {
-						val config = GraphicsUtil.setupAAPainting(graphics)
 						graphics.color = markAttributes.foregroundColor
 						val commentText = myDocument.getText(TextRange(it.commentHighlighterEx!!.startOffset, it.commentHighlighterEx.endOffset))
 						val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
 							UIUtil.getFontWithFallback(font).deriveFont(markAttributes.fontType, font.size2D)
 						} else font
 						graphics.font = textFont
-						graphics.drawString(commentText, it.startX ?: 0,totalY.toInt() +
-								(textFont.size / pixScale + (if(pixScale != 1.0) pixelsPerLine else 0.0)).toInt())
+						graphics.drawString(commentText, it.startX ?: 0, ((totalY +
+								textFont.size / pixScale + (if(pixScale != 1.0) pixelsPerLine else 0.0)) / pixScale).toInt())
 						skipY = textFont.size * pixScale - (if(pixelsPerLine < 1) 0.0 else pixelsPerLine)
-						config.restore()
 					}
 				}
 			}
