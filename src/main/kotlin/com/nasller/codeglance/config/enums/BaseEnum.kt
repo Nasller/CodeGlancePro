@@ -11,7 +11,7 @@ interface BaseEnum {
 
 	companion object{
 		inline fun <reified T: Enum<T>> findEnum(message: String?): T{
-			return enumValues<T>().find { (it as BaseEnum).messageCode == message }!!
+			return enumValues<T>().find { (it as BaseEnum).getMessage() == message }!!
 		}
 	}
 }
