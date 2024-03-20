@@ -106,7 +106,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 				widthStart = glancePanel.width
 			}
 			isInRect(alignedToY) || MouseJumpEnum.NONE == config.jumpOnMouseDown -> dragMove(alignedToY)
-			MouseJumpEnum.MOUSE_DOWN == config.jumpOnMouseDown -> jumpToLineAt(e.x, e.y) {
+			MouseJumpEnum.MOUSE_DOWN == config.jumpOnMouseDown -> jumpToLineAt(e) {
 				visibleRectAlpha = DEFAULT_ALPHA
 				glancePanel.cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
 				dragMove(alignedToY)
