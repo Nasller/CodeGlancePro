@@ -93,6 +93,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 				twoColumnsRow({
 					comboBox(ClickTypeEnum.entries.map { it.getMessage() }).label(message("settings.click"))
 						.bindItem({ config.clickType.getMessage() }, { config.clickType = BaseEnum.findEnum(it) })
+					checkBox(message("settings.click.move")).bindSelected(config::moveOnly)
 				}, {
 					spinner(1..Int.MAX_VALUE, 10).label(message("settings.max.line"))
 						.bindIntValue(config::maxLinesCount)
