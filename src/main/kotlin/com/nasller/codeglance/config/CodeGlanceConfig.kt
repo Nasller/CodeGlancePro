@@ -23,6 +23,7 @@ class CodeGlanceConfig : BaseState() {
 	var delayHoveringToShowScrollBar by property(0)
 	var clickType by enum(ClickTypeEnum.CODE_POSITION)
 	var jumpOnMouseDown by enum(MouseJumpEnum.MOUSE_DOWN)
+	var moveOnly by property(false)
 	var viewportColor by nonNullString("A0A0A0")
 	var viewportBorderColor by nonNullString("00FF00")
 	var viewportBorderThickness by property(0)

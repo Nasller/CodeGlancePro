@@ -106,7 +106,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 				widthStart = glancePanel.width
 			}
 			isInRect(alignedToY) || MouseJumpEnum.NONE == config.jumpOnMouseDown -> dragMove(alignedToY)
-			MouseJumpEnum.MOUSE_DOWN == config.jumpOnMouseDown -> jumpToLineAt(e.y) {
+			MouseJumpEnum.MOUSE_DOWN == config.jumpOnMouseDown -> jumpToLineAt(e.x, e.y) {
 				visibleRectAlpha = DEFAULT_ALPHA
 				glancePanel.cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
 				dragMove(alignedToY)
@@ -144,8 +144,11 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			resizing = false
 			hoveringOverAndHideScrollBar(e)
 		}
-		if (MouseJumpEnum.MOUSE_UP == config.jumpOnMouseDown && !dragging && !resizing && !e.isPopupTrigger) jumpToLineAt(e.y, action)
-		else editor.scrollingModel.runActionOnScrollingFinished(action)
+		if (MouseJumpEnum.MOUSE_UP == config.jumpOnMouseDown && !dragging && !resizing && !e.isPopupTrigger) {
+			jumpToLineAt(e.x, e.y, action)
+		}else {
+			editor.scrollingModel.runActionOnScrollingFinished(action)
+		}
 	}
 
 	override fun mouseMoved(e: MouseEvent) {
@@ -278,7 +281,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		if (!e.isPopupTrigger) glancePanel.hideScrollBarListener.hideGlanceRequest()
 	}
 
-	private fun jumpToLineAt(y: Int, action: () -> Unit) {
+	private fun jumpToLineAt(x: Int, y: Int, action: () -> Unit) {
 		hideMyEditorPreviewHint()
 		val visualLine = if(config.clickType == ClickTypeEnum.CODE_POSITION){
 			fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(y.alignedToY(glancePanel) + scrollState.visibleStart))
@@ -289,8 +292,12 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 				fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(y + scrollState.visibleStart))
 			}
 		}
-		editor.caretModel.moveToVisualPosition(VisualPosition(visualLine, 0))
-		editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
+		if(config.moveOnly.not()){
+			editor.caretModel.moveToVisualPosition(VisualPosition(visualLine, x))
+			editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
+		}else {
+			editor.scrollingModel.scrollTo(editor.visualToLogicalPosition(VisualPosition(visualLine, x)), ScrollType.CENTER)
+		}
 		editor.scrollingModel.runActionOnScrollingFinished(action)
 	}
 
