@@ -42,6 +42,16 @@ tasks{
         // ideDir.set(File("path to IDE-dependency"))
     }
 
+	instrumentedJar {
+		manifest{
+			attributes["Built-By"] = "Nasller"
+			attributes["Premain-Class"] = "com.nasller.codeglance.agent.Main"
+			attributes["Agent-Class"] = "com.nasller.codeglance.agent.Main"
+			attributes["Can-Redefine-Classes"] = true
+			attributes["Can-Retransform-Classes"] = true
+		}
+	}
+
 	signPlugin {
 		certificateChainFile.set(File(env.getOrDefault("CERTIFICATE_CHAIN", "$dir/pluginCert/chain.crt")))
 		privateKeyFile.set(File(env.getOrDefault("PRIVATE_KEY", "$dir/pluginCert/private.pem")))

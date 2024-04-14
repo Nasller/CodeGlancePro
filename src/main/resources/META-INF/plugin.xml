@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.8.4</h3>
+		<ul>
+			<li>Fix sticky Line</li>
+		</ul>
 		<h3>1.8.3</h3>
 		<ul>
 			<li>Support click minimap move only</li>
@@ -50,16 +54,12 @@
 		<ul>
 			<li>Make an empty minimap,and just show some highlighted information(make it like a small scrollbar)</li>
 		</ul>
-		<h3>1.7.7</h3>
-		<ul>
-			<li>Fix setting export</li>
-			<li>Support 2023.3</li>
-		</ul>
 	]]></change-notes>
 
 	<depends>com.intellij.modules.lang</depends>
 
 	<applicationListeners>
+		<listener class="com.nasller.codeglance.agent.MyAppLifecycleListener" topic="com.intellij.ide.AppLifecycleListener"/>
 		<listener topic="com.nasller.codeglance.config.SettingsChangeListener" class="com.nasller.codeglance.GlobalSettingsChangeListener"/>
 		<listener topic="com.intellij.ide.ui.LafManagerListener" class="com.nasller.codeglance.GlobalLafManagerListener"/>
 	</applicationListeners>
