@@ -8,6 +8,7 @@ import com.intellij.diff.tools.fragmented.UnifiedDiffViewer
 import com.intellij.diff.tools.util.side.OnesideTextDiffViewer
 import com.intellij.diff.tools.util.side.ThreesideTextDiffViewer
 import com.intellij.diff.tools.util.side.TwosideTextDiffViewer
+import com.intellij.diff.util.DiffUserDataKeysEx
 import com.intellij.ide.ui.LafManager
 import com.intellij.ide.ui.LafManagerListener
 import com.intellij.openapi.editor.EditorFactory
@@ -43,7 +44,12 @@ class EditorPanelInjector : EditorFactoryListener {
 }
 
 class DiffEditorPanelInjector : DiffExtension(){
-    override fun onViewerCreated(viewer: FrameDiffTool.DiffViewer, context: DiffContext, request: DiffRequest) = viewer.diffEditorInjector()
+    override fun onViewerCreated(viewer: FrameDiffTool.DiffViewer, context: DiffContext, request: DiffRequest) {
+        val userData = context.getUserData(DiffUserDataKeysEx.COMBINED_DIFF_TOGGLE)
+        if(userData == null || !userData.isCombinedDiffEnabled){
+            viewer.diffEditorInjector()
+        }
+    }
 }
 
 class GlobalSettingsChangeListener : SettingsChangeListener{
