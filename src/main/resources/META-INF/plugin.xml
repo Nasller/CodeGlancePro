@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.8.6</h3>
+		<ul>
+			<li>Fix 2024.2-EAP</li>
+		</ul>
 		<h3>1.8.5</h3>
 		<ul>
 			<li>filter show all files in one diff view</li>
@@ -49,10 +53,6 @@
 		<ul>
 			<li>Support Fit minimap same like VsCode</li>
 			<li>Disable console minimap by default</li>
-		</ul>
-		<h3>1.7.9</h3>
-		<ul>
-			<li>Support 2024.1-EAP</li>
 		</ul>
 	]]></change-notes>
 
