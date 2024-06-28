@@ -39,7 +39,7 @@ class CodeGlanceConfig : BaseState() {
 	var syntaxHighlight by property(true)
 
 	var enableMarker by property(true)
-	var markRegex by nonNullString("\\b(MARK: - )\\b*")
+	var markRegex by nonNullString("\\b(MARK: - )\\b|\\b(MARK: )\\b|(?:region \\b)")
 	var markersScaleFactor by property(3.0f)
 
 	var diffTwoSide by property(true)
