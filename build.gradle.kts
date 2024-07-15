@@ -18,7 +18,7 @@ version = properties("pluginVersion") + if(env.getOrDefault("snapshots","") == "
 else if(env.getOrDefault("PUBLISH_CHANNEL","") == "EAP") "-SNAPSHOT-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm")) else ""
 
 dependencies {
-	implementation("net.bytebuddy:byte-buddy-agent:1.14.16")
+	implementation("net.bytebuddy:byte-buddy-agent:1.14.18")
 }
 
 kotlin {
