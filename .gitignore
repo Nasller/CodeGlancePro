@@ -3,6 +3,7 @@
 /build
 /out
 /lib
+/.intellijPlatform
 *.iml
 *.ipr
 *.iws

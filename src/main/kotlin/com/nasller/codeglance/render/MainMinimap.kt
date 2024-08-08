@@ -8,7 +8,6 @@ import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
-import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.Alarm
 import com.intellij.util.DocumentUtil
@@ -122,7 +121,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 				val endOffset = region.endOffset
 				val startLineNumber = editor.document.getLineNumber(startOffset)
 				val foldLine = editor.document.getLineNumber(endOffset) - startLineNumber
-				if(region !is CustomFoldRegionImpl){
+				if(region !is CustomFoldRegion){
 					if(region.placeholderText.isNotBlank()) {
 						(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor).setColorRgb()
 						StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach(moveAndRenderChar)

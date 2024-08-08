@@ -25,7 +25,7 @@ public class MyAppLifecycleListener implements AppLifecycleListener {
             }
             File[] files = plugin.getPluginPath().resolve("lib").toFile().listFiles(pathname -> {
                 String name = pathname.getName();
-                return name.startsWith("instrumented-CodeGlancePro-") && name.endsWith(".jar");
+                return !name.contains("searchableOptions") && name.contains("CodeGlancePro") && name.endsWith(".jar");
             });
             if(files == null || files.length == 0){
                 log.warn("CodeGlance Pro not found!");

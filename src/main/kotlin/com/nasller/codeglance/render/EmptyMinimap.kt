@@ -8,7 +8,6 @@ import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
-import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.nasller.codeglance.panel.GlancePanel
@@ -98,7 +97,7 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 				val startLineNumber = editor.document.getLineNumber(region.startOffset)
 				val endOffset = region.endOffset
 				val foldLine = editor.document.getLineNumber(endOffset) - startLineNumber
-				if(region !is CustomFoldRegionImpl){
+				if(region !is CustomFoldRegion){
 					skipY -= foldLine * scrollState.pixelsPerLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 				} else {
