@@ -9,8 +9,6 @@ import com.nasller.codeglance.util.Util
 @State(name = Util.PLUGIN_NAME, storages = [Storage("CodeGlancePro.xml")])
 class CodeGlanceConfigService : SimplePersistentStateComponent<CodeGlanceConfig>(CodeGlanceConfig()) {
 	companion object {
-		private val ConfigInstance by lazy { ApplicationManager.getApplication().getService(CodeGlanceConfigService::class.java) }
-
-		fun getConfig(): CodeGlanceConfig = ConfigInstance.state
+		val Config by lazy { ApplicationManager.getApplication().getService(CodeGlanceConfigService::class.java).state }
 	}
 }

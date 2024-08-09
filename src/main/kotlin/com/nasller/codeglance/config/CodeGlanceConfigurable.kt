@@ -17,6 +17,7 @@ import com.nasller.codeglance.config.enums.BaseEnum
 import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.EditorSizeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
+import com.nasller.codeglance.extensions.visitor.MarkCommentVisitor
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.ui.ColorButton
 import com.nasller.codeglance.ui.DonationDialog
@@ -38,7 +39,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 	private lateinit var emptyMinimapComboBox: ComboBox<EditorKind>
 
 	override fun createPanel(): DialogPanel {
-		val config = CodeGlanceConfigService.getConfig()
+		val config = CodeGlanceConfigService.Config
 		return panel {
 			group(message("settings.general")) {
 				val doubleNumberScrollListener: (e: MouseWheelEvent) -> Unit = {
@@ -237,23 +238,23 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 
 	override fun apply() {
 		super.apply()
-		CodeGlanceConfigService.getConfig().apply {
+		CodeGlanceConfigService.Config.apply {
 			editorKinds = this@CodeGlanceConfigurable.editorKinds
 			useEmptyMinimap = this@CodeGlanceConfigurable.useEmptyMinimap
 			if((!isRightAligned || disabled) && hoveringToShowScrollBar) hoveringToShowScrollBar = false
-			Util.MARK_REGEX = if(markRegex.isNotBlank()) Regex(markRegex) else null
+			MarkCommentVisitor.MARK_REGEX = if(markRegex.isNotBlank()) Regex(markRegex) else null
 		}
 		invokeLater{ SettingsChangePublisher.onGlobalChanged() }
 	}
 
 	override fun isModified(): Boolean {
-		return super.isModified() || editorKinds != CodeGlanceConfigService.getConfig().editorKinds ||
-				useEmptyMinimap != CodeGlanceConfigService.getConfig().useEmptyMinimap
+		return super.isModified() || editorKinds != CodeGlanceConfigService.Config.editorKinds ||
+				useEmptyMinimap != CodeGlanceConfigService.Config.useEmptyMinimap
 	}
 
 	override fun reset() {
 		super.reset()
-		val config = CodeGlanceConfigService.getConfig()
+		val config = CodeGlanceConfigService.Config
 		editorKinds.clear()
 		editorKinds.addAll(config.editorKinds)
 		useEmptyMinimap.clear()

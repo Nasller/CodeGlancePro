@@ -40,7 +40,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		get() = editor.project ?: ProjectManager.getInstance().defaultProject
 	var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
 	val psiDocumentManager: PsiDocumentManager = PsiDocumentManager.getInstance(project)
-	val config = CodeGlanceConfigService.getConfig()
+	val config = CodeGlanceConfigService.Config
 	val scrollState = ScrollState()
 	val isDefaultDisable
 		get() = config.disabled || editor.document.lineCount > config.maxLinesCount

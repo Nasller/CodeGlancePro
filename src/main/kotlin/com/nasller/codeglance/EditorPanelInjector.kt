@@ -34,7 +34,7 @@ class EditorPanelInjector : EditorFactoryListener {
     override fun editorCreated(event: EditorFactoryEvent) {
         if(event.editor.editorKind == EditorKind.DIFF) return
         val editorImpl = event.editor as? EditorImpl ?: return
-        firstRunEditor(EditorInfo(editorImpl, if (CodeGlanceConfigService.getConfig().isRightAligned)
+        firstRunEditor(EditorInfo(editorImpl, if (CodeGlanceConfigService.Config.isRightAligned)
             BorderLayout.LINE_END else BorderLayout.LINE_START), null)
     }
 
@@ -56,7 +56,7 @@ class GlobalSettingsChangeListener : SettingsChangeListener{
     override fun onGlobalChanged() {
         processAllGlanceEditor { oldGlance, info ->
             oldGlance?.apply { Disposer.dispose(this) }
-            if(info.editor.isDisableExtensionFile() || !CodeGlanceConfigService.getConfig().editorKinds.contains(info.editor.editorKind)) {
+            if(info.editor.isDisableExtensionFile() || !CodeGlanceConfigService.Config.editorKinds.contains(info.editor.editorKind)) {
                 oldGlance?.changeOriginScrollBarWidth(false)
             } else {
                 if(info.editor.editorKind == EditorKind.DIFF) {
@@ -78,7 +78,7 @@ class GlobalLafManagerListener : LafManagerListener {
 
 private fun firstRunEditor(info: EditorInfo, diffView: FrameDiffTool.DiffViewer?) {
     if(diffView != null) info.editor.putUserData(CURRENT_EDITOR_DIFF_VIEW, diffView)
-    if(info.editor.isDisableExtensionFile() || !CodeGlanceConfigService.getConfig().editorKinds.contains(info.editor.editorKind)) {
+    if(info.editor.isDisableExtensionFile() || !CodeGlanceConfigService.Config.editorKinds.contains(info.editor.editorKind)) {
         return
     }
     val layout = info.editor.component.layout
@@ -88,7 +88,7 @@ private fun firstRunEditor(info: EditorInfo, diffView: FrameDiffTool.DiffViewer?
 }
 
 private fun FrameDiffTool.DiffViewer.diffEditorInjector() {
-    val config = CodeGlanceConfigService.getConfig()
+    val config = CodeGlanceConfigService.Config
     val where = if (config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
     when (this) {
         is UnifiedDiffViewer -> if(editor is EditorImpl) {
@@ -114,7 +114,7 @@ private fun FrameDiffTool.DiffViewer.diffEditorInjector() {
 
 private fun processAllGlanceEditor(action: (oldGlance:GlancePanel?, EditorInfo)->Unit){
     try {
-        val where = if (CodeGlanceConfigService.getConfig().isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
+        val where = if (CodeGlanceConfigService.Config.isRightAligned) BorderLayout.LINE_END else BorderLayout.LINE_START
         for (editor in EditorFactory.getInstance().allEditors.filterIsInstance<EditorImpl>()) {
             val info = EditorInfo(editor, where)
             val layout = info.editor.component.layout
@@ -137,13 +137,13 @@ private fun setMyPanel(info: EditorInfo): GlancePanel {
 
 private fun EditorImpl.isDisableExtensionFile(): Boolean{
     val extension = (virtualFile ?: FileDocumentManager.getInstance().getFile(document))?.run { fileType.defaultExtension } ?: ""
-    return extension.isNotBlank() && CodeGlanceConfigService.getConfig().disableLanguageSuffix.split(",").toSet().contains(extension)
+    return extension.isNotBlank() && CodeGlanceConfigService.Config.disableLanguageSuffix.split(",").toSet().contains(extension)
 }
 
 internal class MyPanel(val panel: GlancePanel?): JBPanel<MyPanel>(BorderLayout()){
     init{
         add(panel!!)
-        if (CodeGlanceConfigService.getConfig().hideOriginalScrollBar){
+        if (CodeGlanceConfigService.Config.hideOriginalScrollBar){
             panel.myVcsPanel = MyVcsPanel(panel)
             add(panel.myVcsPanel!!, if (panel.getPlaceIndex() == GlancePanel.PlaceIndex.Left) BorderLayout.EAST else BorderLayout.WEST)
         }

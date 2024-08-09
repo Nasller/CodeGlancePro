@@ -52,30 +52,30 @@ class CodeGlanceConfig : BaseState() {
 	var consoleWidth by property(50)
 	var previewWidth by property(50)
 	var useFastMinimapForMain by property(true)
-	var useEmptyMinimap by setOf(mutableSetOf<EditorKind>())
+	var useEmptyMinimap by setOf(mutableSetOf(EditorKind.CONSOLE))
 
 	fun singleFileVisibleButton() = !hoveringToShowScrollBar && singleFileVisibleButton
 
 	private fun nonNullString(initialValue: String = "") = property(initialValue) { it == initialValue }
 
-	private fun <T : Any> setOf(value: MutableSet<T>) = property(value) { it == value }
+	private fun <T : Any> setOf(initialValue: MutableSet<T>) = property(initialValue) { it.all { value -> initialValue.contains(value) } }
 
 	companion object{
 		fun EditorKind.getWidth() = when(this){
-			EditorKind.UNTYPED -> CodeGlanceConfigService.getConfig().unTypedWidth
-			EditorKind.CONSOLE -> CodeGlanceConfigService.getConfig().consoleWidth
-			EditorKind.PREVIEW -> CodeGlanceConfigService.getConfig().previewWidth
-			EditorKind.DIFF -> CodeGlanceConfigService.getConfig().diffWidth
-			else -> CodeGlanceConfigService.getConfig().mainWidth
+			EditorKind.UNTYPED -> CodeGlanceConfigService.Config.unTypedWidth
+			EditorKind.CONSOLE -> CodeGlanceConfigService.Config.consoleWidth
+			EditorKind.PREVIEW -> CodeGlanceConfigService.Config.previewWidth
+			EditorKind.DIFF -> CodeGlanceConfigService.Config.diffWidth
+			else -> CodeGlanceConfigService.Config.mainWidth
 		}
 
 		fun EditorKind.setWidth(value: Int) {
 			when (this) {
-				EditorKind.UNTYPED -> CodeGlanceConfigService.getConfig().unTypedWidth = value
-				EditorKind.CONSOLE -> CodeGlanceConfigService.getConfig().consoleWidth = value
-				EditorKind.PREVIEW -> CodeGlanceConfigService.getConfig().previewWidth = value
-				EditorKind.DIFF -> CodeGlanceConfigService.getConfig().diffWidth = value
-				else -> CodeGlanceConfigService.getConfig().mainWidth = value
+				EditorKind.UNTYPED -> CodeGlanceConfigService.Config.unTypedWidth = value
+				EditorKind.CONSOLE -> CodeGlanceConfigService.Config.consoleWidth = value
+				EditorKind.PREVIEW -> CodeGlanceConfigService.Config.previewWidth = value
+				EditorKind.DIFF -> CodeGlanceConfigService.Config.diffWidth = value
+				else -> CodeGlanceConfigService.Config.mainWidth = value
 			}
 		}
 	}

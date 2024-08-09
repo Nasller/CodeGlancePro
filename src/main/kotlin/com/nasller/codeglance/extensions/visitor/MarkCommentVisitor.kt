@@ -6,13 +6,14 @@ import com.intellij.lang.Language
 import com.intellij.lang.LanguageCommenters
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
+import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.util.Util
 
 class MarkCommentVisitor : MyRainbowVisitor() {
 	override fun visit(element: PsiElement) {
 		if (element is PsiComment) {
 			val text = element.text
-			Util.MARK_REGEX?.find(text)?.let {
+			MARK_REGEX?.find(text)?.let {
 				val textRange = element.textRange
 				val index = text.indexOf('\n',it.range.last)
 				val blockCommentSuffix by lazy(LazyThreadSafetyMode.NONE) { getLanguageBlockCommentSuffix(element.language) ?: "" }
@@ -37,4 +38,10 @@ class MarkCommentVisitor : MyRainbowVisitor() {
 	}
 
 	override fun clone(): HighlightVisitor = MarkCommentVisitor()
+
+	companion object{
+		var MARK_REGEX = CodeGlanceConfigService.Config.markRegex.run {
+			if(isNotBlank()) Regex(this) else null
+		}
+	}
 }
