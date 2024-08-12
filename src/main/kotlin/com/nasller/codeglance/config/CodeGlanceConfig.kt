@@ -58,7 +58,7 @@ class CodeGlanceConfig : BaseState() {
 
 	private fun nonNullString(initialValue: String = "") = property(initialValue) { it == initialValue }
 
-	private fun <T : Any> setOf(initialValue: MutableSet<T>) = property(initialValue) { it.all { value -> initialValue.contains(value) } }
+	private fun <T : Any> setOf(initialValue: MutableSet<T>) = property(initialValue) { it == initialValue }
 
 	companion object{
 		fun EditorKind.getWidth() = when(this){
