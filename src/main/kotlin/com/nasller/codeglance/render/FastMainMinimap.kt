@@ -583,8 +583,6 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		try {
 			val visLinesIterator = MyVisualLinesIterator(editor, startVisualLine)
 			if(reset){
-//				println(Throwable().stackTraceToString())
-				val originalStack by lazy(LazyThreadSafetyMode.NONE) { Throwable() }
 				myResetDataPromise = ReadAction.nonBlocking<Unit> {
 //					val startTime = System.currentTimeMillis()
 					updateMinimapData(visLinesIterator, 0)
@@ -600,7 +598,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 				}.submit(fastMinimapBackendExecutor).onError{
 					myResetDataPromise = null
 					if(it !is CancellationException){
-						LOG.error("Async update error fileType:${virtualFile?.fileType?.name} original stack:${originalStack.stackTraceToString()}", it)
+						LOG.warn("Async update error fileType:${virtualFile?.fileType?.name}", it)
 						invokeLater { resetMinimapData() }
 					}
 				}
