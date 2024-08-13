@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.8.8</h3>
+		<ul>
+			<li>Ignore async run error</li>
+		</ul>
 		<h3>1.8.7</h3>
 		<ul>
 			<li>Fix IDEA log error</li>
@@ -48,15 +52,6 @@
 		<h3>1.8.2</h3>
 		<ul>
 			<li>Fix a setting problem</li>
-		</ul>
-		<h3>1.8.1</h3>
-		<ul>
-			<li>Fix some bugs of Fit minimap</li>
-		</ul>
-		<h3>1.8.0</h3>
-		<ul>
-			<li>Support Fit minimap same like VsCode</li>
-			<li>Disable console minimap by default</li>
 		</ul>
 	]]></change-notes>
 
