@@ -295,7 +295,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 
 	companion object{
 		fun EditorKind.getMinimap(glancePanel: GlancePanel): BaseMinimap = glancePanel.run {
-			if(config.useEmptyMinimap.contains(this@getMinimap.name)) {
+			if(config.useEmptyMinimapStr.contains(this@getMinimap.name)) {
 				return EmptyMinimap(this)
 			}
 			return if(this@getMinimap == EditorKind.MAIN_EDITOR && config.useFastMinimapForMain) {

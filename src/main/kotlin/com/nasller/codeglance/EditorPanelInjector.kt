@@ -56,7 +56,7 @@ class GlobalSettingsChangeListener : SettingsChangeListener{
     override fun onGlobalChanged() {
         processAllGlanceEditor { oldGlance, info ->
             oldGlance?.apply { Disposer.dispose(this) }
-            if(info.editor.isDisableExtensionFile() || !CodeGlanceConfigService.Config.editorKinds.contains(info.editor.editorKind.name)) {
+            if(info.editor.isDisableExtensionFile() || !CodeGlanceConfigService.Config.editorKindsStr.contains(info.editor.editorKind.name)) {
                 oldGlance?.changeOriginScrollBarWidth(false)
             } else {
                 if(info.editor.editorKind == EditorKind.DIFF) {
@@ -78,7 +78,7 @@ class GlobalLafManagerListener : LafManagerListener {
 
 private fun firstRunEditor(info: EditorInfo, diffView: FrameDiffTool.DiffViewer?) {
     if(diffView != null) info.editor.putUserData(CURRENT_EDITOR_DIFF_VIEW, diffView)
-    if(info.editor.isDisableExtensionFile() || !CodeGlanceConfigService.Config.editorKinds.contains(info.editor.editorKind.name)) {
+    if(info.editor.isDisableExtensionFile() || !CodeGlanceConfigService.Config.editorKindsStr.contains(info.editor.editorKind.name)) {
         return
     }
     val layout = info.editor.component.layout
