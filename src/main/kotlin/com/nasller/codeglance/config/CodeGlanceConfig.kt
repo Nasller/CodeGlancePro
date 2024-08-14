@@ -45,20 +45,18 @@ class CodeGlanceConfig : BaseState() {
 	var diffTwoSide by property(true)
 	var diffThreeSide by property(true)
 	var diffThreeSideMiddle by property(false)
-	var editorKinds by setOf(mutableSetOf(EditorKind.MAIN_EDITOR, EditorKind.PREVIEW, EditorKind.DIFF))
+	var editorKinds by nonNullString("${EditorKind.MAIN_EDITOR},${EditorKind.PREVIEW},${EditorKind.DIFF}")
 	var mainWidth by property(110)
 	var diffWidth by property(50)
 	var unTypedWidth by property(50)
 	var consoleWidth by property(50)
 	var previewWidth by property(50)
 	var useFastMinimapForMain by property(true)
-	var useEmptyMinimap by setOf(mutableSetOf(EditorKind.CONSOLE))
+	var useEmptyMinimap by nonNullString(EditorKind.CONSOLE.name)
 
 	fun singleFileVisibleButton() = !hoveringToShowScrollBar && singleFileVisibleButton
 
 	private fun nonNullString(initialValue: String = "") = property(initialValue) { it == initialValue }
-
-	private fun <T : Any> setOf(initialValue: MutableSet<T>) = property(initialValue) { it == initialValue }
 
 	companion object{
 		fun EditorKind.getWidth() = when(this){

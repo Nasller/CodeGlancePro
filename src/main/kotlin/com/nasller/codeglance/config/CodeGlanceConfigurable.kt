@@ -239,8 +239,8 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 	override fun apply() {
 		super.apply()
 		CodeGlanceConfigService.Config.apply {
-			editorKinds = this@CodeGlanceConfigurable.editorKinds
-			useEmptyMinimap = this@CodeGlanceConfigurable.useEmptyMinimap
+			editorKinds = this@CodeGlanceConfigurable.editorKinds.joinToString(",")
+			useEmptyMinimap = this@CodeGlanceConfigurable.useEmptyMinimap.joinToString(",")
 			if((!isRightAligned || disabled) && hoveringToShowScrollBar) hoveringToShowScrollBar = false
 			MarkCommentVisitor.MARK_REGEX = if(markRegex.isNotBlank()) Regex(markRegex) else null
 		}
@@ -248,17 +248,20 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 	}
 
 	override fun isModified(): Boolean {
-		return super.isModified() || editorKinds != CodeGlanceConfigService.Config.editorKinds ||
+		return super.isModified() ||
+				editorKinds != CodeGlanceConfigService.Config.editorKinds
+					.split(",").mapTo(mutableSetOf()) { EditorKind.valueOf(it) } ||
 				useEmptyMinimap != CodeGlanceConfigService.Config.useEmptyMinimap
+					.split(",").mapTo(mutableSetOf()) { EditorKind.valueOf(it) }
 	}
 
 	override fun reset() {
 		super.reset()
 		val config = CodeGlanceConfigService.Config
 		editorKinds.clear()
-		editorKinds.addAll(config.editorKinds)
+		editorKinds += config.editorKinds.split(",").map { EditorKind.valueOf(it) }
 		useEmptyMinimap.clear()
-		useEmptyMinimap.addAll(config.useEmptyMinimap)
+		useEmptyMinimap += config.useEmptyMinimap.split(",").map { EditorKind.valueOf(it) }
 		editorKindComboBox.repaint()
 		emptyMinimapComboBox.repaint()
 	}
