@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.8.9</h3>
+		<ul>
+			<li>Error handling</li>
+		</ul>
 		<h3>1.8.8</h3>
 		<ul>
 			<li>Ignore async run error</li>
@@ -43,15 +47,6 @@
 		<h3>1.8.4</h3>
 		<ul>
 			<li>Fix sticky Line</li>
-		</ul>
-		<h3>1.8.3</h3>
-		<ul>
-			<li>Support click minimap move only</li>
-			<li>Support shift click minimap</li>
-		</ul>
-		<h3>1.8.2</h3>
-		<ul>
-			<li>Fix a setting problem</li>
 		</ul>
 	]]></change-notes>
 
@@ -82,5 +77,6 @@
 		<additionalTextAttributes scheme="Default" file="colorSchemes/color-default.xml"/>
 		<additionalTextAttributes scheme="Darcula" file="colorSchemes/color-default-darcula.xml"/>
 		<highlightVisitor implementation="com.nasller.codeglance.extensions.visitor.MarkCommentVisitor"/>
+		<errorHandler implementation="com.intellij.diagnostic.JetBrainsMarketplaceErrorReportSubmitter"/>
 	</extensions>
 </idea-plugin>
