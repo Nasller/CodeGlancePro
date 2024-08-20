@@ -244,7 +244,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 			.associateBy { DocumentUtil.getLineStartOffset(it.startOffset, myDocument) }
 		val limitWidth = glancePanel.getConfigSize().width
 		while (!visLinesIterator.atEnd()) {
-			ProgressManager.checkCanceled()
+			checkCanceled()
 			val start = visLinesIterator.getVisualLineStartOffset()
 			val end = visLinesIterator.getVisualLineEndOffset()
 			val visualLine = visLinesIterator.getVisualLine()
@@ -280,7 +280,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 						var foldLineIndex = visLinesIterator.getStartFoldingIndex()
 						var width = 0
 						do {
-							ProgressManager.checkCanceled()
+							checkCanceled()
 							var curStart = hlIter.start.run{ if(start > this) start else this }
 							val curEnd = hlIter.end.run{ if(this - curStart > limitWidth) start + limitWidth else this }
 							if(width > limitWidth || curEnd > text.length || curStart > curEnd) break
@@ -370,6 +370,12 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 				}
 			}
 			toTypedArray()
+		}
+	}
+
+	private fun checkCanceled(){
+		if(myResetDataPromise != null){
+			ProgressManager.checkCanceled()
 		}
 	}
 
@@ -582,26 +588,27 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		if(!glancePanel.checkVisible()) return
 		try {
 			val visLinesIterator = MyVisualLinesIterator(editor, startVisualLine)
-			if(reset){
+			if(reset) {
 				myResetDataPromise = ReadAction.nonBlocking<Unit> {
 //					val startTime = System.currentTimeMillis()
 					updateMinimapData(visLinesIterator, 0)
 //					println("updateMinimapData time: ${System.currentTimeMillis() - startTime}")
-				}.coalesceBy(this).expireWith(this).finishOnUiThread(ModalityState.any()) {
-					myResetDataPromise = null
-					if (myResetChangeStartOffset <= myResetChangeEndOffset) {
-						doInvalidateRange(myResetChangeStartOffset, myResetChangeEndOffset)
-						myResetChangeStartOffset = Int.MAX_VALUE
-						myResetChangeEndOffset = Int.MIN_VALUE
-						assertValidState()
+				}.withDocumentsCommitted(glancePanel.project).coalesceBy(this).expireWith(this)
+					.finishOnUiThread(ModalityState.any()) {
+						myResetDataPromise = null
+						if (myResetChangeStartOffset <= myResetChangeEndOffset) {
+							doInvalidateRange(myResetChangeStartOffset, myResetChangeEndOffset)
+							myResetChangeStartOffset = Int.MAX_VALUE
+							myResetChangeEndOffset = Int.MIN_VALUE
+							assertValidState()
+						}
+					}.submit(fastMinimapBackendExecutor).onError {
+						myResetDataPromise = null
+						if (it !is CancellationException) {
+							LOG.warn("Async update error fileType:${virtualFile?.fileType?.name}", it)
+							invokeLater { resetMinimapData() }
+						}
 					}
-				}.submit(fastMinimapBackendExecutor).onError{
-					myResetDataPromise = null
-					if(it !is CancellationException){
-						LOG.warn("Async update error fileType:${virtualFile?.fileType?.name}", it)
-						invokeLater { resetMinimapData() }
-					}
-				}
 			}else {
 //				val startTime = System.currentTimeMillis()
 				updateMinimapData(visLinesIterator, endVisualLine)
