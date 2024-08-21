@@ -87,7 +87,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 					}
 				}
 			}
-			if(glancePanel.markCommentState.hasMarkCommentHighlight()){
+			if(glancePanel.markState.hasMarkHighlight()){
 				glancePanel.psiDocumentManager.performForCommittedDocument(myDocument, action)
 			}else action.run()
 		}else {
@@ -211,10 +211,11 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 							}
 						}
 					}
-					LineType.COMMENT -> {
+					LineType.MARK -> {
 						graphics.composite = GlancePanel.srcOver
 						graphics.color = markAttributes.foregroundColor
-						val commentText = myDocument.getText(TextRange(it.commentHighlighterEx!!.startOffset, it.commentHighlighterEx.endOffset))
+						val commentText = it.commentHighlighterEx!!.getUserData(MarkState.BOOK_MARK_DESC_KEY) ?:
+						myDocument.getText(TextRange(it.commentHighlighterEx.startOffset, it.commentHighlighterEx.endOffset)).trim()
 						val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
 							UIUtil.getFontWithFallback(font).deriveFont(markAttributes.fontType, font.size2D)
 						} else font
@@ -240,7 +241,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 
 	private fun updateMinimapData(visLinesIterator: MyVisualLinesIterator, endVisualLine: Int){
 		val text = myDocument.immutableCharSequence
-		val markCommentMap = glancePanel.markCommentState.getAllMarkCommentHighlight()
+		val markCommentMap = glancePanel.markState.getAllMarkHighlight()
 			.associateBy { DocumentUtil.getLineStartOffset(it.startOffset, myDocument) }
 		val limitWidth = glancePanel.getConfigSize().width
 		while (!visLinesIterator.atEnd()) {
@@ -262,7 +263,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 				//COMMENT
 				if(markCommentMap.containsKey(start)) {
 					renderDataList[visualLine] = LineRenderData(emptyArray(), 2, aboveBlockLine,
-						LineType.COMMENT, commentHighlighterEx = markCommentMap[start])
+						LineType.MARK, commentHighlighterEx = markCommentMap[start])
 				}else if(start < text.length && text.subSequence(start, end).isNotBlank()){
 					val hlIter = editor.highlighter.run {
 						if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(text, start, end)
@@ -507,18 +508,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	}
 
 	/** MarkupModelListener */
-	override fun afterAdded(highlighter: RangeHighlighterEx) {
-		glancePanel.markCommentState.markCommentHighlightChange(highlighter, false)
-		updateRangeHighlight(highlighter)
-	}
-
-	override fun beforeRemoved(highlighter: RangeHighlighterEx) {
-		glancePanel.markCommentState.markCommentHighlightChange(highlighter, true)
-	}
-
-	override fun afterRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter)
-
-	private fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
+	override fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
 		EdtInvocationManager.invokeLaterIfNeeded {
 			if (!glancePanel.checkVisible() || myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || myDuringDocumentUpdate) {
 				return@invokeLaterIfNeeded
@@ -533,6 +523,21 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 				}
 			}else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
 				glancePanel.repaint()
+			}
+		}
+	}
+
+	/** BookmarksListener */
+	override fun updateBookmarkHighlight(highlighter: RangeMarker) {
+		EdtInvocationManager.invokeLaterIfNeeded {
+			if (!glancePanel.checkVisible() || myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || myDuringDocumentUpdate) {
+				return@invokeLaterIfNeeded
+			}
+			val textLength = myDocument.textLength
+			val start = MathUtil.clamp(highlighter.startOffset, 0, textLength)
+			val end = MathUtil.clamp(highlighter.endOffset, start, textLength)
+			if (start != end) {
+				invalidateRange(start, end)
 			}
 		}
 	}
@@ -669,7 +674,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 									  val aboveBlockLine: Int,
 									  val lineType: LineType? = null,
 									  val customFoldRegion: CustomFoldRegion? = null,
-									  val commentHighlighterEx: RangeHighlighterEx? = null) {
+									  val commentHighlighterEx: RangeMarker? = null) {
 		fun getLineHeight(pixelsPerLine: Double, scale: Double) = if(lineType == LineType.CUSTOM_FOLD && customFoldRegion != null) {
 			(customFoldRegion.heightInPixels * scale).run{
 				if(this < pixelsPerLine) pixelsPerLine else this
@@ -719,7 +724,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		}
 	}
 
-	private enum class LineType{COMMENT, CUSTOM_FOLD}
+	private enum class LineType{MARK, CUSTOM_FOLD}
 
 	@Suppress("UNCHECKED_CAST", "UndesirableClassUsage")
 	companion object{

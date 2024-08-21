@@ -1,5 +1,9 @@
 package com.nasller.codeglance.render
 
+import com.intellij.ide.bookmark.Bookmark
+import com.intellij.ide.bookmark.BookmarkGroup
+import com.intellij.ide.bookmark.BookmarksListener
+import com.intellij.ide.bookmark.LineBookmark
 import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ModalityState
@@ -7,6 +11,7 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.InlayModel
+import com.intellij.openapi.editor.RangeMarker
 import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
@@ -19,9 +24,7 @@ import com.intellij.openapi.editor.impl.view.IterationState
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfoRt
-import com.intellij.psi.PsiComment
 import com.intellij.psi.tree.IElementType
-import com.intellij.psi.util.findParentOfType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.containers.ContainerUtil
@@ -37,7 +40,7 @@ import java.beans.PropertyChangeListener
 import java.util.concurrent.atomic.AtomicBoolean
 
 abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.Listener, PropertyChangeListener,
-	PrioritizedDocumentListener, FoldingListener, MarkupModelListener, SoftWrapChangeListener, Disposable {
+	PrioritizedDocumentListener, FoldingListener, MarkupModelListener, SoftWrapChangeListener, BookmarksListener, Disposable {
 	protected val editor = glancePanel.editor
 	protected val config
 		get() = glancePanel.config
@@ -61,6 +64,36 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 	override fun getPriority(): Int = 170 //EditorDocumentPriorities
 
 	override fun recalculationEnds() = Unit
+
+	protected abstract fun updateRangeHighlight(highlighter: RangeHighlighterEx)
+
+	protected abstract fun updateBookmarkHighlight(highlighter: RangeMarker)
+
+	/** MarkupModelListener */
+	override fun afterAdded(highlighter: RangeHighlighterEx) {
+		if(glancePanel.markState.markHighlightChange(highlighter, false)){
+			updateRangeHighlight(highlighter)
+		}
+	}
+
+	override fun beforeRemoved(highlighter: RangeHighlighterEx) {
+		glancePanel.markState.markHighlightChange(highlighter, true)
+	}
+
+	override fun afterRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter)
+
+	/** BookmarksListener */
+	override fun bookmarkAdded(group: BookmarkGroup, bookmark: Bookmark) = bookmarkChanged(group, bookmark, false)
+
+	override fun bookmarkRemoved(group: BookmarkGroup, bookmark: Bookmark) = bookmarkChanged(group, bookmark, true)
+
+	override fun bookmarkChanged(group: BookmarkGroup, bookmark: Bookmark) = bookmarkChanged(group, bookmark, false)
+
+	private fun bookmarkChanged(group: BookmarkGroup, bookmark: Bookmark, remove: Boolean){
+		if(bookmark is LineBookmark && bookmark.file == virtualFile) {
+			glancePanel.markState.markHighlightChange(group, bookmark, remove)?.let { updateBookmarkHighlight(it) }
+		}
+	}
 
 	fun getMyRenderVisualLine(y: Int): Int {
 		if(y <= 0) return 0
@@ -209,10 +242,11 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 		editor.inlayModel.addListener(this, this)
 		editor.softWrapModel.addSoftWrapChangeListener(this)
 		editor.filteredDocumentMarkupModel.addMarkupModelListener(this, this)
+		glancePanel.project.messageBus.connect(this).subscribe(BookmarksListener.TOPIC, this)
 	}
 
 	protected fun makeMarkHighlight(text: CharSequence, graphics: Graphics2D):Map<Int,MarkCommentData>{
-		val markCommentMap = glancePanel.markCommentState.getAllMarkCommentHighlight()
+		val markCommentMap = glancePanel.markState.getAllMarkHighlight()
 		return if(markCommentMap.isNotEmpty()) {
 			val lineCount = editor.document.lineCount
 			val map = mutableMapOf<Int, MarkCommentData>()
@@ -226,11 +260,13 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 					else -> EditorFontType.PLAIN
 				}
 			).deriveFont(config.markersScaleFactor * 3)
-			for (highlighterEx in markCommentMap) {
-				val startOffset = highlighterEx.startOffset
-				file?.findElementAt(startOffset)?.findParentOfType<PsiComment>(false)?.let { comment ->
-					val textRange = comment.textRange
-					val commentText = text.substring(startOffset, highlighterEx.endOffset)
+			for (rangeMarker in markCommentMap) {
+				val startOffset = rangeMarker.startOffset
+				file?.findElementAt(startOffset)?.let { comment ->
+					val textRange = if(rangeMarker is MarkState.BookmarkHighlightDelegate)
+						comment.nextSibling?.textRange ?: comment.textRange else comment.textRange
+					val commentText = rangeMarker.getUserData(MarkState.BOOK_MARK_DESC_KEY) ?:
+					text.substring(startOffset, rangeMarker.endOffset).trim()
 					val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
 						UIUtil.getFontWithFallback(font).deriveFont(attributes.fontType, font.size2D)
 					} else font

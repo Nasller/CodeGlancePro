@@ -26,7 +26,7 @@ import com.nasller.codeglance.panel.scroll.CustomScrollBarPopup
 import com.nasller.codeglance.panel.scroll.ScrollBar
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import com.nasller.codeglance.render.BaseMinimap.Companion.getMinimap
-import com.nasller.codeglance.render.MarkCommentState
+import com.nasller.codeglance.render.MarkState
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
 import javax.swing.JPanel
@@ -47,7 +47,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val myPopHandler = CustomScrollBarPopup(this)
 	val hideScrollBarListener = HideScrollBarListener(this)
 	val scrollbar = ScrollBar(this)
-	val markCommentState = MarkCommentState(this)
+	val markState = MarkState(this)
 	var myVcsPanel: MyVcsPanel? = null
 	var isReleased = false
 	private val minimap = updateScrollState().run { editor.editorKind.getMinimap(this@GlancePanel) }
@@ -56,7 +56,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		Disposer.register(this, GlanceListener(this))
 		isOpaque = false
 		isVisible = !isDefaultDisable
-		markCommentState.refreshMarkCommentHighlight(editor)
+		markState.refreshMarkCommentHighlight(editor)
 		editor.putUserData(CURRENT_GLANCE, this)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, if (info.place == BorderLayout.LINE_START) PlaceIndex.Left else PlaceIndex.Right)
 		if(scrollState.documentHeight > 0 && scrollState.pixelsPerLine > 0) {
@@ -196,12 +196,15 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 
 	private fun Graphics2D.paintEditorFilterMarkupModel(rangeOffset: Range<Int>,existLine: MutableSet<Int>) {
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
-			if (!it.isThinErrorStripeMark && it.layer >= HighlighterLayer.CARET_ROW) {
-				it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-					val highlightColor = RangeHighlightColor(it, this, config.showErrorStripesFullLineHighlight &&
-							(config.hideOriginalScrollBar || HighlightInfo.fromRangeHighlighter(it) == null), existLine)
-					drawMarkupLine(highlightColor)
-				}
+			if((config.enableBookmarksMark && CodeInsightColors.BOOKMARKS_ATTRIBUTES == it.textAttributesKey) ||
+				it.isThinErrorStripeMark ||
+				it.layer < HighlighterLayer.CARET_ROW) {
+				return@processRangeHighlightersOverlappingWith true
+			}
+			it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
+				val highlightColor = RangeHighlightColor(it, this, config.showErrorStripesFullLineHighlight &&
+						(config.hideOriginalScrollBar || HighlightInfo.fromRangeHighlighter(it) == null), existLine)
+				drawMarkupLine(highlightColor)
 			}
 			return@processRangeHighlightersOverlappingWith true
 		}
@@ -314,7 +317,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		editor.component.remove(this.parent)
 		hideScrollBarListener.dispose()
 		scrollbar.clear()
-		markCommentState.clear()
+		markState.clear()
 	}
 
 	private inner class RangeHighlightColor(val startOffset: Int, val endOffset: Int, val color: Color, var fullLine: Boolean, val fullLineWithActualHighlight: Boolean) {

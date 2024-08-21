@@ -42,19 +42,6 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 		val config = CodeGlanceConfigService.Config
 		return panel {
 			group(message("settings.general")) {
-				val doubleNumberScrollListener: (e: MouseWheelEvent) -> Unit = {
-					val spinner = it.source as JSpinner
-					val model = spinner.model as SpinnerNumberModel
-					var step = model.stepSize.toDouble()
-					when (it.modifiersEx and (InputEvent.CTRL_DOWN_MASK or InputEvent.SHIFT_DOWN_MASK)) {
-						InputEvent.CTRL_DOWN_MASK -> step *= 2
-						InputEvent.SHIFT_DOWN_MASK -> step /= 2
-						InputEvent.CTRL_DOWN_MASK or InputEvent.SHIFT_DOWN_MASK -> step = 0.5
-					}
-					var newValue: Double = spinner.value as Double + step * -it.wheelRotation
-					newValue = min(max(newValue, (model.minimum as Double)), (model.maximum as Double))
-					spinner.value = newValue
-				}
 				twoColumnsRow({
 					comboBox(listOf(1, 2, 3, 4)).label(message("settings.pixels"))
 						.bindItem(config::pixelsPerLine.toNullableProperty())
@@ -104,12 +91,6 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 						}
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
-					cell(ColorButton(config.viewportColor, JBColor.WHITE)).label(message("settings.viewport.color"))
-						.bind({ it.text }, { p: ColorButtonBase, v: String ->
-							p.setColor(ColorUtil.fromHex(v))
-							p.text = v
-						}, config::viewportColor.toMutableProperty())
-				}, {
 					editorKindComboBox = comboBox(EditorKind.entries, EditorKindListCellRenderer(editorKinds))
 						.label(message("settings.editor.kind")).applyToComponent {
 						isSwingPopup = false
@@ -119,18 +100,18 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 							editorKindComboBox.repaint()
 						}
 					}.component
-				}).bottomGap(BottomGap.SMALL)
-				twoColumnsRow({
-					cell(ColorButton(config.viewportBorderColor, JBColor.WHITE)).label(message("settings.viewport.border.color"))
-						.bind({ it.text }, { p: ColorButtonBase, v: String ->
-							p.setColor(ColorUtil.fromHex(v))
-							p.text = v
-						}, config::viewportBorderColor.toMutableProperty())
 				}, {
-					comboBox(listOf(0, 1, 2, 3, 4)).label(message("settings.viewport.border.thickness"))
-						.bindItem(config::viewportBorderThickness.toNullableProperty())
+					emptyMinimapComboBox = comboBox(EditorKind.entries, EditorKindListCellRenderer(useEmptyMinimap))
+						.label(message("settings.use.empty.minimap")).applyToComponent {
+							isSwingPopup = false
+							addActionListener {
+								val kind = emptyMinimapComboBox.item ?: return@addActionListener
+								if (!useEmptyMinimap.remove(kind)) useEmptyMinimap.add(kind)
+								emptyMinimapComboBox.repaint()
+							}
+						}.component
 				}).bottomGap(BottomGap.SMALL)
-				twoColumnsRow({
+				row {
 					spinner(0..2000, 50).label(message("popup.hover.minimap.delay"))
 						.bindIntValue(config::delayHoveringToShowScrollBar)
 						.applyToComponent {
@@ -139,27 +120,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 						}
 					@Suppress("DialogTitleCapitalization")
 					label("ms").gap(RightGap.SMALL)
-				}, {
-					spinner(2.0..10.0, 0.1).label(message("settings.markers.scale"))
-						.bindValue(getter = { config.markersScaleFactor.toDouble() }, setter = { value: Double -> config.markersScaleFactor = value.toFloat() })
-						.applyToComponent {
-							toolTipText = "Scale factor for font of markers in minimap[2 - 10]"
-							addMouseWheelListener(doubleNumberScrollListener)
-						}
-				}).bottomGap(BottomGap.SMALL)
-				twoColumnsRow({
-					textField().label(message("settings.markers.regex")).bindText(config::markRegex)
-				},{
-					emptyMinimapComboBox = comboBox(EditorKind.entries, EditorKindListCellRenderer(useEmptyMinimap))
-						.label(message("settings.use.empty.minimap")).applyToComponent {
-						isSwingPopup = false
-						addActionListener {
-							val kind = emptyMinimapComboBox.item ?: return@addActionListener
-							if (!useEmptyMinimap.remove(kind)) useEmptyMinimap.add(kind)
-							emptyMinimapComboBox.repaint()
-						}
-					}.component
-				}).bottomGap(BottomGap.SMALL)
+				}.bottomGap(BottomGap.SMALL)
 				val widthList = EditorKind.entries.chunked(3)
 				widthList.forEachIndexed { index, it ->
 					row {
@@ -180,13 +141,59 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 					textField().label(message("settings.disabled.language")).bindText(config::disableLanguageSuffix)
 				}
 			}
-			group(message("settings.option")) {
+			group(message("settings.viewport")) {
 				threeColumnsRow({
-					checkBox(message("settings.disabled"))
-						.bindSelected(config::disabled)
+					cell(ColorButton(config.viewportColor, JBColor.WHITE)).label(message("settings.viewport.color"))
+						.bind({ it.text }, { p: ColorButtonBase, v: String ->
+							p.setColor(ColorUtil.fromHex(v))
+							p.text = v
+						}, config::viewportColor.toMutableProperty())
 				}, {
+					cell(ColorButton(config.viewportBorderColor, JBColor.WHITE)).label(message("settings.viewport.border.color"))
+						.bind({ it.text }, { p: ColorButtonBase, v: String ->
+							p.setColor(ColorUtil.fromHex(v))
+							p.text = v
+						}, config::viewportBorderColor.toMutableProperty())
+				}, {
+					comboBox(listOf(0, 1, 2, 3, 4)).label(message("settings.viewport.border.thickness"))
+						.bindItem(config::viewportBorderThickness.toNullableProperty())
+				})
+			}
+			group(message("settings.mark")) {
+				twoColumnsRow({
 					checkBox(message("settings.markers.enable"))
 						.bindSelected(config::enableMarker)
+				}, {
+					checkBox(message("settings.bookmarks.markers.enable"))
+						.bindSelected(config::enableBookmarksMark)
+				}).bottomGap(BottomGap.SMALL)
+				twoColumnsRow({
+					textField().label(message("settings.markers.regex")).bindText(config::markRegex)
+				},{
+					spinner(2.0..10.0, 0.1).label(message("settings.markers.scale"))
+						.bindValue(getter = { config.markersScaleFactor.toDouble() }, setter = { value: Double -> config.markersScaleFactor = value.toFloat() })
+						.applyToComponent {
+							toolTipText = "Scale factor for font of markers in minimap[2 - 10]"
+							addMouseWheelListener {
+								val spinner = it.source as JSpinner
+								val model = spinner.model as SpinnerNumberModel
+								var step = model.stepSize.toDouble()
+								when (it.modifiersEx and (InputEvent.CTRL_DOWN_MASK or InputEvent.SHIFT_DOWN_MASK)) {
+									InputEvent.CTRL_DOWN_MASK -> step *= 2
+									InputEvent.SHIFT_DOWN_MASK -> step /= 2
+									InputEvent.CTRL_DOWN_MASK or InputEvent.SHIFT_DOWN_MASK -> step = 0.5
+								}
+								var newValue: Double = spinner.value as Double + step * -it.wheelRotation
+								newValue = min(max(newValue, (model.minimum as Double)), (model.maximum as Double))
+								spinner.value = newValue
+							}
+						}
+				})
+			}
+			group(message("settings.option")) {
+				twoColumnsRow({
+					checkBox(message("settings.disabled"))
+						.bindSelected(config::disabled)
 				}, {
 					checkBox(message("settings.hide.original.scrollbar"))
 						.bindSelected(config::hideOriginalScrollBar)
@@ -205,11 +212,12 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 						.gap(RightGap.SMALL)
 					contextHelp(message("settings.highlight.markup.desc"))
 				})
-				threeColumnsRow({
+				row {
 					checkBox(message("settings.highlight.syntax"))
 						.bindSelected(config::syntaxHighlight)
 						.gap(RightGap.SMALL)
-				},{
+				}
+				threeColumnsRow({
 					checkBox(message("settings.two.sides.diff"))
 						.bindSelected(config::diffTwoSide)
 						.gap(RightGap.SMALL)
@@ -217,16 +225,16 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 					checkBox(message("settings.three.sides.diff"))
 						.bindSelected(config::diffThreeSide)
 						.gap(RightGap.SMALL)
-				})
-				threeColumnsRow({
+				},{
 					checkBox(message("settings.three.sides.middle.diff"))
 						.bindSelected(config::diffThreeSideMiddle)
 						.gap(RightGap.SMALL)
-				},{
+				})
+				row {
 					checkBox(message("settings.experiment.use.fast.minimap.for.main"))
 						.bindSelected(config::useFastMinimapForMain)
 						.gap(RightGap.SMALL)
-				})
+				}
 			}
 			row {
 				link(localMessage("donate.title")){

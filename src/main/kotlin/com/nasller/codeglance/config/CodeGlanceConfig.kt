@@ -24,21 +24,24 @@ class CodeGlanceConfig : BaseState() {
 	var clickType by enum(ClickTypeEnum.CODE_POSITION)
 	var jumpOnMouseDown by enum(MouseJumpEnum.MOUSE_DOWN)
 	var moveOnly by property(false)
-	var viewportColor by nonNullString("A0A0A0")
-	var viewportBorderColor by nonNullString("00FF00")
-	var viewportBorderThickness by property(0)
 	var disableLanguageSuffix by nonNullString("ipynb")
 	var clean by property(true)
 	var locked by property(false)
 
+	/** Viewport */
+	var viewportColor by nonNullString("A0A0A0")
+	var viewportBorderColor by nonNullString("00FF00")
+	var viewportBorderThickness by property(0)
+	/** Highlight */
 	var showFilterMarkupHighlight by property(true)
 	var showMarkupHighlight by property(true)
 	var showVcsHighlight by property(true)
 	var showErrorStripesFullLineHighlight by property(true)
 	var showOtherFullLineHighlight by property(false)
 	var syntaxHighlight by property(true)
-
+	/** Mark */
 	var enableMarker by property(true)
+	var enableBookmarksMark by property(true)
 	var markRegex by nonNullString("\\b(MARK: - )\\b|\\b(MARK: )\\b|(?:region \\b)")
 	var markersScaleFactor by property(3.0f)
 
@@ -46,13 +49,13 @@ class CodeGlanceConfig : BaseState() {
 	var diffThreeSide by property(true)
 	var diffThreeSideMiddle by property(false)
 	var editorKindsStr by nonNullString("${EditorKind.MAIN_EDITOR},${EditorKind.PREVIEW},${EditorKind.DIFF}")
+	var useEmptyMinimapStr by nonNullString(EditorKind.CONSOLE.name)
 	var mainWidth by property(110)
 	var diffWidth by property(50)
 	var unTypedWidth by property(50)
 	var consoleWidth by property(50)
 	var previewWidth by property(50)
 	var useFastMinimapForMain by property(true)
-	var useEmptyMinimapStr by nonNullString(EditorKind.CONSOLE.name)
 
 	fun singleFileVisibleButton() = !hoveringToShowScrollBar && singleFileVisibleButton
 

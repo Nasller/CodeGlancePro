@@ -44,7 +44,7 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 					}
 				}
 			}
-			if(glancePanel.markCommentState.hasMarkCommentHighlight()){
+			if(glancePanel.markState.hasMarkHighlight()){
 				glancePanel.psiDocumentManager.performForCommittedDocument(editor.document, action)
 			}else action.run()
 		}
@@ -215,18 +215,7 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 	}
 
 	/** MarkupModelListener */
-	override fun afterAdded(highlighter: RangeHighlighterEx) {
-		glancePanel.markCommentState.markCommentHighlightChange(highlighter, false)
-		updateRangeHighlight(highlighter)
-	}
-
-	override fun beforeRemoved(highlighter: RangeHighlighterEx) {
-		glancePanel.markCommentState.markCommentHighlightChange(highlighter, true)
-	}
-
-	override fun afterRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter)
-
-	private fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
+	override fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation) return
 		if(highlighter.isThinErrorStripeMark.not() && (Util.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
 					EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
@@ -234,6 +223,12 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
 			repaintOrRequest(false)
 		}
+	}
+
+	/** BookmarksListener */
+	override fun updateBookmarkHighlight(highlighter: RangeMarker) {
+		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation) return
+		repaintOrRequest()
 	}
 
 	/** PrioritizedDocumentListener */
