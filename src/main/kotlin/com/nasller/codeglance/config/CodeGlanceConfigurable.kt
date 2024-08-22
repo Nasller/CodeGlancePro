@@ -258,18 +258,18 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 	override fun isModified(): Boolean {
 		return super.isModified() ||
 				editorKinds != CodeGlanceConfigService.Config.editorKindsStr
-					.split(",").mapTo(mutableSetOf()) { EditorKind.valueOf(it) } ||
+					.split(",").filter{ it.isNotBlank() }.mapTo(mutableSetOf()) { EditorKind.valueOf(it) } ||
 				useEmptyMinimap != CodeGlanceConfigService.Config.useEmptyMinimapStr
-					.split(",").mapTo(mutableSetOf()) { EditorKind.valueOf(it) }
+					.split(",").filter{ it.isNotBlank() }.mapTo(mutableSetOf()) { EditorKind.valueOf(it) }
 	}
 
 	override fun reset() {
 		super.reset()
 		val config = CodeGlanceConfigService.Config
 		editorKinds.clear()
-		editorKinds += config.editorKindsStr.split(",").map { EditorKind.valueOf(it) }
+		editorKinds += config.editorKindsStr.split(",").filter{ it.isNotBlank() }.map { EditorKind.valueOf(it) }
 		useEmptyMinimap.clear()
-		useEmptyMinimap += config.useEmptyMinimapStr.split(",").map { EditorKind.valueOf(it) }
+		useEmptyMinimap += config.useEmptyMinimapStr.split(",").filter{ it.isNotBlank() }.map { EditorKind.valueOf(it) }
 		editorKindComboBox.repaint()
 		emptyMinimapComboBox.repaint()
 	}
