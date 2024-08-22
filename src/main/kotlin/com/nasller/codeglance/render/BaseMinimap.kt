@@ -65,15 +65,12 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 
 	override fun recalculationEnds() = Unit
 
-	protected abstract fun updateRangeHighlight(highlighter: RangeHighlighterEx)
-
-	protected abstract fun updateBookmarkHighlight(highlighter: RangeMarker)
+	protected abstract fun updateRangeHighlight(highlighter: RangeMarker)
 
 	/** MarkupModelListener */
 	override fun afterAdded(highlighter: RangeHighlighterEx) {
-		if(glancePanel.markState.markHighlightChange(highlighter, false)){
-			updateRangeHighlight(highlighter)
-		}
+		glancePanel.markState.markHighlightChange(highlighter, false)
+		updateRangeHighlight(highlighter)
 	}
 
 	override fun beforeRemoved(highlighter: RangeHighlighterEx) {
@@ -91,7 +88,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 
 	private fun bookmarkChanged(group: BookmarkGroup, bookmark: Bookmark, remove: Boolean){
 		if(bookmark is LineBookmark && bookmark.file == virtualFile) {
-			glancePanel.markState.markHighlightChange(group, bookmark, remove)?.let { updateBookmarkHighlight(it) }
+			glancePanel.markState.markHighlightChange(group, bookmark, remove)?.let { updateRangeHighlight(it) }
 		}
 	}
 

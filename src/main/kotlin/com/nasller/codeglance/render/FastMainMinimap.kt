@@ -507,38 +507,32 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		}
 	}
 
-	/** MarkupModelListener */
-	override fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
+	/** MarkupModelListener & BookmarksListener */
+	override fun updateRangeHighlight(highlighter: RangeMarker) {
 		EdtInvocationManager.invokeLaterIfNeeded {
 			if (!glancePanel.checkVisible() || myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || myDuringDocumentUpdate) {
 				return@invokeLaterIfNeeded
 			}
-			if(highlighter.isThinErrorStripeMark.not() && (Util.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
-						EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
-				val textLength = myDocument.textLength
-				val start = MathUtil.clamp(highlighter.affectedAreaStartOffset, 0, textLength)
-				val end = MathUtil.clamp(highlighter.affectedAreaEndOffset, start, textLength)
-				if (start != end) {
-					invalidateRange(start, end)
+			when(highlighter){
+				is RangeHighlighterEx -> {
+					if(highlighter.isThinErrorStripeMark.not() && (Util.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
+								EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))){
+						updateRangeHighlight(highlighter.affectedAreaStartOffset, highlighter.affectedAreaEndOffset)
+					}else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
+						glancePanel.repaint()
+					}
 				}
-			}else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
-				glancePanel.repaint()
+				is MarkState.BookmarkHighlightDelegate -> updateRangeHighlight(highlighter.startOffset, highlighter.endOffset)
 			}
 		}
 	}
 
-	/** BookmarksListener */
-	override fun updateBookmarkHighlight(highlighter: RangeMarker) {
-		EdtInvocationManager.invokeLaterIfNeeded {
-			if (!glancePanel.checkVisible() || myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || myDuringDocumentUpdate) {
-				return@invokeLaterIfNeeded
-			}
-			val textLength = myDocument.textLength
-			val start = MathUtil.clamp(highlighter.startOffset, 0, textLength)
-			val end = MathUtil.clamp(highlighter.endOffset, start, textLength)
-			if (start != end) {
-				invalidateRange(start, end)
-			}
+	private fun updateRangeHighlight(startOffset: Int, endOffset: Int) {
+		val textLength = myDocument.textLength
+		val start = MathUtil.clamp(startOffset, 0, textLength)
+		val end = MathUtil.clamp(endOffset, start, textLength)
+		if (start != end) {
+			invalidateRange(start, end)
 		}
 	}
 

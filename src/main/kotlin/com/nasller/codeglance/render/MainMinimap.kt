@@ -258,21 +258,20 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		}
 	}
 
-	/** MarkupModelListener */
-	override fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
+	/** MarkupModelListener & BookmarksListener */
+	override fun updateRangeHighlight(highlighter: RangeMarker) {
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation) return
-		if(highlighter.isThinErrorStripeMark.not() && (Util.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
-			EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
-			repaintOrRequest()
-		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
-			repaintOrRequest(false)
+		when(highlighter){
+			is RangeHighlighterEx -> {
+				if(highlighter.isThinErrorStripeMark.not() && (Util.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
+							EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
+					repaintOrRequest()
+				} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
+					repaintOrRequest(false)
+				}
+			}
+			is MarkState.BookmarkHighlightDelegate -> repaintOrRequest()
 		}
-	}
-
-	/** BookmarksListener */
-	override fun updateBookmarkHighlight(highlighter: RangeMarker) {
-		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation) return
-		repaintOrRequest()
 	}
 
 	/** PrioritizedDocumentListener */
