@@ -11,6 +11,7 @@ import com.nasller.codeglance.config.enums.MouseJumpEnum
 class CodeGlanceConfig : BaseState() {
 	var pixelsPerLine by property(4)
 	var editorSize by enum(EditorSizeEnum.Proportional)
+	var minLinesCount by property(0)
 	var maxLinesCount by property(100000)
 	var disabled by property(false)
 	var singleFileVisibleButton by property(true)

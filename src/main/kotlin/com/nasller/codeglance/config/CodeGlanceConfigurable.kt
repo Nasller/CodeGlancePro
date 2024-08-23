@@ -46,8 +46,16 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 					comboBox(listOf(1, 2, 3, 4)).label(message("settings.pixels"))
 						.bindItem(config::pixelsPerLine.toNullableProperty())
 						.accessibleName(message("settings.pixels"))
+				}, {
 					comboBox(EditorSizeEnum.entries.map { it.name }).label(message("settings.editor.size"))
 						.bindItem({ config.editorSize.name }, { config.editorSize = enumValueOf(it!!) })
+				}).bottomGap(BottomGap.SMALL)
+				twoColumnsRow({
+					val items = arrayOf("Clean", "Accurate")
+					comboBox(DefaultComboBoxModel(items)).label(message("settings.render"))
+						.bindItem({ if (config.clean) items[0] else items[1] },
+							{ config.clean = it == items[0] })
+						.accessibleName(message("settings.render"))
 				}, {
 					val items = listOf(message("settings.alignment.right"), message("settings.alignment.left"))
 					comboBox(items).label(message("settings.alignment"))
@@ -56,14 +64,12 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 						.accessibleName(message("settings.alignment"))
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
+					comboBox(ClickTypeEnum.entries.map { it.getMessage() }).label(message("settings.click"))
+						.bindItem({ config.clickType.getMessage() }, { config.clickType = BaseEnum.findEnum(it) })
+					checkBox(message("settings.click.move")).bindSelected(config::moveOnly)
+				}, {
 					comboBox(MouseJumpEnum.entries.map { it.getMessage() }).label(message("settings.jump"))
 						.bindItem({ config.jumpOnMouseDown.getMessage() }, { config.jumpOnMouseDown = BaseEnum.findEnum(it) })
-				}, {
-					val items = arrayOf("Clean", "Accurate")
-					comboBox(DefaultComboBoxModel(items)).label(message("settings.render"))
-						.bindItem({ if (config.clean) items[0] else items[1] },
-							{ config.clean = it == items[0] })
-						.accessibleName(message("settings.render"))
 				}).bottomGap(BottomGap.SMALL)
 				val numberScrollListener: (e: MouseWheelEvent) -> Unit = {
 					val spinner = it.source as JSpinner
@@ -79,9 +85,12 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 					spinner.value = newValue
 				}
 				twoColumnsRow({
-					comboBox(ClickTypeEnum.entries.map { it.getMessage() }).label(message("settings.click"))
-						.bindItem({ config.clickType.getMessage() }, { config.clickType = BaseEnum.findEnum(it) })
-					checkBox(message("settings.click.move")).bindSelected(config::moveOnly)
+					spinner(0..Int.MAX_VALUE, 10).label(message("settings.min.line"))
+						.bindIntValue(config::minLinesCount)
+						.applyToComponent {
+							toolTipText = "0 - Int.Max lines"
+							addMouseWheelListener(numberScrollListener)
+						}
 				}, {
 					spinner(1..Int.MAX_VALUE, 10).label(message("settings.max.line"))
 						.bindIntValue(config::maxLinesCount)
