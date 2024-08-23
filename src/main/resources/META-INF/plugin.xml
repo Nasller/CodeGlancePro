@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.9.0</h3>
+		<ul>
+			<li></li>
+		</ul>
 		<h3>1.8.9</h3>
 		<ul>
 			<li>Support Bookmarks line render</li>
@@ -40,10 +44,6 @@
 		<h3>1.8.6</h3>
 		<ul>
 			<li>Support 2024.2</li>
-		</ul>
-		<h3>1.8.5</h3>
-		<ul>
-			<li>filter show all files in one diff view</li>
 		</ul>
 	]]></change-notes>
 
