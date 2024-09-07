@@ -9,6 +9,10 @@ import com.intellij.psi.PsiElement
 import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.util.Util
 
+var MARK_REGEX = CodeGlanceConfigService.Config.markRegex.run {
+	if(isNotBlank()) Regex(this) else null
+}
+
 class MarkCommentVisitor : MyRainbowVisitor() {
 	override fun visit(element: PsiElement) {
 		if (element is PsiComment) {
@@ -38,10 +42,4 @@ class MarkCommentVisitor : MyRainbowVisitor() {
 	}
 
 	override fun clone(): HighlightVisitor = MarkCommentVisitor()
-
-	companion object{
-		var MARK_REGEX = CodeGlanceConfigService.Config.markRegex.run {
-			if(isNotBlank()) Regex(this) else null
-		}
-	}
 }

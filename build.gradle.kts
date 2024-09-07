@@ -16,7 +16,7 @@ version = properties("pluginVersion").get() + if(env.getOrDefault("snapshots",""
 else if(env.getOrDefault("PUBLISH_CHANNEL","") == "EAP") "-SNAPSHOT-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm")) else ""
 
 dependencies {
-	implementation("net.bytebuddy:byte-buddy-agent:1.14.18")
+	implementation("net.bytebuddy:byte-buddy-agent:1.15.1")
 	intellijPlatform {
 		create(properties("platformType"), properties("platformVersion"))
 

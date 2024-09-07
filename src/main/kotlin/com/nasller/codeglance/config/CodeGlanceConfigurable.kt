@@ -17,7 +17,7 @@ import com.nasller.codeglance.config.enums.BaseEnum
 import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.EditorSizeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
-import com.nasller.codeglance.extensions.visitor.MarkCommentVisitor
+import com.nasller.codeglance.extensions.visitor.MARK_REGEX
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.ui.ColorButton
 import com.nasller.codeglance.ui.DonationDialog
@@ -259,7 +259,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 			editorKindsStr = this@CodeGlanceConfigurable.editorKinds.joinToString(",")
 			useEmptyMinimapStr = this@CodeGlanceConfigurable.useEmptyMinimap.joinToString(",")
 			if((!isRightAligned || disabled) && hoveringToShowScrollBar) hoveringToShowScrollBar = false
-			MarkCommentVisitor.MARK_REGEX = if(markRegex.isNotBlank()) Regex(markRegex) else null
+			MARK_REGEX = if(markRegex.isNotBlank()) Regex(markRegex) else null
 		}
 		invokeLater{ SettingsChangePublisher.onGlobalChanged() }
 	}

@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.9.1</h3>
+		<ul>
+			<li></li>
+		</ul>
 		<h3>1.9.0</h3>
 		<ul>
 			<li>Min Lines count config</li>
@@ -40,10 +44,6 @@
 		<h3>1.8.7</h3>
 		<ul>
 			<li>Fix IDEA log error</li>
-		</ul>
-		<h3>1.8.6</h3>
-		<ul>
-			<li>Support 2024.2</li>
 		</ul>
 	]]></change-notes>
 
