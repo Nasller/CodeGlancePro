@@ -1,3 +1,4 @@
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -19,6 +20,8 @@ dependencies {
 	implementation("net.bytebuddy:byte-buddy-agent:1.15.1")
 	intellijPlatform {
 		create(properties("platformType"), properties("platformVersion"))
+		pluginModule(implementation(project(":core")))
+		pluginModule(runtimeOnly(project(":rider")))
 
 		// Plugin Dependencies. Uses `platformBundledPlugins` property from the gradle.properties file for bundled IntelliJ Platform plugins.
 		bundledPlugins(properties("platformBundledPlugins").map { it.split(',') })
@@ -66,22 +69,31 @@ intellijPlatform {
 	}
 }
 
-//intellijPlatformTesting {
-//	runIde {
-//		register("runIntelliJ") {
-//			type = IntelliJPlatformType.IntellijIdeaUltimate
-//			version = properties("platformVersion")
-//			prepareSandboxTask {
-//				defaultDestinationDirectory = project.layout.projectDirectory.dir(properties("sandboxDir"))
-//			}
-//		}
-//	}
-//}
+intellijPlatformTesting {
+	runIde {
+		register("runRider") {
+			type = IntelliJPlatformType.Rider
+			version = properties("platformVersion")
+			sandboxDirectory = project.layout.projectDirectory.dir("rider-sandbox")
+			plugins {
+				plugin("PsiViewer", "242.4697")
+			}
+			task {
+				systemProperties["idea.is.internal"] = true
+				jvmArgs(
+					"-XX:+AllowEnhancedClassRedefinition",
+				)
+			}
+		}
+	}
+}
 
 tasks{
     runIde {
         systemProperties["idea.is.internal"] = true
-
+	    jvmArgs(
+		    "-XX:+AllowEnhancedClassRedefinition",
+	    )
         // Path to IDE distribution that will be used to run the IDE with the plugin.
         // ideDir.set(File("path to IDE-dependency"))
     }

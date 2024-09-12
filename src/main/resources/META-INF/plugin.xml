@@ -26,7 +26,7 @@
 	<change-notes><![CDATA[
 		<h3>1.9.1</h3>
 		<ul>
-			<li></li>
+			<li>Support C# #region mark</li>
 		</ul>
 		<h3>1.9.0</h3>
 		<ul>
@@ -48,6 +48,7 @@
 	]]></change-notes>
 
 	<depends>com.intellij.modules.lang</depends>
+	<depends optional="true" config-file="plugin-rider.xml">com.intellij.modules.rider</depends>
 
 	<applicationListeners>
 		<listener class="com.nasller.codeglance.agent.MyAppLifecycleListener" topic="com.intellij.ide.AppLifecycleListener"/>

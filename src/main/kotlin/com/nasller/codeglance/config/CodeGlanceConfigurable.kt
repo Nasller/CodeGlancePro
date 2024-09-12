@@ -1,5 +1,6 @@
 package com.nasller.codeglance.config
 
+import MARK_REGEX
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.options.BoundSearchableConfigurable
@@ -17,7 +18,6 @@ import com.nasller.codeglance.config.enums.BaseEnum
 import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.EditorSizeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
-import com.nasller.codeglance.extensions.visitor.MARK_REGEX
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.ui.ColorButton
 import com.nasller.codeglance.ui.DonationDialog
