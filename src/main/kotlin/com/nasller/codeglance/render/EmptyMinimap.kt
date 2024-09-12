@@ -12,7 +12,7 @@ import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MySoftReference
-import com.nasller.codeglance.util.Util
+import com.nasller.codeglance.util.Util.isMarkAttributes
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.beans.PropertyChangeEvent
@@ -219,7 +219,7 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation) return
 		when(highlighter){
 			is RangeHighlighterEx -> {
-				if(highlighter.isThinErrorStripeMark.not() && (Util.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
+				if(highlighter.isThinErrorStripeMark.not() && (highlighter.textAttributesKey?.isMarkAttributes() == true ||
 							EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
 					repaintOrRequest()
 				} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){

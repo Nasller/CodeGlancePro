@@ -27,6 +27,7 @@
 		<h3>1.9.1</h3>
 		<ul>
 			<li>Support C# #region mark</li>
+			<li>Support Class name mark</li>
 		</ul>
 		<h3>1.9.0</h3>
 		<ul>
@@ -48,6 +49,7 @@
 	]]></change-notes>
 
 	<depends>com.intellij.modules.lang</depends>
+	<depends optional="true" config-file="plugin-java.xml">com.intellij.modules.java</depends>
 	<depends optional="true" config-file="plugin-rider.xml">com.intellij.modules.rider</depends>
 
 	<applicationListeners>

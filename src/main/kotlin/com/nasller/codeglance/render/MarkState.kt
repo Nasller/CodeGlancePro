@@ -11,7 +11,7 @@ import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.util.DocumentUtil
 import com.nasller.codeglance.panel.GlancePanel
-import com.nasller.codeglance.util.Util
+import com.nasller.codeglance.util.Util.isMarkAttributes
 import io.ktor.util.collections.*
 
 class MarkState(val glancePanel: GlancePanel) {
@@ -32,7 +32,7 @@ class MarkState(val glancePanel: GlancePanel) {
 	}
 
 	fun markHighlightChange(highlighter: RangeMarker, remove: Boolean): Boolean {
-		if((highlighter is RangeHighlighterEx && Util.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey) ||
+		if((highlighter is RangeHighlighterEx && highlighter.textAttributesKey?.isMarkAttributes() == true) ||
 			highlighter is BookmarkHighlightDelegate){
 			if(remove) markSet.value.remove(highlighter)
 			else markSet.value.add(highlighter)
@@ -43,7 +43,7 @@ class MarkState(val glancePanel: GlancePanel) {
 
 	fun refreshMarkCommentHighlight(editor: EditorImpl) {
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0,editor.document.textLength){
-			if(Util.MARK_COMMENT_ATTRIBUTES == it.textAttributesKey){
+			if(it.textAttributesKey?.isMarkAttributes() == true){
 				markSet.value += it
 			}
 			return@processRangeHighlightersOverlappingWith true

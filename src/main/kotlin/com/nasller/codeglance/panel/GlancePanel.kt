@@ -11,7 +11,6 @@ import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.HighlighterLayer
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.fileEditor.impl.EditorsSplitters
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
@@ -36,8 +35,7 @@ import kotlin.math.min
 
 class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val editor = info.editor
-	val project: Project
-		get() = editor.project ?: ProjectManager.getInstance().defaultProject
+	val project = editor.project ?: ProjectManager.getInstance().defaultProject
 	var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
 	val psiDocumentManager: PsiDocumentManager = PsiDocumentManager.getInstance(project)
 	val config = CodeGlanceConfigService.Config

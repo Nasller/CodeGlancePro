@@ -31,6 +31,7 @@ import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MyVisualLinesIterator
 import com.nasller.codeglance.util.Util
+import com.nasller.codeglance.util.Util.isMarkAttributes
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import org.jetbrains.concurrency.CancellablePromise
 import org.slf4j.LoggerFactory
@@ -515,7 +516,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 			}
 			when(highlighter){
 				is RangeHighlighterEx -> {
-					if(highlighter.isThinErrorStripeMark.not() && (Util.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
+					if(highlighter.isThinErrorStripeMark.not() && (highlighter.textAttributesKey?.isMarkAttributes() == true ||
 								EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))){
 						updateRangeHighlight(highlighter.affectedAreaStartOffset, highlighter.affectedAreaEndOffset)
 					}else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){

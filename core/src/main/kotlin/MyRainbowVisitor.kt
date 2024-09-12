@@ -17,13 +17,13 @@ var MARK_REGEX = CodeGlanceConfigService.Config.markRegex.run {
 abstract class MyRainbowVisitor : HighlightVisitor {
 	private var myHolder: HighlightInfoHolder? = null
 
-	open fun suitableForFile(extension: String): Boolean = extension != "cs"
+	abstract fun suitableForFile(extension: String): Boolean
 
 	override fun suitableForFile(file: PsiFile): Boolean {
 		val config = CodeGlanceConfigService.Config
 		val extension = file.fileType.defaultExtension
-		return config.enableMarker && (extension.isBlank() || config.disableLanguageSuffix
-			.split(",").toSet().contains(extension).not()) && suitableForFile(extension)
+		return config.enableMarker && (extension.isBlank() || suitableForFile(extension) &&
+				config.disableLanguageSuffix.split(",").toSet().contains(extension).not())
 	}
 
 	override fun analyze(file: PsiFile, updateWholeFile: Boolean, holder: HighlightInfoHolder, action: Runnable): Boolean {
