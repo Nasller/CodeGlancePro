@@ -4,7 +4,9 @@ import com.intellij.codeInsight.daemon.impl.HighlightVisitor
 import com.intellij.codeInsight.daemon.impl.analysis.HighlightInfoHolder
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiNameIdentifierOwner
 import com.nasller.codeglance.config.CodeGlanceConfigService
+import com.nasller.codeglance.util.Util
 
 var MARK_REGEX = CodeGlanceConfigService.Config.markRegex.run {
 	if(isNotBlank()) Regex(this) else null
@@ -45,5 +47,13 @@ abstract class MyRainbowVisitor : HighlightVisitor {
 			.newHighlightInfo(RainbowHighlighter.RAINBOW_ELEMENT)
 			.textAttributes(colorKey)
 			.range(start,end).create()
+	}
+
+	protected fun visitJvm(element: PsiNameIdentifierOwner) {
+		val psiIdentifier = element.nameIdentifier ?: return
+		if (psiIdentifier.text.isNotBlank()) {
+			val textRange = psiIdentifier.textRange
+			addInfo(getInfo(textRange.startOffset, textRange.endOffset, Util.MARK_CLASS_ATTRIBUTES))
+		}
 	}
 }
