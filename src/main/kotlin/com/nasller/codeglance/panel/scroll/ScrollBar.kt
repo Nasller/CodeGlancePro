@@ -20,6 +20,7 @@ import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
+import com.nasller.codeglance.util.Util
 import java.awt.AlphaComposite
 import java.awt.Cursor
 import java.awt.Graphics2D
@@ -117,7 +118,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			val newWidth = if(editor.getUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX) == GlancePanel.PlaceIndex.Left)
 				widthStart + e.xOnScreen - resizeStart
 			else widthStart + resizeStart - e.xOnScreen
-			editor.editorKind.setWidth(newWidth.coerceIn(GlancePanel.MIN_WIDTH, GlancePanel.MAX_WIDTH))
+			editor.editorKind.setWidth(newWidth.coerceIn(Util.MIN_WIDTH, Util.MAX_WIDTH))
 			resizeGlancePanel(false)
 		} else if (dragging) {
 			val delta = (dragStartDelta + (e.y - dragStart)).toFloat()

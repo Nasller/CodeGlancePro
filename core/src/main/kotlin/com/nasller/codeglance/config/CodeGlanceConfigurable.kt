@@ -18,7 +18,6 @@ import com.nasller.codeglance.config.enums.BaseEnum
 import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.EditorSizeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
-import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.ui.ColorButton
 import com.nasller.codeglance.ui.DonationDialog
 import com.nasller.codeglance.util.Util
@@ -134,7 +133,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 				widthList.forEachIndexed { index, it ->
 					row {
 						for (kind in it) {
-							spinner(GlancePanel.MIN_WIDTH..GlancePanel.MAX_WIDTH, 5).label(kind.getMessageWidth())
+							spinner(Util.MIN_WIDTH..Util.MAX_WIDTH, 5).label(kind.getMessageWidth())
 								.bindIntValue({ kind.getWidth() }, { kind.setWidth(it) })
 								.applyToComponent {
 									toolTipText = "30 - 250 pixels"

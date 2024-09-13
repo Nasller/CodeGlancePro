@@ -334,8 +334,6 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 
 	companion object {
 		const val MIN_GAP = 15
-		const val MIN_WIDTH = 30
-		const val MAX_WIDTH = 250
 		val CLEAR: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.CLEAR)
 		val srcOver0_4: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.40f)
 		val srcOver0_6: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.60f)

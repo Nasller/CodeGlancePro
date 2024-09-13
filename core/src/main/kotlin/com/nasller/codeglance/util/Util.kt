@@ -6,6 +6,8 @@ import com.intellij.util.SmartList
 
 object Util {
 	const val PLUGIN_NAME = "CodeGlance Pro"
+	const val MIN_WIDTH = 30
+	const val MAX_WIDTH = 250
 	val MARK_COMMENT_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_COMMENT_ATTRIBUTES")
 	val MARK_CLASS_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_CLASS_ATTRIBUTES", DefaultLanguageHighlighterColors.CLASS_NAME)
 
