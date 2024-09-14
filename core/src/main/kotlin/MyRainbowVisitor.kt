@@ -3,6 +3,7 @@ import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightVisitor
 import com.intellij.codeInsight.daemon.impl.analysis.HighlightInfoHolder
 import com.intellij.openapi.editor.colors.TextAttributesKey
+import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiNameIdentifierOwner
@@ -20,13 +21,12 @@ var MARK_REGEX = CodeGlanceConfigService.Config.markRegex.run {
 abstract class MyRainbowVisitor : HighlightVisitor {
 	private var myHolder: HighlightInfoHolder? = null
 
-	abstract fun suitableForFile(extension: String): Boolean
+	abstract fun suitableForFile(fileType: FileType): Boolean
 
 	override fun suitableForFile(file: PsiFile): Boolean {
 		val config = CodeGlanceConfigService.Config
-		val extension = file.fileType.defaultExtension
-		return config.enableMarker && (extension.isBlank() || suitableForFile(extension) &&
-				config.disableLanguageSuffix.split(",").toSet().contains(extension).not())
+		return config.enableMarker && (suitableForFile(file.fileType) && file.fileType.defaultExtension.let { (it.isBlank() ||
+				config.disableLanguageSuffix.split(",").toSet().contains(it).not()) })
 	}
 
 	override fun analyze(file: PsiFile, updateWholeFile: Boolean, holder: HighlightInfoHolder, action: Runnable): Boolean {

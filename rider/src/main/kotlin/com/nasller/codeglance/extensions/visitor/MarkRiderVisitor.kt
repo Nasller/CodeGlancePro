@@ -2,9 +2,11 @@ package com.nasller.codeglance.extensions.visitor
 
 import MyRainbowVisitor
 import com.intellij.codeInsight.daemon.impl.HighlightVisitor
+import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
+import com.jetbrains.rider.languages.fileTypes.csharp.CSharpFileType
 import com.jetbrains.rider.languages.fileTypes.csharp.kotoparser.lexer.CSharpTokenType
 import com.nasller.codeglance.util.Util
 
@@ -18,7 +20,7 @@ class MarkRiderVisitor : MyRainbowVisitor() {
 		}
 	}
 
-	override fun suitableForFile(extension: String) = extension == "cs"
+	override fun suitableForFile(fileType: FileType) = fileType is CSharpFileType
 
 	override fun clone(): HighlightVisitor = MarkRiderVisitor()
 }
