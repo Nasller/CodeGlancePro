@@ -8,7 +8,7 @@ import org.jetbrains.kotlin.psi.KtClass
 class MarkKotlinVisitor : MyRainbowVisitor() {
 	override fun visit(element: PsiElement) {
 		if (element is KtClass) {
-			visitJvm(element)
+			visitPsiNameIdentifier(element)
 		}
 	}
 

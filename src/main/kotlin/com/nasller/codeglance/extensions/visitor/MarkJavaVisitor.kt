@@ -8,7 +8,7 @@ import com.intellij.psi.PsiElement
 class MarkJavaVisitor : MyRainbowVisitor() {
 	override fun visit(element: PsiElement) {
 		if (element is PsiClass) {
-			visitJvm(element)
+			visitPsiNameIdentifier(element)
 		}
 	}
 
