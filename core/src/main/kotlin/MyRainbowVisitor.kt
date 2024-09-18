@@ -57,7 +57,7 @@ abstract class MyRainbowVisitor : HighlightVisitor {
 
 	protected fun visitText(text: String, textRange: TextRange, textAttributesKey: TextAttributesKey) {
 		if (text.isNotBlank()) {
-			addInfo(getInfo(textRange.startOffset, textRange.endOffset, Util.MARK_CLASS_ATTRIBUTES))
+			addInfo(getInfo(textRange.startOffset, textRange.endOffset, textAttributesKey))
 		}
 	}
 }
