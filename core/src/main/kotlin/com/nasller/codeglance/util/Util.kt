@@ -1,6 +1,5 @@
 package com.nasller.codeglance.util
 
-import com.intellij.openapi.editor.DefaultLanguageHighlighterColors
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.util.SmartList
 
@@ -9,7 +8,7 @@ object Util {
 	const val MIN_WIDTH = 30
 	const val MAX_WIDTH = 250
 	val MARK_COMMENT_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_COMMENT_ATTRIBUTES")
-	val MARK_CLASS_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_CLASS_ATTRIBUTES", DefaultLanguageHighlighterColors.CLASS_NAME)
+	val MARK_CLASS_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_CLASS_ATTRIBUTES")
 
 	inline fun <T, R> Collection<T>.mapSmart(transform: (T) -> R): List<R> {
 		return when (val size = size) {

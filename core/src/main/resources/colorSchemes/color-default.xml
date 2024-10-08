@@ -6,5 +6,8 @@
 		</value>
 	</option>
 	<option name="MARK_CLASS_ATTRIBUTES">
+		<value>
+			<option name="ERROR_STRIPE_COLOR" value="4BE034"/>
+		</value>
 	</option>
 </list>

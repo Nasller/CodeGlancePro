@@ -47,6 +47,7 @@ abstract class MyRainbowVisitor : HighlightVisitor {
 		return HighlightInfo
 			.newHighlightInfo(RainbowHighlighter.RAINBOW_ELEMENT)
 			.textAttributes(colorKey)
+			.unescapedToolTip("Mark attribute")
 			.range(start,end).create()
 	}
 

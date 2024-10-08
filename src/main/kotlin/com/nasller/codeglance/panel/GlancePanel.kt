@@ -27,6 +27,7 @@ import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import com.nasller.codeglance.render.BaseMinimap.Companion.getMinimap
 import com.nasller.codeglance.render.MarkState
 import com.nasller.codeglance.render.ScrollState
+import com.nasller.codeglance.util.Util.isMarkAttributes
 import java.awt.*
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
@@ -194,7 +195,9 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 
 	private fun Graphics2D.paintEditorFilterMarkupModel(rangeOffset: Range<Int>,existLine: MutableSet<Int>) {
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
-			if((config.enableBookmarksMark && CodeInsightColors.BOOKMARKS_ATTRIBUTES == it.textAttributesKey) ||
+			val attributesKey = it.textAttributesKey ?: return@processRangeHighlightersOverlappingWith true
+			if((config.enableBookmarksMark && CodeInsightColors.BOOKMARKS_ATTRIBUTES == attributesKey) ||
+				attributesKey.isMarkAttributes() ||
 				it.isThinErrorStripeMark ||
 				it.layer < HighlighterLayer.CARET_ROW) {
 				return@processRangeHighlightersOverlappingWith true
