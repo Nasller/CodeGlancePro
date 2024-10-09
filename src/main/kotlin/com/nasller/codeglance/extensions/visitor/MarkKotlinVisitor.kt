@@ -6,10 +6,11 @@ import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.stubs.elements.KtStubElementTypes
 
 class MarkKotlinVisitor : MyRainbowVisitor() {
 	override fun visit(element: PsiElement) {
-		if (element is KtClass) {
+		if (element is KtClass && element.elementType == KtStubElementTypes.CLASS) {
 			visitPsiNameIdentifier(element)
 		}
 	}
