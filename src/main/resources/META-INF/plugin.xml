@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.9.3</h3>
+		<ul>
+			<li></li>
+		</ul>
 		<h3>1.9.2</h3>
 		<ul>
 			<li>Mark class name color schema update</li>
@@ -41,10 +45,6 @@
 		<ul>
 			<li>Support Bookmarks line render</li>
 			<li>Error handling</li>
-		</ul>
-		<h3>1.8.8</h3>
-		<ul>
-			<li>Ignore async run error</li>
 		</ul>
 	]]></change-notes>
 
