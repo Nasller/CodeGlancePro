@@ -219,6 +219,7 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 	override fun updateRangeHighlight(highlighter: RangeMarker) {
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation) return
 		when(highlighter){
+			is MarkState.BookmarkHighlightDelegate -> repaintOrRequest()
 			is RangeHighlighterEx -> {
 				if(highlighter.isThinErrorStripeMark.not() && (highlighter.textAttributesKey?.isMarkAttributes() == true ||
 							EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
@@ -227,7 +228,6 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 					repaintOrRequest(false)
 				}
 			}
-			is MarkState.BookmarkHighlightDelegate -> repaintOrRequest()
 		}
 	}
 

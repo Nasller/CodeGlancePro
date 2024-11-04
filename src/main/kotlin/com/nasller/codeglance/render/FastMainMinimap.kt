@@ -203,10 +203,10 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 						val markAttributes = it.commentHighlighterEx!!.getTextAttributes(editor.colorsScheme)
 						UISettings.setupAntialiasing(graphics)
 						val font = editor.colorsScheme.getFont(when (markAttributes!!.fontType) {
-							Font.ITALIC -> EditorFontType.ITALIC
 							Font.BOLD -> EditorFontType.BOLD
+							Font.ITALIC -> EditorFontType.BOLD_ITALIC
 							Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
-							else -> EditorFontType.PLAIN
+							else -> EditorFontType.BOLD
 						}).deriveFont(config.markersScaleFactor * 3)
 						graphics.composite = GlancePanel.srcOver
 						graphics.color = markAttributes.errorStripeColor

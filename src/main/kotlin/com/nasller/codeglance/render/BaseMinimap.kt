@@ -249,14 +249,12 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 			val file = glancePanel.psiDocumentManager.getCachedPsiFile(editor.document)
 			for (rangeMarker in markCommentMap) {
 				val attributes = rangeMarker.getTextAttributes(editor.colorsScheme)!!
-				val font = editor.colorsScheme.getFont(
-					when (attributes.fontType) {
-						Font.ITALIC -> EditorFontType.ITALIC
-						Font.BOLD -> EditorFontType.BOLD
-						Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
-						else -> EditorFontType.PLAIN
-					}
-				).deriveFont(config.markersScaleFactor * 3)
+				val font = editor.colorsScheme.getFont(when (attributes.fontType) {
+					Font.BOLD -> EditorFontType.BOLD
+					Font.ITALIC -> EditorFontType.BOLD_ITALIC
+					Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
+					else -> EditorFontType.BOLD
+				}).deriveFont(config.markersScaleFactor * 3)
 				val startOffset = rangeMarker.startOffset
 				file?.findElementAt(startOffset)?.let { comment ->
 					val textRange = if(rangeMarker is MarkState.BookmarkHighlightDelegate)
