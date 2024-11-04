@@ -15,7 +15,7 @@ class MarkRiderVisitor : MyRainbowVisitor() {
 		if(element.elementType == CSharpTokenType.PP_START_REGION){
 			val psiMessage = PsiTreeUtil.skipWhitespacesForward(element) ?: return
 			if(psiMessage.elementType == CSharpTokenType.PP_MESSAGE){
-				visitText(psiMessage.text, psiMessage.textRange, Util.MARK_COMMENT_ATTRIBUTES)
+				visitText(psiMessage.text, psiMessage.textRange, Util.MARK_REGION_ATTRIBUTES)
 			}
 		}
 	}

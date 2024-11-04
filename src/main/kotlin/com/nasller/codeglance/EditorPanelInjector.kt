@@ -9,10 +9,11 @@ import com.intellij.diff.tools.util.side.OnesideTextDiffViewer
 import com.intellij.diff.tools.util.side.ThreesideTextDiffViewer
 import com.intellij.diff.tools.util.side.TwosideTextDiffViewer
 import com.intellij.diff.util.DiffUserDataKeysEx
-import com.intellij.ide.ui.LafManager
-import com.intellij.ide.ui.LafManagerListener
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.EditorKind
+import com.intellij.openapi.editor.colors.EditorColorsListener
+import com.intellij.openapi.editor.colors.EditorColorsScheme
 import com.intellij.openapi.editor.event.EditorFactoryEvent
 import com.intellij.openapi.editor.event.EditorFactoryListener
 import com.intellij.openapi.editor.impl.EditorImpl
@@ -72,8 +73,8 @@ class GlobalSettingsChangeListener : SettingsChangeListener{
     }
 }
 
-class GlobalLafManagerListener : LafManagerListener {
-    override fun lookAndFeelChanged(source: LafManager) = SettingsChangePublisher.refreshDataAndImage()
+class MyEditorColorsListener : EditorColorsListener {
+    override fun globalSchemeChange(scheme: EditorColorsScheme?) = runInEdt { SettingsChangePublisher.onGlobalChanged() }
 }
 
 private fun firstRunEditor(info: EditorInfo, diffView: FrameDiffTool.DiffViewer?) {

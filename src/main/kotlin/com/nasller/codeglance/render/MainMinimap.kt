@@ -148,6 +148,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 				val commentData = highlight[start]
 				if(commentData != null){
 					graphics.font = commentData.font
+					graphics.color = commentData.color
 					graphics.drawString(commentData.comment,2,y.toInt() + (graphics.getFontMetrics(commentData.font).height / 1.5).roundToInt())
 					if (softWrapEnable) {
 						val softWraps = editor.softWrapModel.getSoftWrapsForRange(start, commentData.jumpEndOffset)

@@ -9,6 +9,7 @@ import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
+import com.intellij.openapi.editor.ex.util.EditorUIUtil
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.impl.EditorImpl
@@ -30,7 +31,6 @@ import com.intellij.util.ui.EdtInvocationManager
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MyVisualLinesIterator
-import com.nasller.codeglance.util.Util
 import com.nasller.codeglance.util.Util.isMarkAttributes
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import org.jetbrains.concurrency.CancellablePromise
@@ -113,20 +113,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 			}
 		} else null ?: return
 		val renderHeight = myScrollState.getRenderHeight()
-		val graphics = curImg.createGraphics()
-		val markAttributes by lazy(LazyThreadSafetyMode.NONE) {
-			editor.colorsScheme.getAttributes(Util.MARK_COMMENT_ATTRIBUTES).also {
-				UISettings.setupAntialiasing(graphics)
-			}
-		}
-		val font by lazy(LazyThreadSafetyMode.NONE) {
-			editor.colorsScheme.getFont(when (markAttributes.fontType) {
-				Font.ITALIC -> EditorFontType.ITALIC
-				Font.BOLD -> EditorFontType.BOLD
-				Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
-				else -> EditorFontType.PLAIN
-			}).deriveFont(config.markersScaleFactor * 3)
-		}
+		val graphics = curImg.createGraphics().apply { EditorUIUtil.setupAntialiasing(this) }
 		val docCommentRgb by lazy(LazyThreadSafetyMode.NONE){
 			editor.colorsScheme.getAttributes(DefaultLanguageHighlighterColors.DOC_COMMENT).foregroundColor?.rgb
 		}
@@ -213,9 +200,17 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 						}
 					}
 					LineType.MARK -> {
+						val markAttributes = it.commentHighlighterEx!!.getTextAttributes(editor.colorsScheme)
+						UISettings.setupAntialiasing(graphics)
+						val font = editor.colorsScheme.getFont(when (markAttributes!!.fontType) {
+							Font.ITALIC -> EditorFontType.ITALIC
+							Font.BOLD -> EditorFontType.BOLD
+							Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
+							else -> EditorFontType.PLAIN
+						}).deriveFont(config.markersScaleFactor * 3)
 						graphics.composite = GlancePanel.srcOver
-						graphics.color = markAttributes.foregroundColor
-						val commentText = it.commentHighlighterEx!!.getUserData(MarkState.BOOK_MARK_DESC_KEY) ?:
+						graphics.color = markAttributes.errorStripeColor
+						val commentText = it.commentHighlighterEx.getUserData(MarkState.BOOK_MARK_DESC_KEY) ?:
 						myDocument.getText(TextRange(it.commentHighlighterEx.startOffset, it.commentHighlighterEx.endOffset)).trim()
 						val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
 							UIUtil.getFontWithFallback(font).deriveFont(markAttributes.fontType, font.size2D)
@@ -515,6 +510,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 				return@invokeLaterIfNeeded
 			}
 			when(highlighter){
+				is MarkState.BookmarkHighlightDelegate -> updateRangeHighlight(highlighter.startOffset, highlighter.endOffset)
 				is RangeHighlighterEx -> {
 					if(highlighter.isThinErrorStripeMark.not() && (highlighter.textAttributesKey?.isMarkAttributes() == true ||
 								EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))){
@@ -523,7 +519,6 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 						glancePanel.repaint()
 					}
 				}
-				is MarkState.BookmarkHighlightDelegate -> updateRangeHighlight(highlighter.startOffset, highlighter.endOffset)
 			}
 		}
 	}
@@ -669,7 +664,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 									  val aboveBlockLine: Int,
 									  val lineType: LineType? = null,
 									  val customFoldRegion: CustomFoldRegion? = null,
-									  val commentHighlighterEx: RangeMarker? = null) {
+									  val commentHighlighterEx: RangeHighlighterEx? = null) {
 		fun getLineHeight(pixelsPerLine: Double, scale: Double) = if(lineType == LineType.CUSTOM_FOLD && customFoldRegion != null) {
 			(customFoldRegion.heightInPixels * scale).run{
 				if(this < pixelsPerLine) pixelsPerLine else this

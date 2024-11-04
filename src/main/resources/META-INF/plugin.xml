@@ -26,7 +26,7 @@
 	<change-notes><![CDATA[
 		<h3>1.9.3</h3>
 		<ul>
-			<li></li>
+			<li>Make mark line can be modified by error strip color</li>
 		</ul>
 		<h3>1.9.2</h3>
 		<ul>
@@ -58,7 +58,7 @@
 	<applicationListeners>
 		<listener class="com.nasller.codeglance.agent.MyAppLifecycleListener" topic="com.intellij.ide.AppLifecycleListener"/>
 		<listener topic="com.nasller.codeglance.config.SettingsChangeListener" class="com.nasller.codeglance.GlobalSettingsChangeListener"/>
-		<listener topic="com.intellij.ide.ui.LafManagerListener" class="com.nasller.codeglance.GlobalLafManagerListener"/>
+		<listener topic="com.intellij.openapi.editor.colors.EditorColorsListener" class="com.nasller.codeglance.MyEditorColorsListener"/>
 	</applicationListeners>
 
 	<actions>

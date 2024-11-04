@@ -2,9 +2,20 @@
 	<option name="MARK_COMMENT_ATTRIBUTES">
 		<value>
 			<option name="FOREGROUND" value="4BE034"/>
+			<option name="ERROR_STRIPE_COLOR" value="4BE034"/>
 			<option name="FONT_TYPE" value="1" />
 		</value>
 	</option>
 	<option name="MARK_CLASS_ATTRIBUTES">
+		<value>
+			<option name="ERROR_STRIPE_COLOR" value="4BE034"/>
+			<option name="FONT_TYPE" value="1" />
+		</value>
+	</option>
+	<option name="MARK_REGION_ATTRIBUTES">
+		<value>
+			<option name="ERROR_STRIPE_COLOR" value="4BE034"/>
+			<option name="FONT_TYPE" value="1" />
+		</value>
 	</option>
 </list>

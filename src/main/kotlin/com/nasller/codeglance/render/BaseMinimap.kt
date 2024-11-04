@@ -4,7 +4,6 @@ import com.intellij.ide.bookmark.Bookmark
 import com.intellij.ide.bookmark.BookmarkGroup
 import com.intellij.ide.bookmark.BookmarksListener
 import com.intellij.ide.bookmark.LineBookmark
-import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.runReadAction
@@ -17,6 +16,7 @@ import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.SoftWrapChangeListener
+import com.intellij.openapi.editor.ex.util.EditorUIUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.highlighter.HighlighterIterator
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
@@ -30,7 +30,6 @@ import com.intellij.util.Range
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel
-import com.nasller.codeglance.util.Util
 import com.nasller.codeglance.util.Util.mapSmart
 import java.awt.Color
 import java.awt.Font
@@ -248,16 +247,16 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 			val lineCount = editor.document.lineCount
 			val map = mutableMapOf<Int, MarkCommentData>()
 			val file = glancePanel.psiDocumentManager.getCachedPsiFile(editor.document)
-			val attributes = editor.colorsScheme.getAttributes(Util.MARK_COMMENT_ATTRIBUTES)
-			val font = editor.colorsScheme.getFont(
-				when (attributes.fontType) {
-					Font.ITALIC -> EditorFontType.ITALIC
-					Font.BOLD -> EditorFontType.BOLD
-					Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
-					else -> EditorFontType.PLAIN
-				}
-			).deriveFont(config.markersScaleFactor * 3)
 			for (rangeMarker in markCommentMap) {
+				val attributes = rangeMarker.getTextAttributes(editor.colorsScheme)!!
+				val font = editor.colorsScheme.getFont(
+					when (attributes.fontType) {
+						Font.ITALIC -> EditorFontType.ITALIC
+						Font.BOLD -> EditorFontType.BOLD
+						Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
+						else -> EditorFontType.PLAIN
+					}
+				).deriveFont(config.markersScaleFactor * 3)
 				val startOffset = rangeMarker.startOffset
 				file?.findElementAt(startOffset)?.let { comment ->
 					val textRange = if(rangeMarker is MarkState.BookmarkHighlightDelegate)
@@ -269,12 +268,11 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 					} else font
 					val line = editor.document.getLineNumber(textRange.startOffset) + (font.size / scrollState.pixelsPerLine).toInt()
 					val jumpEndOffset = if (lineCount <= line) text.length else editor.document.getLineEndOffset(line)
-					map[textRange.startOffset] = MarkCommentData(jumpEndOffset, commentText, textFont)
+					map[textRange.startOffset] = MarkCommentData(jumpEndOffset, commentText, textFont, attributes.errorStripeColor)
 				}
 			}
-			graphics.color = attributes.foregroundColor ?: editor.colorsScheme.defaultForeground
 			graphics.composite = GlancePanel.srcOver
-			UISettings.setupAntialiasing(graphics)
+			EditorUIUtil.setupAntialiasing(graphics)
 			map
 		} else emptyMap()
 	}
@@ -324,7 +322,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 		override fun getDocument() = throw UnsupportedOperationException()
 	}
 
-	protected data class MarkCommentData(var jumpEndOffset: Int, val comment: String, val font: Font)
+	protected data class MarkCommentData(var jumpEndOffset: Int, val comment: String, val font: Font, val color: Color)
 
 	companion object{
 		fun EditorKind.getMinimap(glancePanel: GlancePanel): BaseMinimap = glancePanel.run {

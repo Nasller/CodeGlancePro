@@ -194,9 +194,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 
 	private fun Graphics2D.paintEditorFilterMarkupModel(rangeOffset: Range<Int>,existLine: MutableSet<Int>) {
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
-			if((config.enableBookmarksMark && CodeInsightColors.BOOKMARKS_ATTRIBUTES == it.textAttributesKey) ||
-				it.isThinErrorStripeMark ||
-				it.layer < HighlighterLayer.CARET_ROW) {
+			if(markState.contains(it) || it.isThinErrorStripeMark || it.layer < HighlighterLayer.CARET_ROW) {
 				return@processRangeHighlightersOverlappingWith true
 			}
 			it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
