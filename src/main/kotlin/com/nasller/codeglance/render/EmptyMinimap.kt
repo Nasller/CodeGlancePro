@@ -62,7 +62,7 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 
 	private fun update() {
 		val curImg = getMinimapImage() ?: return
-		if(rangeList.size > 0) rangeList.clear()
+		if(rangeList.isNotEmpty()) rangeList.clear()
 		val text = editor.document.immutableCharSequence
 		val graphics = curImg.createGraphics().apply {
 			setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)

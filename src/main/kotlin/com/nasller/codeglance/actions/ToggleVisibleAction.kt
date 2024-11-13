@@ -26,7 +26,7 @@ class ToggleVisibleAction : DumbAwareToggleAction(), CustomComponentAction {
         }
 
     override fun isSelected(e: AnActionEvent): Boolean {
-        return e.applyToGlance{ isVisible }?:true
+        return e.applyToGlance{ isVisible } != false
     }
 
     override fun setSelected(e: AnActionEvent, state: Boolean) {

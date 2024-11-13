@@ -422,8 +422,8 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 
 	override fun beforeFoldRegionDisposed(region: FoldRegion) {
 		if (!myDuringDocumentUpdate || myDocument.isInBulkUpdate || region !is CustomFoldRegion) return
-		myDocumentChangeStartOffset = min(myDocumentChangeStartOffset, region.getStartOffset())
-		myDocumentChangeEndOffset = max(myDocumentChangeEndOffset, region.getEndOffset())
+		myDocumentChangeStartOffset = min(myDocumentChangeStartOffset, region.startOffset)
+		myDocumentChangeEndOffset = max(myDocumentChangeEndOffset, region.endOffset)
 	}
 
 	override fun onCustomFoldRegionPropertiesChange(region: CustomFoldRegion, flags: Int) {

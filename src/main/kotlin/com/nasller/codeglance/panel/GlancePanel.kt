@@ -88,8 +88,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	fun getPlaceIndex() = editor.getUserData(CURRENT_GLANCE_PLACE_INDEX) ?: PlaceIndex.Right
 
 	fun isInSplitter() = if(editor.editorKind == EditorKind.MAIN_EDITOR){
-		(SwingUtilities.getAncestorOfClass(EditorsSplitters::class.java, editor.component) as? EditorsSplitters)?.
-		currentWindow?.run { inSplitter() }?: false
+		(SwingUtilities.getAncestorOfClass(EditorsSplitters::class.java, editor.component) as? EditorsSplitters)?.currentWindow?.run { inSplitter() } == true
 	}else false
 
 	fun changeOriginScrollBarWidth(control: Boolean = true) {

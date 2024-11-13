@@ -50,7 +50,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 		get() = if (editor.editorKind != EditorKind.MAIN_EDITOR) ModalityState.any() else ModalityState.defaultModalityState()
 	protected abstract val rangeList: MutableList<Pair<Int, Range<Double>>>
 	protected val virtualFile = editor.virtualFile ?: glancePanel.psiDocumentManager.getPsiFile(glancePanel.editor.document)?.virtualFile
-	protected val isLogFile = virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
+	protected val isLogFile = virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } == true
 	protected val lock = AtomicBoolean(false)
 	private val scaleBuffer = IntArray(4)
 

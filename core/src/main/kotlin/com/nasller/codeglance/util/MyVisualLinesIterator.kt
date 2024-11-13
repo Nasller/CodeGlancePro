@@ -172,7 +172,7 @@ class MyVisualLinesIterator(private val myEditor: EditorImpl, startVisualLine: I
 			return offset == -1
 		}
 
-		public override fun clone(): Location {
+		override fun clone(): Location {
 			return try {
 				super.clone() as Location
 			} catch (e: CloneNotSupportedException) {

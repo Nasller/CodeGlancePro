@@ -44,6 +44,7 @@ class EditorPanelInjector : EditorFactoryListener {
     }
 }
 
+@Suppress("UnstableApiUsage")
 class DiffEditorPanelInjector : DiffExtension(){
     override fun onViewerCreated(viewer: FrameDiffTool.DiffViewer, context: DiffContext, request: DiffRequest) {
         val userData = context.getUserData(DiffUserDataKeysEx.COMBINED_DIFF_TOGGLE)
