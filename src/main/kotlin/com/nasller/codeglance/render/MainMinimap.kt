@@ -1,6 +1,7 @@
 package com.nasller.codeglance.render
 
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.*
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.ex.EditorEx
@@ -9,10 +10,10 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.util.text.StringUtil
-import com.intellij.util.Alarm
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.SingleAlarm
+import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MySoftReference
 import com.nasller.codeglance.util.Util.isMarkAttributes
@@ -24,7 +25,7 @@ import kotlin.math.roundToInt
 @Suppress("UnstableApiUsage")
 class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	private val alarm by lazy {
-		SingleAlarm({ updateMinimapImage() }, 500, this, Alarm.ThreadToUse.POOLED_THREAD)
+		SingleAlarm.singleAlarm(500, service<CodeGlanceConfigService>().coroutineScope) { updateMinimapImage() }
 	}
 	private var imgReference = lazy {
 		MySoftReference.create(getBufferedImage(scrollState), editor.editorKind != EditorKind.MAIN_EDITOR)

@@ -74,10 +74,10 @@ intellijPlatformTesting {
 	runIde {
 		register("runRider") {
 			type = IntelliJPlatformType.Rider
-			version = properties("platformVersion")
-			sandboxDirectory = project.layout.projectDirectory.dir("rider-sandbox")
+			version = properties("riderPlatformVersion")
+			sandboxDirectory = project.layout.projectDirectory.dir(properties("riderSandboxDir").get())
 			plugins {
-				plugin("PsiViewer", "242.4697")
+				plugins(properties("riderPlugins").map { it.split(',') })
 			}
 			task {
 				systemProperties["idea.is.internal"] = true

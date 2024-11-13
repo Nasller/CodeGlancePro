@@ -14,7 +14,7 @@ repositories {
 dependencies {
 	compileOnly(project(":core"))
 	intellijPlatform {
-		rider(providers.gradleProperty("platformVersion"))
+		rider(providers.gradleProperty("riderPlatformVersion"))
 		instrumentationTools()
 	}
 }
