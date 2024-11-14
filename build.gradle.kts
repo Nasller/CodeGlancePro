@@ -92,6 +92,7 @@ intellijPlatformTesting {
 tasks{
     runIde {
         systemProperties["idea.is.internal"] = true
+	    systemProperties["idea.kotlin.plugin.use.k2"] = true
 	    jvmArgs(
 		    "-XX:+AllowEnhancedClassRedefinition",
 	    )

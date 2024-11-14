@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.9.5</h3>
+		<ul>
+			<li></li>
+		</ul>
 		<h3>1.9.4</h3>
 		<ul>
 			<li>Support IDE-2024.3</li>
@@ -40,10 +44,6 @@
 		<ul>
 			<li>Support C# #region mark</li>
 			<li>Support Class name mark</li>
-		</ul>
-		<h3>1.9.0</h3>
-		<ul>
-			<li>Min Lines count config</li>
 		</ul>
 	]]></change-notes>
 
