@@ -29,7 +29,6 @@ dependencies {
 		// Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file for plugin from JetBrains Marketplace.
 		plugins(properties("platformPlugins").map { it.split(',') })
 
-		instrumentationTools()
 		zipSigner()
 	}
 }
