@@ -49,9 +49,11 @@ class MarkState(val glancePanel: GlancePanel) {
 	}
 
 	fun refreshMarkCommentHighlight(editor: EditorImpl) {
-		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0,editor.document.textLength){
-			markHighlightChange(it, false)
-			return@processRangeHighlightersOverlappingWith true
+		if(glancePanel.config.enableMarker) {
+			editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(0, editor.document.textLength) {
+				markHighlightChange(it, false)
+				return@processRangeHighlightersOverlappingWith true
+			}
 		}
 		if(glancePanel.config.enableBookmarksMark){
 			val manager = BookmarksManager.getInstance(editor.project)
