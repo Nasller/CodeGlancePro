@@ -99,7 +99,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 						}
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
-					editorKindComboBox = comboBox(EditorKind.entries, EditorKindListCellRenderer(editorKinds))
+					editorKindComboBox = comboBox(EditorKind.entries, CheckboxListCellRenderer(editorKinds))
 						.label(message("settings.editor.kind")).applyToComponent {
 						isSwingPopup = false
 						addActionListener {
@@ -109,7 +109,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 						}
 					}.component
 				}, {
-					emptyMinimapComboBox = comboBox(EditorKind.entries, EditorKindListCellRenderer(useEmptyMinimap))
+					emptyMinimapComboBox = comboBox(EditorKind.entries, CheckboxListCellRenderer(useEmptyMinimap))
 						.label(message("settings.use.empty.minimap")).applyToComponent {
 							isSwingPopup = false
 							addActionListener {
@@ -290,7 +290,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com
 		else -> message("settings.main.width")
 	}
 
-	private inner class EditorKindListCellRenderer<T : Enum<T>>(private val data: MutableSet<T>) : DefaultListCellRenderer() {
+	private inner class CheckboxListCellRenderer<T : Enum<T>>(private val data: MutableSet<T>) : DefaultListCellRenderer() {
 		private val container = JPanel(null)
 		private val checkBox = JBCheckBox()
 

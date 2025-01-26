@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.9.6</h3>
+		<ul>
+			<li>2025.1-EAP</li>
+		</ul>
 		<h3>1.9.5</h3>
 		<ul>
 			<li>Fix disable marks need re-open file</li>
@@ -39,11 +43,6 @@
 		<h3>1.9.2</h3>
 		<ul>
 			<li>Mark class name color schema update</li>
-		</ul>
-		<h3>1.9.1</h3>
-		<ul>
-			<li>Support C# #region mark</li>
-			<li>Support Class name mark</li>
 		</ul>
 	]]></change-notes>
 
