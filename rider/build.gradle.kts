@@ -12,9 +12,12 @@ repositories {
 }
 
 dependencies {
-	compileOnly(project(":core"))
 	intellijPlatform {
 		rider(providers.gradleProperty("riderPlatformVersion"))
-		instrumentationTools()
+		pluginModule(implementation(project(":core")))
 	}
+}
+
+intellijPlatform {
+	instrumentCode.set(false)
 }

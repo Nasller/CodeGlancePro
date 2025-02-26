@@ -14,6 +14,5 @@ repositories {
 dependencies {
 	intellijPlatform {
 		intellijIdeaUltimate(providers.gradleProperty("platformVersion"))
-		instrumentationTools()
 	}
 }
