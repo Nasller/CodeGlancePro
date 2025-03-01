@@ -23,6 +23,7 @@ dependencies {
 		create(properties("platformType"), properties("platformVersion"))
 		pluginModule(implementation(project(":core")))
 		pluginModule(runtimeOnly(project(":rider")))
+		pluginModule(runtimeOnly(project(":clion")))
 
 		// Plugin Dependencies. Uses `platformBundledPlugins` property from the gradle.properties file for bundled IntelliJ Platform plugins.
 		bundledPlugins(properties("platformBundledPlugins").map { it.split(',') })
@@ -76,7 +77,21 @@ intellijPlatformTesting {
 			version = properties("riderPlatformVersion")
 			sandboxDirectory = project.layout.projectDirectory.dir(properties("riderSandboxDir").get())
 			plugins {
-				plugins(properties("riderPlugins").map { it.split(',') })
+				plugins(properties("defaultPlugins").map { it.split(',') })
+			}
+			task {
+				systemProperties["idea.is.internal"] = true
+				jvmArgs(
+					"-XX:+AllowEnhancedClassRedefinition",
+				)
+			}
+		}
+		register("runClion") {
+			type = IntelliJPlatformType.CLion
+			version = properties("clionPlatformVersion")
+			sandboxDirectory = project.layout.projectDirectory.dir(properties("clionSandboxDir").get())
+			plugins {
+				plugins(properties("defaultPlugins").map { it.split(',') })
 			}
 			task {
 				systemProperties["idea.is.internal"] = true

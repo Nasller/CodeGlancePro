@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.9.7</h3>
+		<ul>
+			<li>Clion #prama mark support</li>
+		</ul>
 		<h3>1.9.6</h3>
 		<ul>
 			<li>2025.1-EAP</li>
@@ -40,15 +44,12 @@
 		<ul>
 			<li>Make mark line can be modified by error strip color</li>
 		</ul>
-		<h3>1.9.2</h3>
-		<ul>
-			<li>Mark class name color schema update</li>
-		</ul>
 	]]></change-notes>
 
 	<depends>com.intellij.modules.lang</depends>
 	<depends optional="true" config-file="plugin-java.xml">com.intellij.modules.java</depends>
 	<depends optional="true" config-file="plugin-rider.xml">com.intellij.modules.rider</depends>
+	<depends optional="true" config-file="plugin-clion.xml">com.intellij.cidr.lang</depends>
 	<depends optional="true" config-file="plugin-kotlin.xml">org.jetbrains.kotlin</depends>
 	<depends optional="true" config-file="plugin-scala.xml">org.intellij.scala</depends>
 	<depends optional="true" config-file="plugin-dart.xml">Dart</depends>
