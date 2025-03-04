@@ -49,7 +49,8 @@
 	<depends>com.intellij.modules.lang</depends>
 	<depends optional="true" config-file="plugin-java.xml">com.intellij.modules.java</depends>
 	<depends optional="true" config-file="plugin-rider.xml">com.intellij.modules.rider</depends>
-	<depends optional="true" config-file="plugin-clion.xml">com.intellij.cidr.lang</depends>
+	<depends optional="true" config-file="plugin-clion.xml">com.intellij.modules.cidr.lang</depends>
+	<depends optional="true" config-file="plugin-clion-rd.xml">com.intellij.modules.rider.cpp.core</depends>
 	<depends optional="true" config-file="plugin-kotlin.xml">org.jetbrains.kotlin</depends>
 	<depends optional="true" config-file="plugin-scala.xml">org.intellij.scala</depends>
 	<depends optional="true" config-file="plugin-dart.xml">Dart</depends>

@@ -2,9 +2,9 @@ package com.nasller.codeglance.extensions.visitor
 
 import MyRainbowVisitor
 import com.intellij.codeInsight.daemon.impl.HighlightVisitor
-import com.intellij.openapi.fileTypes.FileType
+import com.intellij.lang.Language
 import com.intellij.psi.PsiElement
-import org.jetbrains.kotlin.idea.KotlinFileType
+import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.stubs.elements.KtStubElementTypes
 
@@ -15,7 +15,7 @@ class MarkKotlinVisitor : MyRainbowVisitor() {
 		}
 	}
 
-	override fun suitableForFile(fileType: FileType) = fileType is KotlinFileType
+	override fun suitableForFile(language: Language) = language is KotlinLanguage
 
 	override fun clone(): HighlightVisitor = MarkKotlinVisitor()
 }

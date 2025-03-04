@@ -2,8 +2,8 @@ import com.intellij.codeHighlighting.RainbowHighlighter
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightVisitor
 import com.intellij.codeInsight.daemon.impl.analysis.HighlightInfoHolder
+import com.intellij.lang.Language
 import com.intellij.openapi.editor.colors.TextAttributesKey
-import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiNameIdentifierOwner
@@ -21,11 +21,11 @@ var MARK_REGEX = CodeGlanceConfigService.Config.markRegex.run {
 abstract class MyRainbowVisitor : HighlightVisitor {
 	private var myHolder: HighlightInfoHolder? = null
 
-	abstract fun suitableForFile(fileType: FileType): Boolean
+	abstract fun suitableForFile(language: Language): Boolean
 
 	override fun suitableForFile(file: PsiFile): Boolean {
 		val config = CodeGlanceConfigService.Config
-		return config.enableMarker && (suitableForFile(file.fileType) && file.fileType.defaultExtension.let { (it.isBlank() ||
+		return config.enableMarker && (suitableForFile(file.language) && file.fileType.defaultExtension.let { (it.isBlank() ||
 				config.disableLanguageSuffix.split(",").toSet().contains(it).not()) })
 	}
 

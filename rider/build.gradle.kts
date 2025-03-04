@@ -15,9 +15,6 @@ dependencies {
 	intellijPlatform {
 		rider(providers.gradleProperty("riderPlatformVersion"))
 		pluginModule(implementation(project(":core")))
+		javaCompiler("243.21565.192")
 	}
-}
-
-intellijPlatform {
-	instrumentCode.set(false)
 }

@@ -15,10 +15,6 @@ dependencies {
 	intellijPlatform {
 		clion(providers.gradleProperty("clionPlatformVersion"))
 		pluginModule(implementation(project(":core")))
-		bundledPlugins("com.intellij.cidr.lang")
+		bundledPlugins("com.intellij.cidr.lang", "org.jetbrains.plugins.clion.radler")
 	}
-}
-
-intellijPlatform {
-	instrumentCode.set(false)
 }

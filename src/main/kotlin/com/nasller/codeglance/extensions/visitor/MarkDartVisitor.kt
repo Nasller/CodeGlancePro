@@ -2,10 +2,10 @@ package com.nasller.codeglance.extensions.visitor
 
 import MyRainbowVisitor
 import com.intellij.codeInsight.daemon.impl.HighlightVisitor
-import com.intellij.openapi.fileTypes.FileType
+import com.intellij.lang.Language
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
-import com.jetbrains.lang.dart.DartFileType
+import com.jetbrains.lang.dart.DartLanguage
 import com.jetbrains.lang.dart.psi.DartClass
 import com.jetbrains.lang.dart.psi.DartExtensionDeclaration
 import com.jetbrains.lang.dart.psi.DartId
@@ -22,7 +22,7 @@ class MarkDartVisitor : MyRainbowVisitor() {
 		}
 	}
 
-	override fun suitableForFile(fileType: FileType) = fileType is DartFileType
+	override fun suitableForFile(language: Language) = language is DartLanguage
 
 	override fun clone(): HighlightVisitor = MarkDartVisitor()
 }

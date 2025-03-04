@@ -5,7 +5,6 @@ import MyRainbowVisitor
 import com.intellij.codeInsight.daemon.impl.HighlightVisitor
 import com.intellij.lang.Language
 import com.intellij.lang.LanguageCommenters
-import com.intellij.openapi.fileTypes.FileType
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.nasller.codeglance.util.Util
@@ -38,7 +37,7 @@ class MarkCommentVisitor : MyRainbowVisitor() {
 		}
 	}
 
-	override fun suitableForFile(fileType: FileType) = true
+	override fun suitableForFile(language: Language) = true
 
 	override fun clone(): HighlightVisitor = MarkCommentVisitor()
 }
