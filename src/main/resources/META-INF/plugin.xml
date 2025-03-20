@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>1.9.8</h3>
+		<ul>
+			<li></li>
+		</ul>
 		<h3>1.9.7</h3>
 		<ul>
 			<li>Clion #prama mark support</li>
@@ -39,10 +43,6 @@
 		<h3>1.9.4</h3>
 		<ul>
 			<li>Support IDE-2024.3</li>
-		</ul>
-		<h3>1.9.3</h3>
-		<ul>
-			<li>Make mark line can be modified by error strip color</li>
 		</ul>
 	]]></change-notes>
 
