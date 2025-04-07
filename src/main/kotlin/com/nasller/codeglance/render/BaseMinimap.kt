@@ -129,7 +129,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 			|| runReadAction { editor.highlighter !is EmptyEditorHighlighter })
 
 	protected fun getHighlightColor(startOffset: Int, endOffset: Int): List<RangeHighlightColor>{
-		return if(config.syntaxHighlight) runCatching {
+		return if(config.syntaxHighlight && editor.document.lineCount < 10000) runCatching {
 			val list = mutableListOf<RangeHighlighterEx>()
 			editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(startOffset, endOffset) {
 				it.getTextAttributes(editor.colorsScheme)?.foregroundColor?.apply { list.add(it) }
