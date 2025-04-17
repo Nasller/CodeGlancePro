@@ -4,13 +4,14 @@ import MyRainbowVisitor
 import com.intellij.codeInsight.daemon.impl.HighlightVisitor
 import com.intellij.lang.Language
 import com.intellij.psi.PsiElement
+import com.intellij.psi.StubBasedPsiElement
 import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.stubs.elements.KtStubElementTypes
 
 class MarkKotlinVisitor : MyRainbowVisitor() {
 	override fun visit(element: PsiElement) {
-		if (element is KtClass && element.elementType == KtStubElementTypes.CLASS) {
+		if (element is KtClass && (element as? StubBasedPsiElement<*>)?.iElementType == KtStubElementTypes.CLASS) {
 			visitPsiNameIdentifier(element)
 		}
 	}
