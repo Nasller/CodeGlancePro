@@ -14,7 +14,7 @@ repositories {
 dependencies {
 	intellijPlatform {
 		clion(providers.gradleProperty("clionPlatformVersion"))
-		pluginModule(implementation(project(":core")))
+		pluginComposedModule(implementation(project(":core")))
 		bundledPlugins("com.intellij.cidr.lang", "org.jetbrains.plugins.clion.radler")
 	}
 }

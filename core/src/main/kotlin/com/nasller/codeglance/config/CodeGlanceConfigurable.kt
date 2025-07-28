@@ -31,7 +31,7 @@ import javax.swing.*
 import kotlin.math.max
 import kotlin.math.min
 
-class CodeGlanceConfigurable : BoundSearchableConfigurable(Util.PLUGIN_NAME,"com.nasller.CodeGlancePro"){
+class CodeGlanceConfigurable : BoundSearchableConfigurable(message("plugins"),"com.nasller.CodeGlancePro"){
 	private val editorKinds = mutableSetOf<EditorKind>()
 	private val useEmptyMinimap = mutableSetOf<EditorKind>()
 	private lateinit var editorKindComboBox: ComboBox<EditorKind>

@@ -21,9 +21,9 @@ dependencies {
 	implementation("net.bytebuddy:byte-buddy-agent:1.15.10")
 	intellijPlatform {
 		create(properties("platformType"), properties("platformVersion"))
-		pluginModule(implementation(project(":core")))
-		pluginModule(runtimeOnly(project(":rider")))
-		pluginModule(runtimeOnly(project(":clion")))
+		pluginComposedModule(implementation(project(":core")))
+		pluginComposedModule(runtimeOnly(project(":rider")))
+		pluginComposedModule(runtimeOnly(project(":clion")))
 
 		// Plugin Dependencies. Uses `platformBundledPlugins` property from the gradle.properties file for bundled IntelliJ Platform plugins.
 		bundledPlugins(properties("platformBundledPlugins").map { it.split(',') })

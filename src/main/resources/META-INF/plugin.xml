@@ -62,10 +62,10 @@
 	</applicationListeners>
 
 	<actions>
-		<action id="CodeGlancePro.toggle" text="Toggle Current CodeGlance" class="com.nasller.codeglance.actions.ToggleVisibleAction" description="Toggles current CodeGlance on and off">
+		<action id="CodeGlancePro.toggle" class="com.nasller.codeglance.actions.ToggleVisibleAction">
 			<keyboard-shortcut first-keystroke="control shift G" keymap="$default" />
 		</action>
-		<action id="CodeGlancePro.disable" text="Toggle All CodeGlance" class="com.nasller.codeglance.actions.DisableByDefaultAction" description="Toggles all CodeGlance on and off">
+		<action id="CodeGlancePro.disable" class="com.nasller.codeglance.actions.DisableByDefaultAction">
 			<keyboard-shortcut first-keystroke="control alt shift G" keymap="$default" />
 		</action>
 	</actions>
@@ -74,7 +74,7 @@
 		<applicationService serviceImplementation="com.nasller.codeglance.config.CodeGlanceConfigService"/>
 		<editorFactoryListener implementation="com.nasller.codeglance.EditorPanelInjector"/>
 		<diff.DiffExtension implementation="com.nasller.codeglance.DiffEditorPanelInjector"/>
-		<applicationConfigurable instance="com.nasller.codeglance.config.CodeGlanceConfigurable" displayName="CodeGlance Pro"/>
+		<applicationConfigurable instance="com.nasller.codeglance.config.CodeGlanceConfigurable" key="plugins" bundle="messages.CodeGlanceBundle" />
 		<iw.actionProvider implementation="com.nasller.codeglance.extensions.GlanceVisibleActionProvider"/>
 		<colorSettingsPage implementation="com.nasller.codeglance.config.CodeGlanceColorsPage"/>
 		<additionalTextAttributes scheme="Default" file="colorSchemes/color-default.xml"/>

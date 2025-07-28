@@ -14,7 +14,7 @@ repositories {
 dependencies {
 	intellijPlatform {
 		rider(providers.gradleProperty("riderPlatformVersion"))
-		pluginModule(implementation(project(":core")))
+		pluginComposedModule(implementation(project(":core")))
 		javaCompiler("243.21565.192")
 	}
 }
