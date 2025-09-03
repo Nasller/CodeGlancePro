@@ -322,7 +322,10 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 
 	protected data class MarkCommentData(var jumpEndOffset: Int, val comment: String, val font: Font, val color: Color)
 
+	@Suppress("UNCHECKED_CAST", "UndesirableClassUsage")
 	companion object{
+		val EMPTY_IMG = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB)
+
 		fun EditorKind.getMinimap(glancePanel: GlancePanel): BaseMinimap = glancePanel.run {
 			if(config.useEmptyMinimapStr.contains(this@getMinimap.name)) {
 				return EmptyMinimap(this)

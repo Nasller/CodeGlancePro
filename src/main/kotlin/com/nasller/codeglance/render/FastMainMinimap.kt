@@ -716,7 +716,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 
 	private enum class LineType{MARK, CUSTOM_FOLD}
 
-	@Suppress("UNCHECKED_CAST", "UndesirableClassUsage")
+	@Suppress("UNCHECKED_CAST")
 	companion object{
 		private val LOG = LoggerFactory.getLogger(FastMainMinimap::class.java)
 		private const val HOOK_ON_RECALCULATION_END_METHOD = "onRecalculationEnd"
@@ -726,7 +726,6 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 			isAccessible = true
 		}
 		private val DefaultLineRenderData = LineRenderData(emptyArray(), null, 0)
-		private val EMPTY_IMG = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB)
 		private val fastMinimapBackendExecutor = AppExecutorUtil.createBoundedApplicationPoolExecutor("FastMinimapBackendExecutor", 1)
 
 		private fun SoftWrapApplianceManager.addSoftWrapListener(listener: Any) {

@@ -26,7 +26,7 @@
 	<change-notes><![CDATA[
 		<h3>1.9.9</h3>
 		<ul>
-			<li></li>
+			<li>Feature: render empty map instead of remove map when out of line range</li>
 		</ul>
 		<h3>1.9.8</h3>
 		<ul>

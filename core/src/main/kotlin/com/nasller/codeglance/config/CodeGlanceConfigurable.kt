@@ -97,6 +97,7 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(message("plugins"),"c
 							toolTipText = "1 - Int.Max lines"
 							addMouseWheelListener(numberScrollListener)
 						}
+					checkBox(message("settings.line.empty")).bindSelected(config::outLineEmpty)
 				}).bottomGap(BottomGap.SMALL)
 				twoColumnsRow({
 					editorKindComboBox = comboBox(EditorKind.entries, CheckboxListCellRenderer(editorKinds))
