@@ -102,7 +102,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	private fun update(copyList: List<LineRenderData?>, myScrollState: ScrollState) {
 		val pixelsPerLine = myScrollState.pixelsPerLine
 		val scale = myScrollState.scale
-		val curImg = if(glancePanel.checkVisible()) {
+		val curImg = (if(glancePanel.checkVisible()) {
 			if(pixelsPerLine < 1){
 				getBufferedImage(myScrollState)
 			}else {
@@ -111,7 +111,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 				} + (5 * pixelsPerLine)
 				BufferedImage(glancePanel.getConfigSize().width, height.toInt(), BufferedImage.TYPE_INT_ARGB)
 			}
-		} else null ?: return
+		} else null) ?: return
 		val renderHeight = myScrollState.getRenderHeight()
 		val graphics = curImg.createGraphics().apply { EditorUIUtil.setupAntialiasing(this) }
 		val docCommentRgb by lazy(LazyThreadSafetyMode.NONE){
