@@ -141,7 +141,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 					val line = startLineNumber - 1 + (heightLine / scrollState.pixelsPerLine).toInt()
 					text.subSequence(start, if(DocumentUtil.isValidLine(line, editor.document)){
 						val lineEndOffset = editor.document.getLineEndOffset(line)
-						if(endOffset < lineEndOffset || startOffset > lineEndOffset) endOffset
+						if(lineEndOffset !in startOffset..endOffset) endOffset
 						else lineEndOffset
 					}else endOffset).forEach(moveAndRenderChar)
 				}

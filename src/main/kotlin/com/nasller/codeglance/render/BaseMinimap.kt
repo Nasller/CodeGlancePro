@@ -46,6 +46,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 	protected val scrollState
 		get() = glancePanel.scrollState
 	protected var softWrapEnabled = false
+	protected var outOfLineRange = false
 	protected val modalityState
 		get() = if (editor.editorKind != EditorKind.MAIN_EDITOR) ModalityState.any() else ModalityState.defaultModalityState()
 	protected abstract val rangeList: MutableList<Pair<Int, Range<Double>>>
