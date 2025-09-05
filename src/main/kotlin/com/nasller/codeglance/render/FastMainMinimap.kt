@@ -650,7 +650,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	}
 
 	private fun assertValidState() {
-		if (myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || myResetDataPromise != null || myDirty) return
+		if (myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || myResetDataPromise != null || myDirty || outOfLineRange) return
 		if (editor.visibleLineCount != renderDataList.size) {
 			LOG.error("Inconsistent state {}", Attachment("glance.txt", editor.dumpState()))
 			resetMinimapData()
