@@ -558,7 +558,11 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	}
 
 	private fun doInvalidateRange(startOffset: Int, endOffset: Int, reset: Boolean = false) {
-		if (checkDirty() || checkProcessReset(startOffset,endOffset,reset)) return
+		if (checkOutOfLineRange {
+				renderDataList.clear()
+				previewImg = EMPTY_IMG
+				invokeLater { glancePanel.repaint() }
+		} || checkDirty() || checkProcessReset(startOffset,endOffset,reset)) return
 		val startVisualLine = editor.offsetToVisualLine(startOffset, false)
 		val endVisualLine = editor.offsetToVisualLine(endOffset, true)
 		val lineDiff = editor.visibleLineCount - renderDataList.size

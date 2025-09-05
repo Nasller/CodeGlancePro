@@ -28,7 +28,7 @@ class CodeGlanceConfig : BaseState() {
 	var disableLanguageSuffix by nonNullString("ipynb")
 	var clean by property(true)
 	var locked by property(false)
-	var outLineEmpty by property(false)
+	var outLineEmpty by property(true)
 
 	/** Viewport */
 	var viewportColor by nonNullString("A0A0A0")

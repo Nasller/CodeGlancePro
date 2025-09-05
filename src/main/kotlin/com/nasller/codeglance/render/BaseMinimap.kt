@@ -12,6 +12,7 @@ import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.InlayModel
 import com.intellij.openapi.editor.RangeMarker
 import com.intellij.openapi.editor.colors.EditorFontType
+import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
@@ -276,10 +277,29 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 		} else emptyMap()
 	}
 
+	protected fun checkOutOfLineRange(action: () -> Unit): Boolean {
+		if (outOfLineRange) {
+			return true
+		}else {
+			outOfLineRange = editor.document.lineCount !in config.minLinesCount..config.maxLinesCount && config.outLineEmpty
+			if(outOfLineRange) {
+				rangeList.clear()
+				glancePanel.markState.clear()
+				action.invoke()
+				return true
+			}
+		}
+		return false
+	}
+
 	protected data class RangeHighlightColor(val startOffset: Int,val endOffset: Int,val foregroundColor: Color)
 
 	protected class IdeLogFileHighlightDelegate(private val myDocument: Document,private val highlighterIterator: HighlighterIterator)
 		: HighlighterIterator by highlighterIterator{
+		override fun getTextAttributesKeys(): Array<out TextAttributesKey?> {
+			return highlighterIterator.getTextAttributesKeys()
+		}
+
 		override fun getEnd(): Int {
 			val end = highlighterIterator.end
 			return if(DocumentUtil.isAtLineEnd(end, myDocument) && end + 1 < myDocument.textLength) end + 1

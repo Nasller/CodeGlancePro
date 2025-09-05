@@ -41,7 +41,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val config = CodeGlanceConfigService.Config
 	val scrollState = ScrollState()
 	val isDefaultDisable
-		get() = config.disabled || editor.document.lineCount !in config.minLinesCount..config.maxLinesCount
+		get() = config.disabled || (editor.document.lineCount !in config.minLinesCount..config.maxLinesCount && !config.outLineEmpty)
 	val myPopHandler = CustomScrollBarPopup(this)
 	val hideScrollBarListener = HideScrollBarListener(this)
 	val scrollbar = ScrollBar(this)

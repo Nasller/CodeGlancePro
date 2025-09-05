@@ -40,7 +40,9 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	}
 
 	override fun updateMinimapImage(canUpdate: Boolean){
-		if (canUpdate && lock.compareAndSet(false,true)) {
+		if (canUpdate && !checkOutOfLineRange {
+				imgReference = lazyOf(MySoftReference.create(EMPTY_IMG, false))
+			} && lock.compareAndSet(false,true)) {
 			val action = Runnable {
 				invokeLater(modalityState) {
 					try {
