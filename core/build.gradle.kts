@@ -13,6 +13,6 @@ repositories {
 
 dependencies {
 	intellijPlatform {
-		intellijIdeaUltimate(providers.gradleProperty("platformVersion"))
+		intellijIdea(providers.gradleProperty("platformVersion"))
 	}
 }
