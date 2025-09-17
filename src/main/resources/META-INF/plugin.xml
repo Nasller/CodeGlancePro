@@ -47,13 +47,13 @@
 	]]></change-notes>
 
 	<depends>com.intellij.modules.lang</depends>
-	<depends optional="true" config-file="plugin-java.xml">com.intellij.modules.java</depends>
-	<depends optional="true" config-file="plugin-rider.xml">com.intellij.modules.rider</depends>
-	<depends optional="true" config-file="plugin-clion.xml">com.intellij.modules.cidr.lang</depends>
-	<depends optional="true" config-file="plugin-clion-rd.xml">com.intellij.modules.rider.cpp.core</depends>
-	<depends optional="true" config-file="plugin-kotlin.xml">org.jetbrains.kotlin</depends>
-	<depends optional="true" config-file="plugin-scala.xml">org.intellij.scala</depends>
-	<depends optional="true" config-file="plugin-dart.xml">Dart</depends>
+	<depends optional="true" config-file="codeglancepro-java.xml">com.intellij.modules.java</depends>
+	<depends optional="true" config-file="codeglancepro-rider.xml">com.intellij.modules.rider</depends>
+	<depends optional="true" config-file="codeglancepro-clion.xml">com.intellij.modules.cidr.lang</depends>
+	<depends optional="true" config-file="codeglancepro-clion-rd.xml">com.intellij.modules.rider.cpp.core</depends>
+	<depends optional="true" config-file="codeglancepro-kotlin.xml">org.jetbrains.kotlin</depends>
+	<depends optional="true" config-file="codeglancepro-scala.xml">org.intellij.scala</depends>
+	<depends optional="true" config-file="codeglancepro-dart.xml">Dart</depends>
 
 	<applicationListeners>
 		<listener class="com.nasller.codeglance.agent.MyAppLifecycleListener" topic="com.intellij.ide.AppLifecycleListener"/>

@@ -1,4 +1,5 @@
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -29,8 +30,11 @@ dependencies {
 		bundledPlugins(properties("platformBundledPlugins").map { it.split(',') })
 		// Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file for plugin from JetBrains Marketplace.
 		plugins(properties("platformPlugins").map { it.split(',') })
+        // Module Dependencies. Uses `platformBundledModules` property from the gradle.properties file for bundled IntelliJ Platform modules.
+        bundledModules(properties("platformBundledModules").map { it.split(',') })
 
 		zipSigner()
+        testFramework(TestFrameworkType.Platform)
 	}
 }
 
