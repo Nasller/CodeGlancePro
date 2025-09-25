@@ -26,7 +26,8 @@
 	<change-notes><![CDATA[
 	    <h3>2.0.0</h3>
 		<ul>
-			<li></li>
+			<li>2025.3-EAP</li>
+			<li>fix: #181 Quick view is not rendering borders correctly</li>
 		</ul>
 		<h3>1.9.9</h3>
 		<ul>

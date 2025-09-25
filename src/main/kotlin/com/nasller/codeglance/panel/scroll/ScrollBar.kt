@@ -21,10 +21,7 @@ import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
 import com.nasller.codeglance.util.Util
-import java.awt.AlphaComposite
-import java.awt.Cursor
-import java.awt.Graphics2D
-import java.awt.Shape
+import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
@@ -314,12 +311,13 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		private const val MIN_VIEWPORT_HEIGHT = 20
 		val PREVIEW_LINES = max(2, min(25, Integer.getInteger("preview.lines", 5)))
 
-		private fun createHint(me: MouseEvent): HintHint = HintHint(me)
+		private fun createHint(me: MouseEvent): HintHint = HintHint(me.component, Point(0, me.y))
 			.setAwtTooltip(true)
 			.setPreferredPosition(Balloon.Position.atLeft)
 			.setBorderInsets(JBUI.insets(CustomEditorFragmentRenderer.EDITOR_FRAGMENT_POPUP_BORDER))
 			.setShowImmediately(true)
 			.setAnimationEnabled(false)
+			.setStatus(HintHint.Status.Info)
 
 		private fun getBorderShape(y: Int, width: Int, height: Int, thickness: Int): Shape? {
 			if (width <= 0 || height <= 0 || thickness <= 0) return null
