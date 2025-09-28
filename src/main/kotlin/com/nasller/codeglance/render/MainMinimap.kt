@@ -82,6 +82,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 			graphics.dispose()
 			return
 		}
+		glancePanel.setLineCount()
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val hlIter = editor.highlighter.createIterator(0).run {
 			if(isLogFile) IdeLogFileHighlightDelegate(editor.document,this) else this
@@ -281,7 +282,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	/** PrioritizedDocumentListener */
 	override fun documentChanged(event: DocumentEvent) {
 		if (event.document.isInBulkUpdate) return
-		if (editor.visibleLineCount > 3000) {
+		if (glancePanel.lineCount > 3000) {
 			repaintOrRequest()
 		} else updateMinimapImage()
 	}

@@ -37,11 +37,12 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val editor = info.editor
 	val project = editor.project ?: ProjectManager.getInstance().defaultProject
 	var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
+	var lineCount = lineCount()
 	val psiDocumentManager: PsiDocumentManager = PsiDocumentManager.getInstance(project)
 	val config = CodeGlanceConfigService.Config
 	val scrollState = ScrollState()
 	val isDefaultDisable
-		get() = config.disabled || (editor.visibleLineCount !in config.minLinesCount..config.maxLinesCount && !config.outLineEmpty)
+		get() = config.disabled || (lineCount !in config.minLinesCount..config.maxLinesCount && !config.outLineEmpty)
 	val myPopHandler = CustomScrollBarPopup(this)
 	val hideScrollBarListener = HideScrollBarListener(this)
 	val scrollbar = ScrollBar(this)
@@ -90,6 +91,12 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	fun isInSplitter() = if(editor.editorKind == EditorKind.MAIN_EDITOR){
 		(SwingUtilities.getAncestorOfClass(EditorsSplitters::class.java, editor.component) as? EditorsSplitters)?.currentWindow?.run { inSplitter() } == true
 	}else false
+
+	fun lineCount() = runReadAction { editor.visibleLineCount }
+
+	fun setLineCount() {
+		lineCount = lineCount()
+	}
 
 	fun changeOriginScrollBarWidth(control: Boolean = true) {
 		if (config.hideOriginalScrollBar && control && (!isDefaultDisable || isVisible)) {

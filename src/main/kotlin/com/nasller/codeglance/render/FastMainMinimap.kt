@@ -565,7 +565,9 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		} || checkDirty() || checkProcessReset(startOffset,endOffset,reset)) return
 		val startVisualLine = editor.offsetToVisualLine(startOffset, false)
 		val endVisualLine = editor.offsetToVisualLine(endOffset, true)
-		val lineDiff = editor.visibleLineCount - renderDataList.size
+		val visibleLineCount = editor.visibleLineCount
+		glancePanel.lineCount = visibleLineCount
+		val lineDiff = visibleLineCount - renderDataList.size
 		try {
 			if (lineDiff > 0) {
 				renderDataList.addAll(startVisualLine, ObjectArrayList.wrap(arrayOfNulls(lineDiff)))
@@ -574,7 +576,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 			}
 		}catch (e: IndexOutOfBoundsException) {
 			LOG.error("File: ${virtualFile?.name} FileType: ${virtualFile?.fileType?.name ?: "Unknown"} " +
-					"RenderDataList.Size: ${renderDataList.size} VisibleLineCount: ${editor.visibleLineCount} " +
+					"RenderDataList.Size: ${renderDataList.size} VisibleLineCount: $visibleLineCount " +
 					"startVisualLine: $startVisualLine endVisualLine: $endVisualLine " +
 					"Text: ${editor.document.getText(TextRange(startOffset, endOffset))}", e)
 			invokeLater { rebuildDataAndImage() }
