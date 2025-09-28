@@ -24,7 +24,11 @@
 	]]></description>
 
 	<change-notes><![CDATA[
-	    <h3>2.0.0</h3>
+	    <h3>2.0.1</h3>
+		<ul>
+			<li></li>
+		</ul>
+		<h3>2.0.0</h3>
 		<ul>
 			<li>2025.3-EAP</li>
 			<li>fix: #181 Quick view is not rendering borders correctly</li>
@@ -40,10 +44,6 @@
 		<h3>1.9.7</h3>
 		<ul>
 			<li>Clion #prama mark support</li>
-		</ul>
-		<h3>1.9.6</h3>
-		<ul>
-			<li>2025.1-EAP</li>
 		</ul>
 	]]></change-notes>
 

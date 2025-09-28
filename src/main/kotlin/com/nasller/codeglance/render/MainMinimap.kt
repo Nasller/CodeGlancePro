@@ -281,7 +281,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	/** PrioritizedDocumentListener */
 	override fun documentChanged(event: DocumentEvent) {
 		if (event.document.isInBulkUpdate) return
-		if (event.document.lineCount > 3000) {
+		if (editor.visibleLineCount > 3000) {
 			repaintOrRequest()
 		} else updateMinimapImage()
 	}
