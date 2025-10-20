@@ -1,4 +1,5 @@
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -33,7 +34,7 @@ dependencies {
         bundledModules(properties("platformBundledModules").map { it.split(',') })
 
 		zipSigner()
-//        testFramework(TestFrameworkType.Platform)
+        testFramework(TestFrameworkType.Platform)
 	}
 }
 
