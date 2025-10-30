@@ -3,6 +3,7 @@ package com.nasller.codeglance.extensions.visitor
 import MARK_REGEX
 import MyRainbowVisitor
 import com.intellij.codeInsight.daemon.impl.HighlightVisitor
+import com.intellij.lang.Commenter
 import com.intellij.lang.Language
 import com.intellij.lang.LanguageCommenters
 import com.intellij.psi.PsiComment
@@ -14,12 +15,14 @@ class MarkCommentVisitor : MyRainbowVisitor() {
 		if (element is PsiComment) {
 			val text = element.text
 			MARK_REGEX?.find(text)?.let {
+				val language = element.language
 				val beforeMark = text.take(it.range.first)
-				if (!isOnlySpecialPrefix(beforeMark)) return
+				val commenter = LanguageCommenters.INSTANCE.forLanguage(language)
+				if (!isOnlySpecialPrefix(beforeMark, commenter, language)) return
 				val textRange = element.textRange
 				val index = text.indexOf('\n',it.range.last)
 				val start = it.range.last + textRange.startOffset + 1
-				val blockCommentSuffix by lazy(LazyThreadSafetyMode.NONE) { getLanguageBlockCommentSuffix(element.language) ?: "" }
+				val blockCommentSuffix by lazy(LazyThreadSafetyMode.NONE) { getLanguageBlockCommentSuffix(commenter, language) ?: "" }
 				val end = if (index > 0) index + textRange.startOffset else {
 					textRange.endOffset - if(index < 0 && blockCommentSuffix.isNotBlank() && text.endsWith(blockCommentSuffix)){
 						blockCommentSuffix.length
@@ -32,16 +35,31 @@ class MarkCommentVisitor : MyRainbowVisitor() {
 		}
 	}
 
-	private fun isOnlySpecialPrefix(prefix: String): Boolean {
+	private fun isOnlySpecialPrefix(prefix: String, commenter: Commenter?, language: Language): Boolean {
 		val cleaned = prefix.trim()
-		// 匹配：纯注释开头的符号组合，例如 //、/*、#、-- 等
-		return cleaned.isEmpty() || Util.regex.matches(cleaned)
+		if(cleaned.isEmpty()){
+			return false
+		}
+		return Regex("""^[\s${getLanguageCommentPrefix(commenter, language)}]+$""").matches(cleaned)
 	}
 
-	private fun getLanguageBlockCommentSuffix(language: Language) : String?{
+	private fun getLanguageCommentPrefix(commenter: Commenter?, language: Language): String {
+		fun escape(s: String?) = s?.let { Regex.escape(it) }.orEmpty()
+		return when (language.displayName) {
+			"C#" -> listOf("//", "/*").joinToString("") { escape(it) }
+			else -> buildList {
+				commenter?.lineCommentPrefixes
+					?.filter { it.isNotEmpty() }
+					?.forEach { add(escape(it)) }
+				commenter?.blockCommentPrefix?.let { add(escape(it)) }
+			}.joinToString("")
+		}
+	}
+
+	private fun getLanguageBlockCommentSuffix(commenter: Commenter?, language: Language) : String?{
 		return when(language.displayName){
 			"C#" -> "*/"
-			else -> LanguageCommenters.INSTANCE.forLanguage(language)?.blockCommentSuffix
+			else -> commenter?.blockCommentSuffix
 		}
 	}
 
