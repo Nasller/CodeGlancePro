@@ -11,6 +11,7 @@ object Util {
 	val MARK_CLASS_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_CLASS_ATTRIBUTES")
 	val MARK_RIDER_REGION_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_RIDER_REGION_ATTRIBUTES")
 	val MARK_CLION_REGION_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_CLION_REGION_ATTRIBUTES")
+	val regex = Regex("""^[\s/*#!\-]+$""")
 
 	inline fun <T, R> Collection<T>.mapSmart(transform: (T) -> R): List<R> {
 		return when (val size = size) {
