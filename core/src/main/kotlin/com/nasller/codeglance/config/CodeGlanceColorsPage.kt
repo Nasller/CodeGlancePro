@@ -14,7 +14,7 @@ class CodeGlanceColorsPage : ColorSettingsPage, DisplayPrioritySortable {
 	override fun getAttributeDescriptors() = arrayOf(
 		AttributesDescriptor("Class name", Util.MARK_CLASS_ATTRIBUTES),
 		AttributesDescriptor("Mark comment", Util.MARK_COMMENT_ATTRIBUTES),
-		AttributesDescriptor("Rider region", Util.MARK_RIDER_REGION_ATTRIBUTES),
+		AttributesDescriptor("Region C#", Util.MARK_CSHARP_REGION_ATTRIBUTES),
 		AttributesDescriptor("Clion region", Util.MARK_CLION_REGION_ATTRIBUTES),
 	)
 
@@ -29,14 +29,14 @@ class CodeGlanceColorsPage : ColorSettingsPage, DisplayPrioritySortable {
 	override fun getDemoText() = """
 		class <class>MyClass</class> {}
 		//<mark>This is a comment</mark>
-		#region <rider>Rider</rider>
+		#region <region_csharp>C#</region_csharp>
 		#pragma region <clion>Clion</clion>
 		""".trimIndent()
 
 	override fun getAdditionalHighlightingTagToDescriptorMap() = mapOf(
 		Pair("class", Util.MARK_CLASS_ATTRIBUTES),
 		Pair("mark", Util.MARK_COMMENT_ATTRIBUTES),
-		Pair("rider", Util.MARK_RIDER_REGION_ATTRIBUTES),
+		Pair("region_csharp", Util.MARK_CSHARP_REGION_ATTRIBUTES),
 		Pair("clion", Util.MARK_CLION_REGION_ATTRIBUTES),
 	)
 

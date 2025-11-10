@@ -9,7 +9,7 @@ object Util {
 	const val MAX_WIDTH = 250
 	val MARK_COMMENT_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_COMMENT_ATTRIBUTES")
 	val MARK_CLASS_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_CLASS_ATTRIBUTES")
-	val MARK_RIDER_REGION_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_RIDER_REGION_ATTRIBUTES")
+	val MARK_CSHARP_REGION_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_CSHARP_REGION_ATTRIBUTES")
 	val MARK_CLION_REGION_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_CLION_REGION_ATTRIBUTES")
 
 	inline fun <T, R> Collection<T>.mapSmart(transform: (T) -> R): List<R> {
@@ -21,5 +21,5 @@ object Util {
 	}
 
 	fun TextAttributesKey.isMarkAttributes() = this == MARK_COMMENT_ATTRIBUTES || this == MARK_CLASS_ATTRIBUTES
-			|| this == MARK_RIDER_REGION_ATTRIBUTES || this == MARK_CLION_REGION_ATTRIBUTES
+			|| this == MARK_CSHARP_REGION_ATTRIBUTES || this == MARK_CLION_REGION_ATTRIBUTES
 }
