@@ -1,6 +1,5 @@
 package com.nasller.codeglance.config
 
-import MARK_REGEX
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.options.BoundSearchableConfigurable
@@ -20,9 +19,7 @@ import com.nasller.codeglance.config.enums.EditorSizeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.ui.ColorButton
 import com.nasller.codeglance.ui.DonationDialog
-import com.nasller.codeglance.util.Util
-import com.nasller.codeglance.util.localMessage
-import com.nasller.codeglance.util.message
+import com.nasller.codeglance.util.*
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.event.InputEvent
@@ -197,7 +194,11 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(message("plugins"),"c
 								spinner.value = newValue
 							}
 						}
-				})
+				}).bottomGap(BottomGap.SMALL)
+                row {
+                    textArea().label(message("settings.markers.annotation.method"))
+                        .bindText(config::markMethodAnnotation).columns(COLUMNS_MEDIUM).rows(3)
+                }
 			}
 			group(message("settings.option")) {
 				twoColumnsRow({
@@ -260,6 +261,13 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(message("plugins"),"c
 			useEmptyMinimapStr = this@CodeGlanceConfigurable.useEmptyMinimap.joinToString(",")
 			if((!isRightAligned || disabled) && hoveringToShowScrollBar) hoveringToShowScrollBar = false
 			MARK_REGEX = if(markRegex.isNotBlank()) Regex(markRegex) else null
+            METHOD_ANNOTATION = if(markMethodAnnotation.isNotBlank()) markMethodAnnotation.split("\n")
+                .map { it.trim() }.filter { it.isNotBlank() }.toSet() else setOf()
+            METHOD_ANNOTATION_SUFFIX = if(markMethodAnnotation.isNotBlank()) markMethodAnnotation.split("\n")
+                .map {
+                    val lastIndexOf = it.lastIndexOf(".")
+                    if(lastIndexOf == -1) it.trim() else it.substring(lastIndexOf + 1).trim()
+                }.filter { it.isNotBlank() }.toSet() else setOf()
 		}
 		invokeLater{ SettingsChangePublisher.onGlobalChanged() }
 	}

@@ -10,10 +10,6 @@ import com.intellij.psi.PsiNameIdentifierOwner
 import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.util.Util
 
-var MARK_REGEX = CodeGlanceConfigService.Config.markRegex.run {
-	if(isNotBlank()) Regex(this) else null
-}
-
 /**
  * Avoid report errors.
  * This isn't the error made by this plugin. It's the error of SDK.

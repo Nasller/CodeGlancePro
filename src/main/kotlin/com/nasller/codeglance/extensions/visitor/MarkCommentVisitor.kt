@@ -1,6 +1,5 @@
 package com.nasller.codeglance.extensions.visitor
 
-import MARK_REGEX
 import MyRainbowVisitor
 import com.intellij.codeInsight.daemon.impl.HighlightVisitor
 import com.intellij.lang.Commenter
@@ -8,6 +7,7 @@ import com.intellij.lang.Language
 import com.intellij.lang.LanguageCommenters
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
+import com.nasller.codeglance.util.MARK_REGEX
 import com.nasller.codeglance.util.Util
 
 class MarkCommentVisitor : MyRainbowVisitor() {
