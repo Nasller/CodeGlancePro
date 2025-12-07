@@ -16,12 +16,13 @@ import org.jetbrains.kotlin.psi.stubs.elements.KtStubElementTypes
 class MarkKotlinVisitor : MyRainbowVisitor() {
 	override fun visit(element: PsiElement) {
         val elementType = element.elementType
-        if (elementType == KtStubElementTypes.CLASS && element is KtClass) {
+        if (element is KtClass && elementType == KtStubElementTypes.CLASS) {
 			visitPsiNameIdentifier(element)
 		}else if(METHOD_ANNOTATION_SUFFIX.isNotEmpty() &&
-            elementType == KtStubElementTypes.REFERENCE_EXPRESSION && element is KtNameReferenceExpression &&
+            element is KtNameReferenceExpression &&
+            elementType == KtStubElementTypes.REFERENCE_EXPRESSION &&
             METHOD_ANNOTATION_SUFFIX.contains(element.text)) {
-            val annotationEntry = element.parentOfType<KtAnnotationEntry>() ?: return
+            val ktFun = element.parentOfType<KtNamedFunction>() ?: return
             val clazz = when (val target = element.mainReference.resolve()) {
                 is KtPrimaryConstructor -> target.getContainingClassOrObject()
                 is KtClassOrObject -> target
@@ -38,7 +39,6 @@ class MarkKotlinVisitor : MyRainbowVisitor() {
             if(!METHOD_ANNOTATION.contains(clazz?.fqName?.asString())){
                 return
             }
-            val ktFun = annotationEntry.parentOfType<KtNamedFunction>() ?: return
             visitPsiNameIdentifier(ktFun)
         }
 	}
