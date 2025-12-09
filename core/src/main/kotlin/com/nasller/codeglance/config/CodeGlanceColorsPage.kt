@@ -22,7 +22,7 @@ class CodeGlanceColorsPage : ColorSettingsPage, DisplayPrioritySortable {
 
 	override fun getDisplayName() = Util.PLUGIN_NAME
 
-	override fun getIcon(): Icon = FileTypes.PLAIN_TEXT.icon
+	override fun getIcon(): Icon? = FileTypes.PLAIN_TEXT.icon
 
 	override fun getHighlighter() = PlainSyntaxHighlighter()
 
