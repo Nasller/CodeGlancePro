@@ -51,7 +51,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 	protected val modalityState
 		get() = if (editor.editorKind != EditorKind.MAIN_EDITOR) ModalityState.any() else ModalityState.defaultModalityState()
 	protected abstract val rangeList: MutableList<Pair<Int, Range<Double>>>
-	protected val virtualFile = editor.virtualFile ?: glancePanel.psiDocumentManager.getPsiFile(glancePanel.editor.document)?.virtualFile
+	protected val virtualFile = editor.virtualFile ?: runReadAction { glancePanel.psiDocumentManager.getPsiFile(glancePanel.editor.document)?.virtualFile }
 	protected val isLogFile = virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } == true
 	protected val lock = AtomicBoolean(false)
 	private val scaleBuffer = IntArray(4)
@@ -248,7 +248,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 		return if(markCommentMap.isNotEmpty()) {
 			val lineCount = editor.document.lineCount
 			val map = mutableMapOf<Int, MarkCommentData>()
-			val file = glancePanel.psiDocumentManager.getCachedPsiFile(editor.document)
+			val file = runReadAction { glancePanel.psiDocumentManager.getCachedPsiFile(editor.document) }
 			for (rangeMarker in markCommentMap) {
 				val attributes = rangeMarker.getTextAttributes(editor.colorsScheme)!!
 				val font = editor.colorsScheme.getFont(when (attributes.fontType) {
@@ -258,9 +258,11 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 					else -> EditorFontType.BOLD
 				}).deriveFont(config.markersScaleFactor * 3)
 				val startOffset = rangeMarker.startOffset
-				file?.findElementAt(startOffset)?.let { comment ->
-					val textRange = if(rangeMarker is MarkState.BookmarkHighlightDelegate)
-						comment.nextSibling?.textRange ?: comment.textRange else comment.textRange
+				runReadAction { file?.findElementAt(startOffset) }?.let { comment ->
+					val textRange = runReadAction {
+						if(rangeMarker is MarkState.BookmarkHighlightDelegate)
+							comment.nextSibling?.textRange ?: comment.textRange else comment.textRange
+					}
 					val commentText = rangeMarker.getUserData(MarkState.BOOK_MARK_DESC_KEY) ?:
 					text.substring(startOffset, rangeMarker.endOffset).trim()
 					val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
