@@ -62,10 +62,13 @@ intellijPlatform {
 	}
 	sandboxContainer = layout.projectDirectory.dir(properties("sandboxDir").get())
 
-	signing {
-		certificateChainFile.set(File(env.getOrDefault("CERTIFICATE_CHAIN", "$dir/pluginCert/chain.crt")))
-		privateKeyFile.set(File(env.getOrDefault("PRIVATE_KEY", "$dir/pluginCert/private.pem")))
-		password.set(File(env.getOrDefault("PRIVATE_KEY_PASSWORD", "$dir/pluginCert/password.txt")).readText(Charsets.UTF_8))
+	val passwordFile = File(env.getOrDefault("PRIVATE_KEY_PASSWORD", "$dir/pluginCert/password.txt"))
+	if (passwordFile.exists()) {
+		signing {
+			certificateChainFile.set(File(env.getOrDefault("CERTIFICATE_CHAIN", "$dir/pluginCert/chain.crt")))
+			privateKeyFile.set(File(env.getOrDefault("PRIVATE_KEY", "$dir/pluginCert/private.pem")))
+			password.set(File(env.getOrDefault("PRIVATE_KEY_PASSWORD", "$dir/pluginCert/password.txt")).readText(Charsets.UTF_8))
+		}
 	}
 
 	publishing {
