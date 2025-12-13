@@ -5,6 +5,7 @@ import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzerSettings
 import com.intellij.codeInsight.daemon.impl.getConfigureHighlightingLevelPopup
 import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.EditorBundle
 import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.project.DumbAware
@@ -70,7 +71,7 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
                 }
             })
         ){}
-        glancePanel.psiDocumentManager.getPsiFile(glancePanel.editor.document)?.let {
+        runReadAction { glancePanel.psiDocumentManager.getPsiFile(glancePanel.editor.document) }?.let {
             if (DaemonCodeAnalyzer.getInstance(glancePanel.project).isHighlightingAvailable(it)) {
                 actionGroup.addSeparator()
                 actionGroup.add(createGotoGroup())
