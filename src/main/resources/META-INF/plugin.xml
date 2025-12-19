@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>2.0.3</h3>
+		<ul>
+			<li></li>
+		</ul>
 	    <h3>2.0.2</h3>
 		<ul>
 			<li>Support method annotation marks</li>
@@ -36,14 +40,6 @@
 		<ul>
 			<li>2025.3-EAP</li>
 			<li>fix: #181 Quick view is not rendering borders correctly</li>
-		</ul>
-		<h3>1.9.9</h3>
-		<ul>
-			<li>Feature: render empty map instead of remove map when out of line range</li>
-		</ul>
-		<h3>1.9.8</h3>
-		<ul>
-			<li>2025.2-EAP</li>
 		</ul>
 	]]></change-notes>
 
