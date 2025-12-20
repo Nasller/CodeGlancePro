@@ -5,7 +5,7 @@ import java.time.format.DateTimeFormatter
 
 val env: MutableMap<String, String> = System.getenv()
 val dir: String = projectDir.parentFile.absolutePath
-fun properties(key: String) = providers.gradleProperty(key)
+fun properties(key: String): Provider<String> = providers.gradleProperty(key)
 
 plugins {
 	id("java")

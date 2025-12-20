@@ -71,7 +71,7 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
                 }
             })
         ){}
-        runReadAction { glancePanel.psiDocumentManager.getPsiFile(glancePanel.editor.document) }?.let {
+        runReadAction { glancePanel.psiDocumentManager.getCachedPsiFile(glancePanel.editor.document) }?.let {
             if (DaemonCodeAnalyzer.getInstance(glancePanel.project).isHighlightingAvailable(it)) {
                 actionGroup.addSeparator()
                 actionGroup.add(createGotoGroup())
