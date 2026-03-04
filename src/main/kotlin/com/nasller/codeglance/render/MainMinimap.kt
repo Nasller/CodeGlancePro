@@ -1,6 +1,7 @@
 package com.nasller.codeglance.render
 
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.*
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.ex.EditorEx
@@ -8,23 +9,23 @@ import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
-import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.ui.scale.DerivedScaleType
-import com.intellij.util.Alarm
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.SingleAlarm
+import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MySoftReference
-import com.nasller.codeglance.util.Util
+import com.nasller.codeglance.util.Util.isMarkAttributes
+import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.beans.PropertyChangeEvent
 
 @Suppress("UnstableApiUsage")
 class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	private val alarm by lazy {
-		SingleAlarm({ updateMinimapImage() }, 500, this, Alarm.ThreadToUse.POOLED_THREAD)
+		SingleAlarm.singleAlarm(500, service<CodeGlanceConfigService>().coroutineScope) { updateMinimapImage() }
 	}
 	private var imgReference = lazy {
 		MySoftReference.create(getBufferedImage(scrollState), editor.editorKind != EditorKind.MAIN_EDITOR)
@@ -39,7 +40,9 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	}
 
 	override fun updateMinimapImage(canUpdate: Boolean){
-		if (canUpdate && lock.compareAndSet(false,true)) {
+		if (canUpdate && !checkOutOfLineRange {
+				imgReference = lazyOf(MySoftReference.create(EMPTY_IMG, false))
+			} && lock.compareAndSet(false,true)) {
 			val action = Runnable {
 				invokeLater(modalityState) {
 					try {
@@ -50,7 +53,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 					}
 				}
 			}
-			if(glancePanel.markCommentState.hasMarkCommentHighlight()){
+			if(glancePanel.markState.hasMarkHighlight()){
 				glancePanel.psiDocumentManager.performForCommittedDocument(editor.document, action)
 			}else action.run()
 		}
@@ -68,16 +71,18 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 
 	private fun update() {
 		val curImg = getMinimapImage() ?: return
-		if(rangeList.size > 0) rangeList.clear()
+		if(rangeList.isNotEmpty()) rangeList.clear()
+		val text = editor.document.immutableCharSequence
 		val graphics = curImg.createGraphics().apply {
+			setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
 			composite = GlancePanel.CLEAR
 			fillRect(0, 0, curImg.width, curImg.height)
 		}
-		val text = editor.document.immutableCharSequence
 		if(text.isEmpty()) {
 			graphics.dispose()
 			return
 		}
+		glancePanel.setLineCount()
 		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val hlIter = editor.highlighter.createIterator(0).run {
@@ -121,7 +126,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 				val endOffset = region.endOffset
 				val startLineNumber = editor.document.getLineNumber(startOffset)
 				val foldLine = editor.document.getLineNumber(endOffset) - startLineNumber
-				if(region !is CustomFoldRegionImpl){
+				if(region !is CustomFoldRegion){
 					if(region.placeholderText.isNotBlank()) {
 						(editor.foldingModel.placeholderAttributes?.foregroundColor ?: defaultColor).setColorRgb()
 						StringUtil.replace(region.placeholderText, "\n", " ").toCharArray().forEach(moveAndRenderChar)
@@ -140,7 +145,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 					val line = startLineNumber - 1 + (heightLine / scrollState.pixelsPerLine).toInt()
 					text.subSequence(start, if(DocumentUtil.isValidLine(line, editor.document)){
 						val lineEndOffset = editor.document.getLineEndOffset(line)
-						if(endOffset < lineEndOffset || startOffset > lineEndOffset) endOffset
+						if(lineEndOffset !in startOffset..endOffset) endOffset
 						else lineEndOffset
 					}else endOffset).forEach(moveAndRenderChar)
 				}
@@ -148,6 +153,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 				val commentData = highlight[start]
 				if(commentData != null){
 					graphics.font = commentData.font
+					graphics.color = commentData.color
 					graphics.drawString(commentData.comment,2, ((y + commentData.font.size * pixScale -
 							(if(pixScale != 1.0) scrollState.pixelsPerLine - 1 else 0.0)) / pixScale).toInt())
 					if (softWrapEnable) {
@@ -259,32 +265,26 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 		}
 	}
 
-	/** MarkupModelListener */
-	override fun afterAdded(highlighter: RangeHighlighterEx) {
-		glancePanel.markCommentState.markCommentHighlightChange(highlighter, false)
-		updateRangeHighlight(highlighter)
-	}
-
-	override fun beforeRemoved(highlighter: RangeHighlighterEx) {
-		glancePanel.markCommentState.markCommentHighlightChange(highlighter, true)
-	}
-
-	override fun afterRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter)
-
-	private fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
+	/** MarkupModelListener & BookmarksListener */
+	override fun updateRangeHighlight(highlighter: RangeMarker) {
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation) return
-		if(highlighter.isThinErrorStripeMark.not() && (Util.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
-			EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
-			repaintOrRequest()
-		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
-			repaintOrRequest(false)
+		when(highlighter){
+			is MarkState.BookmarkHighlightDelegate -> repaintOrRequest()
+			is RangeHighlighterEx -> {
+				if(highlighter.isThinErrorStripeMark.not() && (highlighter.textAttributesKey?.isMarkAttributes() == true ||
+							EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
+					repaintOrRequest()
+				} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
+					repaintOrRequest(false)
+				}
+			}
 		}
 	}
 
 	/** PrioritizedDocumentListener */
 	override fun documentChanged(event: DocumentEvent) {
 		if (event.document.isInBulkUpdate) return
-		if (event.document.lineCount > 3000) {
+		if (glancePanel.lineCount > 3000) {
 			repaintOrRequest()
 		} else updateMinimapImage()
 	}

@@ -1,0 +1,5 @@
+<idea-plugin>
+	<extensions defaultExtensionNs="com.intellij">
+		<highlightVisitor implementation="com.nasller.codeglance.extensions.visitor.MarkKotlinVisitor"/>
+	</extensions>
+</idea-plugin>

@@ -8,10 +8,10 @@ import com.nasller.codeglance.config.CodeGlanceConfigService
 import com.nasller.codeglance.config.SettingsChangePublisher
 
 class DisableByDefaultAction : DumbAwareToggleAction() {
-	override fun isSelected(e: AnActionEvent): Boolean = CodeGlanceConfigService.getConfig().disabled
+	override fun isSelected(e: AnActionEvent): Boolean = CodeGlanceConfigService.Config.disabled
 
 	override fun setSelected(e: AnActionEvent, state: Boolean) {
-		CodeGlanceConfigService.getConfig().disabled = state
+		CodeGlanceConfigService.Config.disabled = state
 		invokeLater{ SettingsChangePublisher.onGlobalChanged() }
 	}
 

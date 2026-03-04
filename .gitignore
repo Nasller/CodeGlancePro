@@ -1,8 +1,10 @@
 /.idea
 /.gradle
-/build
-/out
+/.kotlin
+/**/build
+/**/out
 /lib
+/.intellijPlatform
 *.iml
 *.ipr
 *.iws
@@ -11,3 +13,4 @@ idea-sandbox
 rider-sandbox
 clion-sandbox
 py-sandbox
+php-sandbox

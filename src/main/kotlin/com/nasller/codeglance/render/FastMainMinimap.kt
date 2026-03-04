@@ -1,5 +1,6 @@
 package com.nasller.codeglance.render
 
+import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.application.*
 import com.intellij.openapi.diagnostic.Attachment
 import com.intellij.openapi.editor.*
@@ -28,12 +29,10 @@ import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.text.CharArrayUtil
 import com.intellij.util.ui.EdtInvocationManager
-import com.intellij.util.ui.GraphicsUtil
-import com.intellij.util.ui.ImageUtil
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MyVisualLinesIterator
-import com.nasller.codeglance.util.Util
+import com.nasller.codeglance.util.Util.isMarkAttributes
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import org.jetbrains.concurrency.CancellablePromise
 import org.slf4j.LoggerFactory
@@ -89,7 +88,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 					}
 				}
 			}
-			if(glancePanel.markCommentState.hasMarkCommentHighlight()){
+			if(glancePanel.markState.hasMarkHighlight()){
 				glancePanel.psiDocumentManager.performForCommittedDocument(myDocument, action)
 			}else action.run()
 		}else {
@@ -99,38 +98,23 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 
 	override fun rebuildDataAndImage() = runInEdt(modalityState){ if(canUpdate()) resetMinimapData() }
 
+	@Suppress("UndesirableClassUsage")
 	private fun update(copyList: List<LineRenderData?>, myScrollState: ScrollState) {
 		val pixelsPerLine = myScrollState.pixelsPerLine
 		val scale = myScrollState.scale
-		val curImg = if(glancePanel.checkVisible()) {
+		val curImg = (if(glancePanel.checkVisible()) {
 			if(pixelsPerLine < 1){
 				getBufferedImage(myScrollState)
 			}else {
-				val height = (copyList.filterNotNull().sumOf {
+				val height = copyList.filterNotNull().sumOf {
 					it.getLineHeight(pixelsPerLine, scale) + it.aboveBlockLine * scale
-				} + (5 * pixelsPerLine)).toInt()
-				ImageUtil.createImage(glancePanel.graphicsConfiguration, glancePanel.getConfigSize().width,
-					height, BufferedImage.TYPE_INT_ARGB)
+				} + (5 * pixelsPerLine)
+				BufferedImage(glancePanel.getConfigSize().width, height.toInt(), BufferedImage.TYPE_INT_ARGB)
 			}
-		} else null ?: return
+		} else null) ?: return
 		val renderHeight = myScrollState.getRenderHeight()
 		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
-		val graphics = curImg.createGraphics()
-		val markAttributes by lazy(LazyThreadSafetyMode.NONE) {
-			graphics.composite = GlancePanel.srcOver
-			EditorUIUtil.setupAntialiasing(graphics)
-			GraphicsUtil.setupAAPainting(graphics)
-			graphics.scale(pixScale, pixScale)
-			editor.colorsScheme.getAttributes(Util.MARK_COMMENT_ATTRIBUTES)
-		}
-		val font by lazy(LazyThreadSafetyMode.NONE) {
-			editor.colorsScheme.getFont(when (markAttributes.fontType) {
-				Font.ITALIC -> EditorFontType.ITALIC
-				Font.BOLD -> EditorFontType.BOLD
-				Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
-				else -> EditorFontType.PLAIN
-			}).deriveFont(config.markersScaleFactor * 3 / pixScale.toFloat())
-		}
+		val graphics = curImg.createGraphics().apply { EditorUIUtil.setupAntialiasing(this) }
 		val docCommentRgb by lazy(LazyThreadSafetyMode.NONE){
 			editor.colorsScheme.getAttributes(DefaultLanguageHighlighterColors.DOC_COMMENT).foregroundColor?.rgb
 		}
@@ -216,9 +200,19 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 							}
 						}
 					}
-					LineType.COMMENT -> {
-						graphics.color = markAttributes.foregroundColor
-						val commentText = myDocument.getText(TextRange(it.commentHighlighterEx!!.startOffset, it.commentHighlighterEx.endOffset))
+					LineType.MARK -> {
+						val markAttributes = it.commentHighlighterEx!!.getTextAttributes(editor.colorsScheme)
+						UISettings.setupAntialiasing(graphics)
+						val font = editor.colorsScheme.getFont(when (markAttributes!!.fontType) {
+							Font.BOLD -> EditorFontType.BOLD
+							Font.ITALIC -> EditorFontType.BOLD_ITALIC
+							Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
+							else -> EditorFontType.BOLD
+						}).deriveFont(config.markersScaleFactor * 3)
+						graphics.composite = GlancePanel.srcOver
+						graphics.color = markAttributes.errorStripeColor
+						val commentText = it.commentHighlighterEx.getUserData(MarkState.BOOK_MARK_DESC_KEY) ?:
+						myDocument.getText(TextRange(it.commentHighlighterEx.startOffset, it.commentHighlighterEx.endOffset)).trim()
 						val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
 							UIUtil.getFontWithFallback(font).deriveFont(markAttributes.fontType, font.size2D)
 						} else font
@@ -245,11 +239,11 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 
 	private fun updateMinimapData(visLinesIterator: MyVisualLinesIterator, endVisualLine: Int){
 		val text = myDocument.immutableCharSequence
-		val markCommentMap = glancePanel.markCommentState.getAllMarkCommentHighlight()
+		val markCommentMap = glancePanel.markState.getAllMarkHighlight()
 			.associateBy { DocumentUtil.getLineStartOffset(it.startOffset, myDocument) }
 		val limitWidth = glancePanel.getConfigSize().width
 		while (!visLinesIterator.atEnd()) {
-			ProgressManager.checkCanceled()
+			checkCanceled()
 			val start = visLinesIterator.getVisualLineStartOffset()
 			val end = visLinesIterator.getVisualLineEndOffset()
 			val visualLine = visLinesIterator.getVisualLine()
@@ -267,7 +261,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 				//COMMENT
 				if(markCommentMap.containsKey(start)) {
 					renderDataList[visualLine] = LineRenderData(emptyArray(), 2, aboveBlockLine,
-						LineType.COMMENT, commentHighlighterEx = markCommentMap[start])
+						LineType.MARK, commentHighlighterEx = markCommentMap[start])
 				}else if(start < text.length && text.subSequence(start, end).isNotBlank()){
 					val hlIter = editor.highlighter.run {
 						if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(text, start, end)
@@ -285,7 +279,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 						var foldLineIndex = visLinesIterator.getStartFoldingIndex()
 						var width = 0
 						do {
-							ProgressManager.checkCanceled()
+							checkCanceled()
 							var curStart = hlIter.start.run{ if(start > this) start else this }
 							val curEnd = hlIter.end.run{ if(this - curStart > limitWidth) start + limitWidth else this }
 							if(width > limitWidth || curEnd > text.length || curStart > curEnd) break
@@ -378,6 +372,12 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		}
 	}
 
+	private fun checkCanceled(){
+		if(myResetDataPromise != null){
+			ProgressManager.checkCanceled()
+		}
+	}
+
 	private fun resetMinimapData(){
 		assert(!myDocument.isInBulkUpdate)
 		assert(!editor.inlayModel.isInBatchMode)
@@ -424,8 +424,8 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 
 	override fun beforeFoldRegionDisposed(region: FoldRegion) {
 		if (!myDuringDocumentUpdate || myDocument.isInBulkUpdate || region !is CustomFoldRegion) return
-		myDocumentChangeStartOffset = min(myDocumentChangeStartOffset, region.getStartOffset())
-		myDocumentChangeEndOffset = max(myDocumentChangeEndOffset, region.getEndOffset())
+		myDocumentChangeStartOffset = min(myDocumentChangeStartOffset, region.startOffset)
+		myDocumentChangeEndOffset = max(myDocumentChangeEndOffset, region.endOffset)
 	}
 
 	override fun onCustomFoldRegionPropertiesChange(region: CustomFoldRegion, flags: Int) {
@@ -505,34 +505,32 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		}
 	}
 
-	/** MarkupModelListener */
-	override fun afterAdded(highlighter: RangeHighlighterEx) {
-		glancePanel.markCommentState.markCommentHighlightChange(highlighter, false)
-		updateRangeHighlight(highlighter)
-	}
-
-	override fun beforeRemoved(highlighter: RangeHighlighterEx) {
-		glancePanel.markCommentState.markCommentHighlightChange(highlighter, true)
-	}
-
-	override fun afterRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter)
-
-	private fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
+	/** MarkupModelListener & BookmarksListener */
+	override fun updateRangeHighlight(highlighter: RangeMarker) {
 		EdtInvocationManager.invokeLaterIfNeeded {
 			if (!glancePanel.checkVisible() || myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || myDuringDocumentUpdate) {
 				return@invokeLaterIfNeeded
 			}
-			if(highlighter.isThinErrorStripeMark.not() && (Util.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
-						EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
-				val textLength = myDocument.textLength
-				val start = MathUtil.clamp(highlighter.affectedAreaStartOffset, 0, textLength)
-				val end = MathUtil.clamp(highlighter.affectedAreaEndOffset, start, textLength)
-				if (start != end) {
-					invalidateRange(start, end)
+			when(highlighter){
+				is MarkState.BookmarkHighlightDelegate -> updateRangeHighlight(highlighter.startOffset, highlighter.endOffset)
+				is RangeHighlighterEx -> {
+					if(highlighter.isThinErrorStripeMark.not() && (highlighter.textAttributesKey?.isMarkAttributes() == true ||
+								EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))){
+						updateRangeHighlight(highlighter.affectedAreaStartOffset, highlighter.affectedAreaEndOffset)
+					}else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
+						glancePanel.repaint()
+					}
 				}
-			}else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
-				glancePanel.repaint()
 			}
+		}
+	}
+
+	private fun updateRangeHighlight(startOffset: Int, endOffset: Int) {
+		val textLength = myDocument.textLength
+		val start = MathUtil.clamp(startOffset, 0, textLength)
+		val end = MathUtil.clamp(endOffset, start, textLength)
+		if (start != end) {
+			invalidateRange(start, end)
 		}
 	}
 
@@ -562,10 +560,16 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	}
 
 	private fun doInvalidateRange(startOffset: Int, endOffset: Int, reset: Boolean = false) {
-		if (checkDirty() || checkProcessReset(startOffset,endOffset,reset)) return
+		if (checkOutOfLineRange {
+				renderDataList.clear()
+				previewImg = EMPTY_IMG
+				invokeLater { glancePanel.repaint() }
+		} || checkDirty() || checkProcessReset(startOffset,endOffset,reset)) return
 		val startVisualLine = editor.offsetToVisualLine(startOffset, false)
 		val endVisualLine = editor.offsetToVisualLine(endOffset, true)
-		val lineDiff = editor.visibleLineCount - renderDataList.size
+		val visibleLineCount = editor.visibleLineCount
+		glancePanel.lineCount = visibleLineCount
+		val lineDiff = visibleLineCount - renderDataList.size
 		try {
 			if (lineDiff > 0) {
 				renderDataList.addAll(startVisualLine, ObjectArrayList.wrap(arrayOfNulls(lineDiff)))
@@ -574,7 +578,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 			}
 		}catch (e: IndexOutOfBoundsException) {
 			LOG.error("File: ${virtualFile?.name} FileType: ${virtualFile?.fileType?.name ?: "Unknown"} " +
-					"RenderDataList.Size: ${renderDataList.size} VisibleLineCount: ${editor.visibleLineCount} " +
+					"RenderDataList.Size: ${renderDataList.size} VisibleLineCount: $visibleLineCount " +
 					"startVisualLine: $startVisualLine endVisualLine: $endVisualLine " +
 					"Text: ${editor.document.getText(TextRange(startOffset, endOffset))}", e)
 			invokeLater { rebuildDataAndImage() }
@@ -587,28 +591,27 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		if(!glancePanel.checkVisible()) return
 		try {
 			val visLinesIterator = MyVisualLinesIterator(editor, startVisualLine)
-			if(reset){
-//				println(Throwable().stackTraceToString())
-				val originalStack by lazy(LazyThreadSafetyMode.NONE) { Throwable() }
+			if(reset) {
 				myResetDataPromise = ReadAction.nonBlocking<Unit> {
 //					val startTime = System.currentTimeMillis()
 					updateMinimapData(visLinesIterator, 0)
 //					println("updateMinimapData time: ${System.currentTimeMillis() - startTime}")
-				}.coalesceBy(this).expireWith(this).finishOnUiThread(ModalityState.any()) {
-					myResetDataPromise = null
-					if (myResetChangeStartOffset <= myResetChangeEndOffset) {
-						doInvalidateRange(myResetChangeStartOffset, myResetChangeEndOffset)
-						myResetChangeStartOffset = Int.MAX_VALUE
-						myResetChangeEndOffset = Int.MIN_VALUE
-						assertValidState()
+				}.withDocumentsCommitted(glancePanel.project).coalesceBy(this).expireWith(this)
+					.finishOnUiThread(ModalityState.any()) {
+						myResetDataPromise = null
+						if (myResetChangeStartOffset <= myResetChangeEndOffset) {
+							doInvalidateRange(myResetChangeStartOffset, myResetChangeEndOffset)
+							myResetChangeStartOffset = Int.MAX_VALUE
+							myResetChangeEndOffset = Int.MIN_VALUE
+							assertValidState()
+						}
+					}.submit(fastMinimapBackendExecutor).onError {
+						myResetDataPromise = null
+						if (it !is CancellationException) {
+							LOG.warn("Async update error fileType:${virtualFile?.fileType?.name}", it)
+							invokeLater { resetMinimapData() }
+						}
 					}
-				}.submit(fastMinimapBackendExecutor).onError{
-					myResetDataPromise = null
-					if(it !is CancellationException){
-						LOG.error("Async update error fileType:${virtualFile?.fileType?.name} original stack:${originalStack.stackTraceToString()}", it)
-						invokeLater { resetMinimapData() }
-					}
-				}
 			}else {
 //				val startTime = System.currentTimeMillis()
 				updateMinimapData(visLinesIterator, endVisualLine)
@@ -651,7 +654,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	}
 
 	private fun assertValidState() {
-		if (myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || myResetDataPromise != null || myDirty) return
+		if (myDocument.isInBulkUpdate || editor.inlayModel.isInBatchMode || myResetDataPromise != null || myDirty || outOfLineRange) return
 		if (editor.visibleLineCount != renderDataList.size) {
 			LOG.error("Inconsistent state {}", Attachment("glance.txt", editor.dumpState()))
 			resetMinimapData()
@@ -660,8 +663,8 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	}
 
 	override fun dispose() {
-		editor.softWrapModel.applianceManager.removeSoftWrapListener(mySoftWrapChangeListener)
 		rangeList.clear()
+		editor.softWrapModel.applianceManager.removeSoftWrapListener(mySoftWrapChangeListener)
 		previewImg.flush()
 	}
 
@@ -719,7 +722,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		}
 	}
 
-	private enum class LineType{COMMENT, CUSTOM_FOLD}
+	private enum class LineType{MARK, CUSTOM_FOLD}
 
 	@Suppress("UNCHECKED_CAST")
 	companion object{
@@ -731,7 +734,6 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 			isAccessible = true
 		}
 		private val DefaultLineRenderData = LineRenderData(emptyArray(), null, 0)
-		private val EMPTY_IMG = ImageUtil.createImage(1,1, BufferedImage.TYPE_INT_ARGB)
 		private val fastMinimapBackendExecutor = AppExecutorUtil.createBoundedApplicationPoolExecutor("FastMinimapBackendExecutor", 1)
 
 		private fun SoftWrapApplianceManager.addSoftWrapListener(listener: Any) {

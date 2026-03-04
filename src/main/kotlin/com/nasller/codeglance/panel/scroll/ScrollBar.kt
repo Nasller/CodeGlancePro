@@ -23,6 +23,7 @@ import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
 import com.nasller.codeglance.util.Util.alignedToY
 import java.awt.*
+import com.nasller.codeglance.util.Util
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
@@ -119,7 +120,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			val newWidth = if(editor.getUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX) == GlancePanel.PlaceIndex.Left)
 				widthStart + e.xOnScreen - resizeStart
 			else widthStart + resizeStart - e.xOnScreen
-			editor.editorKind.setWidth(newWidth.coerceIn(GlancePanel.MIN_WIDTH, GlancePanel.MAX_WIDTH))
+			editor.editorKind.setWidth(newWidth.coerceIn(Util.MIN_WIDTH, Util.MAX_WIDTH))
 			resizeGlancePanel(false)
 		} else if (dragging) {
 			val delta = (dragStartDelta + (e.y.alignedToY(glancePanel) - dragStart)).toFloat()
@@ -225,7 +226,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		val highlighters = mutableListOf<RangeHighlighterEx>()
 		collectRangeHighlighters(editor.markupModel, visualLine, highlighters)
 		collectRangeHighlighters(editor.filteredDocumentMarkupModel, visualLine, highlighters)
-		myEditorFragmentRenderer.show(visualLine, highlighters, createHint(editor.scrollPane.verticalScrollBar, Point(1, point.y)))
+		myEditorFragmentRenderer.show(visualLine, highlighters, createHint(editor.scrollPane.verticalScrollBar))
 	}
 
 	private fun collectRangeHighlighters(markupModel: MarkupModelEx, visualLine: Int, highlighters: MutableCollection<in RangeHighlighterEx>) {
@@ -314,7 +315,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		private const val MIN_VIEWPORT_HEIGHT = 20
 		val PREVIEW_LINES = max(2, min(25, Integer.getInteger("preview.lines", 5)))
 
-		private fun createHint(component: Component, point: Point): HintHint = HintHint(component, point)
+		private fun createHint(me: MouseEvent): HintHint = HintHint(me.component, Point(0, me.y))
 			.setAwtTooltip(true)
 			.setPreferredPosition(Balloon.Position.atLeft)
 			.setBorderInsets(JBUI.insets(CustomEditorFragmentRenderer.EDITOR_FRAGMENT_POPUP_BORDER))

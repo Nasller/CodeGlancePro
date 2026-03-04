@@ -8,13 +8,13 @@ import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
-import com.intellij.openapi.editor.impl.CustomFoldRegionImpl
 import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MySoftReference
-import com.nasller.codeglance.util.Util
+import com.nasller.codeglance.util.Util.isMarkAttributes
+import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.beans.PropertyChangeEvent
 
@@ -33,7 +33,9 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 	}
 
 	override fun updateMinimapImage(canUpdate: Boolean){
-		if (canUpdate && lock.compareAndSet(false,true)) {
+		if (canUpdate && !checkOutOfLineRange {
+				imgReference = lazyOf(MySoftReference.create(EMPTY_IMG, false))
+			} && lock.compareAndSet(false,true)) {
 			val action = Runnable {
 				invokeLater(modalityState) {
 					try {
@@ -44,7 +46,7 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 					}
 				}
 			}
-			if(glancePanel.markCommentState.hasMarkCommentHighlight()){
+			if(glancePanel.markState.hasMarkHighlight()){
 				glancePanel.psiDocumentManager.performForCommittedDocument(editor.document, action)
 			}else action.run()
 		}
@@ -62,16 +64,18 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 
 	private fun update() {
 		val curImg = getMinimapImage() ?: return
-		if(rangeList.size > 0) rangeList.clear()
+		if(rangeList.isNotEmpty()) rangeList.clear()
+		val text = editor.document.immutableCharSequence
 		val graphics = curImg.createGraphics().apply {
+			setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
 			composite = GlancePanel.CLEAR
 			fillRect(0, 0, curImg.width, curImg.height)
 		}
-		val text = editor.document.immutableCharSequence
 		if(text.isEmpty()) {
 			graphics.dispose()
 			return
 		}
+		glancePanel.setLineCount()
 		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
 		val hlIter = editor.highlighter.createIterator(0).run {
 			if(isLogFile) IdeLogFileHighlightDelegate(editor.document,this) else this
@@ -97,7 +101,7 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 				val startLineNumber = editor.document.getLineNumber(region.startOffset)
 				val endOffset = region.endOffset
 				val foldLine = editor.document.getLineNumber(endOffset) - startLineNumber
-				if(region !is CustomFoldRegionImpl){
+				if(region !is CustomFoldRegion){
 					skipY -= foldLine * scrollState.pixelsPerLine
 					do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < endOffset)
 				} else {
@@ -112,6 +116,7 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 				val commentData = highlight[start]
 				if(commentData != null){
 					graphics.font = commentData.font
+					graphics.color = commentData.color
 					graphics.drawString(commentData.comment,2, ((y + commentData.font.size * pixScale -
 							(if(pixScale != 1.0) scrollState.pixelsPerLine - 1 else 0.0)) / pixScale).toInt())
 					if (softWrapEnable) {
@@ -215,25 +220,19 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 		}
 	}
 
-	/** MarkupModelListener */
-	override fun afterAdded(highlighter: RangeHighlighterEx) {
-		glancePanel.markCommentState.markCommentHighlightChange(highlighter, false)
-		updateRangeHighlight(highlighter)
-	}
-
-	override fun beforeRemoved(highlighter: RangeHighlighterEx) {
-		glancePanel.markCommentState.markCommentHighlightChange(highlighter, true)
-	}
-
-	override fun afterRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter)
-
-	private fun updateRangeHighlight(highlighter: RangeHighlighterEx) {
+	/** MarkupModelListener & BookmarksListener */
+	override fun updateRangeHighlight(highlighter: RangeMarker) {
 		if (editor.document.isInBulkUpdate || editor.inlayModel.isInBatchMode || editor.foldingModel.isInBatchFoldingOperation) return
-		if(highlighter.isThinErrorStripeMark.not() && (Util.MARK_COMMENT_ATTRIBUTES == highlighter.textAttributesKey ||
-					EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
-			repaintOrRequest()
-		} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
-			repaintOrRequest(false)
+		when(highlighter){
+			is MarkState.BookmarkHighlightDelegate -> repaintOrRequest()
+			is RangeHighlighterEx -> {
+				if(highlighter.isThinErrorStripeMark.not() && (highlighter.textAttributesKey?.isMarkAttributes() == true ||
+							EditorUtil.attributesImpactForegroundColor(highlighter.getTextAttributes(editor.colorsScheme)))) {
+					repaintOrRequest()
+				} else if(highlighter.getErrorStripeMarkColor(editor.colorsScheme) != null){
+					repaintOrRequest(false)
+				}
+			}
 		}
 	}
 

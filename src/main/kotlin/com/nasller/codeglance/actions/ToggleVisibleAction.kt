@@ -14,7 +14,7 @@ import com.nasller.codeglance.util.CodeGlanceIcons
 import com.nasller.codeglance.util.message
 import javax.swing.JComponent
 
-class ToggleVisibleAction : DumbAwareToggleAction(), CustomComponentAction {
+class ToggleVisibleAction : DumbAwareToggleAction("Toggle Current CodeGlance", "Toggles current CodeGlance on and off", null), CustomComponentAction {
     init { isEnabledInModalContext = true }
 
     override fun createCustomComponent(presentation: Presentation, place: String): JComponent =
@@ -26,7 +26,7 @@ class ToggleVisibleAction : DumbAwareToggleAction(), CustomComponentAction {
         }
 
     override fun isSelected(e: AnActionEvent): Boolean {
-        return e.applyToGlance{ isVisible }?:true
+        return e.applyToGlance{ isVisible } != false
     }
 
     override fun setSelected(e: AnActionEvent, state: Boolean) {

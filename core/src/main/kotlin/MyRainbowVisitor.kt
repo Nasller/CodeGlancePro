@@ -1,11 +1,14 @@
-
 import com.intellij.codeHighlighting.RainbowHighlighter
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.daemon.impl.HighlightVisitor
 import com.intellij.codeInsight.daemon.impl.analysis.HighlightInfoHolder
+import com.intellij.lang.Language
 import com.intellij.openapi.editor.colors.TextAttributesKey
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiNameIdentifierOwner
 import com.nasller.codeglance.config.CodeGlanceConfigService
+import com.nasller.codeglance.util.Util
 
 /**
  * Avoid report errors.
@@ -14,10 +17,12 @@ import com.nasller.codeglance.config.CodeGlanceConfigService
 abstract class MyRainbowVisitor : HighlightVisitor {
 	private var myHolder: HighlightInfoHolder? = null
 
+	abstract fun suitableForFile(language: Language): Boolean
+
 	override fun suitableForFile(file: PsiFile): Boolean {
-		val config = CodeGlanceConfigService.getConfig()
-		return config.enableMarker && (file.fileType.defaultExtension.isBlank() || config.disableLanguageSuffix
-			.split(",").toSet().contains(file.fileType.defaultExtension).not())
+		val config = CodeGlanceConfigService.Config
+		return config.enableMarker && (suitableForFile(file.language) && file.fileType.defaultExtension.let { (it.isBlank() ||
+				config.disableLanguageSuffix.split(",").toSet().contains(it).not()) })
 	}
 
 	override fun analyze(file: PsiFile, updateWholeFile: Boolean, holder: HighlightInfoHolder, action: Runnable): Boolean {
@@ -38,6 +43,18 @@ abstract class MyRainbowVisitor : HighlightVisitor {
 		return HighlightInfo
 			.newHighlightInfo(RainbowHighlighter.RAINBOW_ELEMENT)
 			.textAttributes(colorKey)
+			.unescapedToolTip("Mark attribute")
 			.range(start,end).create()
+	}
+
+	protected fun visitPsiNameIdentifier(element: PsiNameIdentifierOwner) {
+		val psiIdentifier = element.nameIdentifier ?: return
+		visitText(psiIdentifier.text, psiIdentifier.textRange, Util.MARK_CLASS_ATTRIBUTES)
+	}
+
+	protected fun visitText(text: String, textRange: TextRange, textAttributesKey: TextAttributesKey) {
+		if (text.isNotBlank()) {
+			addInfo(getInfo(textRange.startOffset, textRange.endOffset, textAttributesKey))
+		}
 	}
 }

@@ -24,51 +24,45 @@
 	]]></description>
 
 	<change-notes><![CDATA[
-		<h3>1.8.4</h3>
+		<h3>2.0.3</h3>
 		<ul>
-			<li>Fix sticky Line</li>
+			<li></li>
 		</ul>
-		<h3>1.8.3</h3>
+	    <h3>2.0.2</h3>
 		<ul>
-			<li>Support click minimap move only</li>
-			<li>Support shift click minimap</li>
+			<li>Support method annotation marks</li>
 		</ul>
-		<h3>1.8.2</h3>
+	    <h3>2.0.1</h3>
 		<ul>
-			<li>Fix a setting problem</li>
+			<li>Fix mark region</li>
 		</ul>
-		<h3>1.8.1</h3>
+		<h3>2.0.0</h3>
 		<ul>
-			<li>Fix some bugs of Fit minimap</li>
-		</ul>
-		<h3>1.8.0</h3>
-		<ul>
-			<li>Support Fit minimap same like VsCode</li>
-			<li>Disable console minimap by default</li>
-		</ul>
-		<h3>1.7.9</h3>
-		<ul>
-			<li>Support 2024.1-EAP</li>
-		</ul>
-		<h3>1.7.8</h3>
-		<ul>
-			<li>Make an empty minimap,and just show some highlighted information(make it like a small scrollbar)</li>
+			<li>2025.3-EAP</li>
+			<li>fix: #181 Quick view is not rendering borders correctly</li>
 		</ul>
 	]]></change-notes>
 
 	<depends>com.intellij.modules.lang</depends>
+	<depends optional="true" config-file="codeglancepro-java.xml">com.intellij.modules.java</depends>
+	<depends optional="true" config-file="codeglancepro-rider.xml">com.intellij.modules.rider</depends>
+	<depends optional="true" config-file="codeglancepro-clion.xml">com.intellij.modules.cidr.lang</depends>
+	<depends optional="true" config-file="codeglancepro-clion-rd.xml">com.intellij.modules.rider.cpp.core</depends>
+	<depends optional="true" config-file="codeglancepro-kotlin.xml">org.jetbrains.kotlin</depends>
+	<depends optional="true" config-file="codeglancepro-scala.xml">org.intellij.scala</depends>
+	<depends optional="true" config-file="codeglancepro-dart.xml">Dart</depends>
 
 	<applicationListeners>
 		<listener class="com.nasller.codeglance.agent.MyAppLifecycleListener" topic="com.intellij.ide.AppLifecycleListener"/>
 		<listener topic="com.nasller.codeglance.config.SettingsChangeListener" class="com.nasller.codeglance.GlobalSettingsChangeListener"/>
-		<listener topic="com.intellij.ide.ui.LafManagerListener" class="com.nasller.codeglance.GlobalLafManagerListener"/>
+		<listener topic="com.intellij.openapi.editor.colors.EditorColorsListener" class="com.nasller.codeglance.MyEditorColorsListener"/>
 	</applicationListeners>
 
 	<actions>
-		<action id="CodeGlancePro.toggle" text="Toggle Current CodeGlance" class="com.nasller.codeglance.actions.ToggleVisibleAction" description="Toggles current CodeGlance on and off">
+		<action id="CodeGlancePro.toggle" class="com.nasller.codeglance.actions.ToggleVisibleAction">
 			<keyboard-shortcut first-keystroke="control shift G" keymap="$default" />
 		</action>
-		<action id="CodeGlancePro.disable" text="Toggle All CodeGlance" class="com.nasller.codeglance.actions.DisableByDefaultAction" description="Toggles all CodeGlance on and off">
+		<action id="CodeGlancePro.disable" class="com.nasller.codeglance.actions.DisableByDefaultAction">
 			<keyboard-shortcut first-keystroke="control alt shift G" keymap="$default" />
 		</action>
 	</actions>
@@ -77,11 +71,16 @@
 		<applicationService serviceImplementation="com.nasller.codeglance.config.CodeGlanceConfigService"/>
 		<editorFactoryListener implementation="com.nasller.codeglance.EditorPanelInjector"/>
 		<diff.DiffExtension implementation="com.nasller.codeglance.DiffEditorPanelInjector"/>
-		<applicationConfigurable instance="com.nasller.codeglance.config.CodeGlanceConfigurable" displayName="CodeGlance Pro"/>
+		<applicationConfigurable instance="com.nasller.codeglance.config.CodeGlanceConfigurable" key="plugins" bundle="messages.CodeGlanceBundle" />
 		<iw.actionProvider implementation="com.nasller.codeglance.extensions.GlanceVisibleActionProvider"/>
 		<colorSettingsPage implementation="com.nasller.codeglance.config.CodeGlanceColorsPage"/>
 		<additionalTextAttributes scheme="Default" file="colorSchemes/color-default.xml"/>
 		<additionalTextAttributes scheme="Darcula" file="colorSchemes/color-default-darcula.xml"/>
 		<highlightVisitor implementation="com.nasller.codeglance.extensions.visitor.MarkCommentVisitor"/>
+		<errorHandler implementation="com.intellij.diagnostic.JetBrainsMarketplaceErrorReportSubmitter"/>
+	</extensions>
+
+	<extensions defaultExtensionNs="org.jetbrains.kotlin">
+		<supportsKotlinPluginMode supportsK2="true" />
 	</extensions>
 </idea-plugin>

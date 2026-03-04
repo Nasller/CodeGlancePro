@@ -16,7 +16,7 @@ private class GlanceVisibleActionProvider : InspectionWidgetActionProvider {
 			override fun update(e: AnActionEvent) {
 				e.presentation.isEnabledAndVisible = editor.getUserData(CURRENT_GLANCE)?.run {
 					editor.editorKind == EditorKind.MAIN_EDITOR && !config.hoveringToShowScrollBar && config.singleFileVisibleButton()
-				} ?: false
+				} == true
 			}
 
 			override fun getActionUpdateThread(): ActionUpdateThread {

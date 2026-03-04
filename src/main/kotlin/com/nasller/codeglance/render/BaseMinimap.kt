@@ -1,12 +1,18 @@
 package com.nasller.codeglance.render
 
+import com.intellij.ide.bookmark.Bookmark
+import com.intellij.ide.bookmark.BookmarkGroup
+import com.intellij.ide.bookmark.BookmarksListener
+import com.intellij.ide.bookmark.LineBookmark
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.InlayModel
+import com.intellij.openapi.editor.RangeMarker
 import com.intellij.openapi.editor.colors.EditorFontType
+import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.PrioritizedDocumentListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
@@ -19,18 +25,13 @@ import com.intellij.openapi.editor.impl.view.IterationState
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfoRt
-import com.intellij.psi.PsiComment
 import com.intellij.psi.tree.IElementType
-import com.intellij.psi.util.findParentOfType
 import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.containers.ContainerUtil
-import com.intellij.util.ui.GraphicsUtil
-import com.intellij.util.ui.ImageUtil
 import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel
-import com.nasller.codeglance.util.Util
 import com.nasller.codeglance.util.Util.mapSmart
 import java.awt.Color
 import java.awt.Font
@@ -40,18 +41,19 @@ import java.beans.PropertyChangeListener
 import java.util.concurrent.atomic.AtomicBoolean
 
 abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.Listener, PropertyChangeListener,
-	PrioritizedDocumentListener, FoldingListener, MarkupModelListener, SoftWrapChangeListener, Disposable {
+	PrioritizedDocumentListener, FoldingListener, MarkupModelListener, SoftWrapChangeListener, BookmarksListener, Disposable {
 	protected val editor = glancePanel.editor
 	protected val config
 		get() = glancePanel.config
 	protected val scrollState
 		get() = glancePanel.scrollState
 	protected var softWrapEnabled = false
+	protected var outOfLineRange = false
 	protected val modalityState
 		get() = if (editor.editorKind != EditorKind.MAIN_EDITOR) ModalityState.any() else ModalityState.defaultModalityState()
 	protected abstract val rangeList: MutableList<Pair<Int, Range<Double>>>
-	protected val virtualFile = editor.virtualFile ?: glancePanel.psiDocumentManager.getPsiFile(glancePanel.editor.document)?.virtualFile
-	protected val isLogFile = virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } ?: false
+	protected val virtualFile = editor.virtualFile ?: runReadAction { glancePanel.psiDocumentManager.getCachedPsiFile(glancePanel.editor.document)?.viewProvider?.virtualFile }
+	protected val isLogFile = virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } == true
 	protected val lock = AtomicBoolean(false)
 	private val scaleBuffer = IntArray(4)
 
@@ -64,6 +66,33 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 	override fun getPriority(): Int = 170 //EditorDocumentPriorities
 
 	override fun recalculationEnds() = Unit
+
+	protected abstract fun updateRangeHighlight(highlighter: RangeMarker)
+
+	/** MarkupModelListener */
+	override fun afterAdded(highlighter: RangeHighlighterEx) {
+		glancePanel.markState.markHighlightChange(highlighter, false)
+		updateRangeHighlight(highlighter)
+	}
+
+	override fun beforeRemoved(highlighter: RangeHighlighterEx) {
+		glancePanel.markState.markHighlightChange(highlighter, true)
+	}
+
+	override fun afterRemoved(highlighter: RangeHighlighterEx) = updateRangeHighlight(highlighter)
+
+	/** BookmarksListener */
+	override fun bookmarkAdded(group: BookmarkGroup, bookmark: Bookmark) = bookmarkChanged(group, bookmark, false)
+
+	override fun bookmarkRemoved(group: BookmarkGroup, bookmark: Bookmark) = bookmarkChanged(group, bookmark, true)
+
+	override fun bookmarkChanged(group: BookmarkGroup, bookmark: Bookmark) = bookmarkChanged(group, bookmark, false)
+
+	private fun bookmarkChanged(group: BookmarkGroup, bookmark: Bookmark, remove: Boolean){
+		if(bookmark is LineBookmark && bookmark.file == virtualFile) {
+			glancePanel.markState.markHighlightChange(group, bookmark, remove)?.let { updateRangeHighlight(it) }
+		}
+	}
 
 	fun getMyRenderVisualLine(y: Int): Int {
 		if(y <= 0) return 0
@@ -95,14 +124,15 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 		return startAdd to endAdd
 	}
 
-	protected fun getBufferedImage(scrollState: ScrollState) = ImageUtil.createImage(glancePanel.graphicsConfiguration, glancePanel.getConfigSize().width,
+	@Suppress("UndesirableClassUsage")
+	protected fun getBufferedImage(scrollState: ScrollState) = BufferedImage(glancePanel.getConfigSize().width,
 			scrollState.documentHeight + (100 * scrollState.getRenderHeight()), BufferedImage.TYPE_INT_ARGB)
 
 	protected fun canUpdate() = glancePanel.checkVisible() && (editor.editorKind == EditorKind.CONSOLE || virtualFile == null
 			|| runReadAction { editor.highlighter !is EmptyEditorHighlighter })
 
 	protected fun getHighlightColor(startOffset: Int, endOffset: Int): List<RangeHighlightColor>{
-		return if(config.syntaxHighlight) runCatching {
+		return if(config.syntaxHighlight && glancePanel.lineCount < 10000) runCatching {
 			val list = mutableListOf<RangeHighlighterEx>()
 			editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(startOffset, endOffset) {
 				it.getTextAttributes(editor.colorsScheme)?.foregroundColor?.apply { list.add(it) }
@@ -211,50 +241,69 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 		editor.inlayModel.addListener(this, this)
 		editor.softWrapModel.addSoftWrapChangeListener(this)
 		editor.filteredDocumentMarkupModel.addMarkupModelListener(this, this)
+		glancePanel.project.messageBus.connect(this).subscribe(BookmarksListener.TOPIC, this)
 	}
 
 	protected fun makeMarkHighlight(text: CharSequence, graphics: Graphics2D):Map<Int,MarkCommentData>{
-		val markCommentMap = glancePanel.markCommentState.getAllMarkCommentHighlight()
+		val markCommentMap = glancePanel.markState.getAllMarkHighlight()
 		return if(markCommentMap.isNotEmpty()) {
 			val lineCount = editor.document.lineCount
 			val map = mutableMapOf<Int, MarkCommentData>()
-			val file = glancePanel.psiDocumentManager.getCachedPsiFile(editor.document)
-			val attributes = editor.colorsScheme.getAttributes(Util.MARK_COMMENT_ATTRIBUTES)
+			val file = runReadAction { glancePanel.psiDocumentManager.getCachedPsiFile(editor.document) }
 			val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
-			val font = editor.colorsScheme.getFont(
-				when (attributes.fontType) {
-					Font.ITALIC -> EditorFontType.ITALIC
+			for (rangeMarker in markCommentMap) {
+				val attributes = rangeMarker.getTextAttributes(editor.colorsScheme)!!
+				val font = editor.colorsScheme.getFont(when (attributes.fontType) {
 					Font.BOLD -> EditorFontType.BOLD
+					Font.ITALIC -> EditorFontType.BOLD_ITALIC
 					Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
-					else -> EditorFontType.PLAIN
-				}
-			).deriveFont(config.markersScaleFactor * 3 / pixScale.toFloat())
-			for (highlighterEx in markCommentMap) {
-				val startOffset = highlighterEx.startOffset
-				file?.findElementAt(startOffset)?.findParentOfType<PsiComment>(false)?.let { comment ->
-					val textRange = comment.textRange
-					val commentText = text.substring(startOffset, highlighterEx.endOffset)
-					val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
-						UIUtil.getFontWithFallback(font).deriveFont(attributes.fontType, font.size2D)
-					} else font
-					val line = editor.document.getLineNumber(textRange.startOffset) + (textFont.size / scrollState.pixelsPerLine * pixScale).toInt()
-					val jumpEndOffset = if (lineCount <= line) text.length else editor.document.getLineEndOffset(line)
-					map[textRange.startOffset] = MarkCommentData(jumpEndOffset, commentText, textFont)
+					else -> EditorFontType.BOLD
+				}).deriveFont(config.markersScaleFactor * 3 / pixScale.toFloat())
+				val startOffset = rangeMarker.startOffset
+				runReadAction {
+					file?.findElementAt(startOffset)?.let { comment ->
+						val textRange = if (rangeMarker is MarkState.BookmarkHighlightDelegate)
+							comment.nextSibling?.textRange ?: comment.textRange else comment.textRange
+						val commentText = rangeMarker.getUserData(MarkState.BOOK_MARK_DESC_KEY) ?: text.substring(startOffset, rangeMarker.endOffset).trim()
+						val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
+							UIUtil.getFontWithFallback(font).deriveFont(attributes.fontType, font.size2D)
+						} else font
+					val line = editor.document.getLineNumber(textRange.startOffset) + (font.size / scrollState.pixelsPerLine * pixScale).toInt()
+						val jumpEndOffset = if (lineCount <= line) text.length else editor.document.getLineEndOffset(line)
+						map[textRange.startOffset] = MarkCommentData(jumpEndOffset, commentText, textFont, attributes.errorStripeColor)
+					}
 				}
 			}
 			graphics.composite = GlancePanel.srcOver
-			graphics.color = attributes.foregroundColor ?: editor.colorsScheme.defaultForeground
 			EditorUIUtil.setupAntialiasing(graphics)
-			GraphicsUtil.setupAAPainting(graphics)
 			graphics.scale(pixScale, pixScale)
 			map
 		} else emptyMap()
+	}
+
+	protected fun checkOutOfLineRange(action: () -> Unit): Boolean {
+		if (outOfLineRange) {
+			return true
+		}else {
+			outOfLineRange = editor.document.lineCount !in config.minLinesCount..config.maxLinesCount && config.outLineEmpty
+			if(outOfLineRange) {
+				rangeList.clear()
+				glancePanel.markState.clear()
+				action.invoke()
+				return true
+			}
+		}
+		return false
 	}
 
 	protected data class RangeHighlightColor(val startOffset: Int,val endOffset: Int,val foregroundColor: Color)
 
 	protected class IdeLogFileHighlightDelegate(private val myDocument: Document,private val highlighterIterator: HighlighterIterator)
 		: HighlighterIterator by highlighterIterator{
+		override fun getTextAttributesKeys(): Array<out TextAttributesKey?> {
+			return highlighterIterator.getTextAttributesKeys()
+		}
+
 		override fun getEnd(): Int {
 			val end = highlighterIterator.end
 			return if(DocumentUtil.isAtLineEnd(end, myDocument) && end + 1 < myDocument.textLength) end + 1
@@ -296,14 +345,17 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 		override fun getDocument() = throw UnsupportedOperationException()
 	}
 
-	protected data class MarkCommentData(var jumpEndOffset: Int, val comment: String, val font: Font)
+	protected data class MarkCommentData(var jumpEndOffset: Int, val comment: String, val font: Font, val color: Color)
 
+	@Suppress("UNCHECKED_CAST", "UndesirableClassUsage")
 	companion object{
+		val EMPTY_IMG = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB)
+
 		fun EditorKind.getMinimap(glancePanel: GlancePanel): BaseMinimap = glancePanel.run {
-			if(config.useEmptyMinimap.contains(this@getMinimap)) {
+			if(config.useEmptyMinimapStr.contains(this@getMinimap.name)) {
 				return EmptyMinimap(this)
 			}
-			return if(this@getMinimap == EditorKind.MAIN_EDITOR && config.useFastMinimapForMain) {
+			return if(this@getMinimap != EditorKind.UNTYPED && this@getMinimap != EditorKind.CONSOLE && config.useFastMinimapForMain) {
 				FastMainMinimap(this)
 			}else {
 				MainMinimap(this)

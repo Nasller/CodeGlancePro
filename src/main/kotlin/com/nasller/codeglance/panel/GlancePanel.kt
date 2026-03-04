@@ -11,7 +11,6 @@ import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.HighlighterLayer
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.fileEditor.impl.EditorsSplitters
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
@@ -28,7 +27,7 @@ import com.nasller.codeglance.panel.scroll.CustomScrollBarPopup
 import com.nasller.codeglance.panel.scroll.ScrollBar
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
 import com.nasller.codeglance.render.BaseMinimap.Companion.getMinimap
-import com.nasller.codeglance.render.MarkCommentState
+import com.nasller.codeglance.render.MarkState
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
 import javax.swing.JPanel
@@ -38,18 +37,18 @@ import kotlin.math.min
 
 class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val editor = info.editor
-	val project: Project
-		get() = editor.project ?: ProjectManager.getInstance().defaultProject
+	val project = editor.project ?: ProjectManager.getInstance().defaultProject
 	var originalScrollbarWidth = editor.scrollPane.verticalScrollBar.preferredSize.width
+	var lineCount = lineCount()
 	val psiDocumentManager: PsiDocumentManager = PsiDocumentManager.getInstance(project)
-	val config = CodeGlanceConfigService.getConfig()
+	val config = CodeGlanceConfigService.Config
 	val scrollState = ScrollState()
 	val isDefaultDisable
-		get() = config.disabled || editor.document.lineCount > config.maxLinesCount
+		get() = config.disabled || (lineCount !in config.minLinesCount..config.maxLinesCount && !config.outLineEmpty)
 	val myPopHandler = CustomScrollBarPopup(this)
 	val hideScrollBarListener = HideScrollBarListener(this)
 	val scrollbar = ScrollBar(this)
-	val markCommentState = MarkCommentState(this)
+	val markState = MarkState(this)
 	var myVcsPanel: MyVcsPanel? = null
 	var isReleased = false
 	val scaleContext = ScaleContext.create(this)
@@ -59,7 +58,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		Disposer.register(this, GlanceListener(this))
 		isOpaque = false
 		isVisible = !isDefaultDisable
-		markCommentState.refreshMarkCommentHighlight(editor)
+		markState.refreshMarkCommentHighlight(editor)
 		editor.putUserData(CURRENT_GLANCE, this)
 		editor.putUserData(CURRENT_GLANCE_PLACE_INDEX, if (info.place == BorderLayout.LINE_START) PlaceIndex.Left else PlaceIndex.Right)
 		if(scrollState.documentHeight > 0 && scrollState.pixelsPerLine > 0) {
@@ -93,9 +92,14 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	fun getPlaceIndex() = editor.getUserData(CURRENT_GLANCE_PLACE_INDEX) ?: PlaceIndex.Right
 
 	fun isInSplitter() = if(editor.editorKind == EditorKind.MAIN_EDITOR){
-		(SwingUtilities.getAncestorOfClass(EditorsSplitters::class.java, editor.component) as? EditorsSplitters)?.
-		currentWindow?.run { inSplitter() }?: false
+		(SwingUtilities.getAncestorOfClass(EditorsSplitters::class.java, editor.component) as? EditorsSplitters)?.currentWindow?.run { inSplitter() } == true
 	}else false
+
+	fun lineCount() = runReadAction { editor.visibleLineCount }
+
+	fun setLineCount() {
+		lineCount = lineCount()
+	}
 
 	fun changeOriginScrollBarWidth(control: Boolean = true) {
 		if (config.hideOriginalScrollBar && control && (!isDefaultDisable || isVisible)) {
@@ -199,12 +203,13 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 
 	private fun Graphics2D.paintEditorFilterMarkupModel(rangeOffset: Range<Int>,existLine: MutableSet<Int>) {
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
-			if (!it.isThinErrorStripeMark && it.layer >= HighlighterLayer.CARET_ROW) {
-				it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-					val highlightColor = RangeHighlightColor(it, this, config.showErrorStripesFullLineHighlight &&
-							(config.hideOriginalScrollBar || HighlightInfo.fromRangeHighlighter(it) == null), existLine)
-					drawMarkupLine(highlightColor)
-				}
+			if(markState.contains(it) || it.isThinErrorStripeMark || it.layer < HighlighterLayer.CARET_ROW) {
+				return@processRangeHighlightersOverlappingWith true
+			}
+			it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
+				val highlightColor = RangeHighlightColor(it, this, config.showErrorStripesFullLineHighlight &&
+						(config.hideOriginalScrollBar || HighlightInfo.fromRangeHighlighter(it) == null), existLine)
+				drawMarkupLine(highlightColor)
 			}
 			return@processRangeHighlightersOverlappingWith true
 		}
@@ -322,7 +327,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		editor.component.remove(this.parent)
 		hideScrollBarListener.dispose()
 		scrollbar.clear()
-		markCommentState.clear()
+		markState.clear()
 	}
 
 	private inner class RangeHighlightColor(val startOffset: Int, val endOffset: Int, val color: Color, var fullLine: Boolean, val fullLineWithActualHighlight: Boolean) {
@@ -341,8 +346,6 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 
 	companion object {
 		const val MIN_GAP = 15
-		const val MIN_WIDTH = 30
-		const val MAX_WIDTH = 250
 		val CLEAR: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.CLEAR)
 		val srcOver0_4: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.40f)
 		val srcOver0_6: AlphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.60f)
