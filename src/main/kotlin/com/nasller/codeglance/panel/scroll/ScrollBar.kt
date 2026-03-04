@@ -10,6 +10,7 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.HintHint
+import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.Alarm
 import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.JBUI
@@ -21,9 +22,8 @@ import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
-import com.nasller.codeglance.util.Util.alignedToY
-import java.awt.*
 import com.nasller.codeglance.util.Util
+import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
@@ -223,10 +223,11 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		myLastVisualLine = visualLine
 		val point = SwingUtilities.convertPoint(glancePanel, 0, if (e.y > 0 && e.y < scrollState.drawHeight) e.y else if (e.y <= 0) 0 else scrollState.drawHeight,
 			editor.scrollPane.verticalScrollBar)
+		val me = MouseEvent(editor.scrollPane.verticalScrollBar, e.id, e.`when`, e.modifiersEx, 1, point.y, e.clickCount, e.isPopupTrigger)
 		val highlighters = mutableListOf<RangeHighlighterEx>()
 		collectRangeHighlighters(editor.markupModel, visualLine, highlighters)
 		collectRangeHighlighters(editor.filteredDocumentMarkupModel, visualLine, highlighters)
-		myEditorFragmentRenderer.show(visualLine, highlighters, createHint(editor.scrollPane.verticalScrollBar))
+		myEditorFragmentRenderer.show(visualLine, highlighters, createHint(me))
 	}
 
 	private fun collectRangeHighlighters(markupModel: MarkupModelEx, visualLine: Int, highlighters: MutableCollection<in RangeHighlighterEx>) {
@@ -314,6 +315,8 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		private const val DRAG_ALPHA = 0.35f
 		private const val MIN_VIEWPORT_HEIGHT = 20
 		val PREVIEW_LINES = max(2, min(25, Integer.getInteger("preview.lines", 5)))
+
+		fun Int.alignedToY(glancePanel: GlancePanel) = (this / glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)).toInt()
 
 		private fun createHint(me: MouseEvent): HintHint = HintHint(me.component, Point(0, me.y))
 			.setAwtTooltip(true)

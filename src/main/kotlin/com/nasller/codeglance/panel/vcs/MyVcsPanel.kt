@@ -8,7 +8,7 @@ import com.intellij.util.ui.MouseEventAdapter
 import com.nasller.codeglance.listener.MyVcsListener
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
-import com.nasller.codeglance.util.Util.alignedToY
+import com.nasller.codeglance.panel.scroll.ScrollBar.Companion.alignedToY
 import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.Graphics
