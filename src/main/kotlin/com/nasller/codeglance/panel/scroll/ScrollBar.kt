@@ -54,7 +54,8 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	private var hovering = false
 	//矩形y轴
 	private val vOffset: Int
-		get() = scrollState.viewportStart - scrollState.visibleStart
+		get() = (scrollState.viewportStart - scrollState.visibleStart)
+			.coerceIn(0, (scrollState.drawHeight - scrollState.viewportHeight).coerceAtLeast(0))
 	//视图滚动
 	private var myWheelAccumulator = 0
 	private var myLastVisualLine = 0
@@ -124,14 +125,17 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			resizeGlancePanel(false)
 		} else if (dragging) {
 			val delta = (dragStartDelta + (e.y.alignedToY(glancePanel) - dragStart)).toFloat()
-			val newPos = if (scrollState.documentHeight < scrollState.visibleHeight)
+			val newPos = if (scrollState.documentHeight <= scrollState.drawHeight)
 			// Full doc fits into minimap, use exact value
-				delta
+				delta.coerceAtLeast(0f)
 			else scrollState.run {
-				// Who says algebra is useless?
-				// delta = newPos - ((newPos / (documentHeight - viewportHeight + 1)) * (documentHeight - visibleHeight + 1))
-				// ...Solve for newPos...
-				delta * (documentHeight - viewportHeight + 1) / (visibleHeight - viewportHeight)
+				val maxViewportStart = (documentHeight - viewportHeight).coerceAtLeast(0)
+				val movableHeight = (drawHeight - viewportHeight).coerceAtLeast(0)
+				if (maxViewportStart == 0 || movableHeight == 0) {
+					delta
+				} else {
+					(delta * maxViewportStart / movableHeight).coerceIn(0f, maxViewportStart.toFloat())
+				}
 			}
 			editor.scrollPane.verticalScrollBar.value = (newPos / scrollState.scale).roundToInt()
 		} else if (MouseJumpEnum.MOUSE_UP == config.jumpOnMouseDown) showMyEditorPreviewHint(e)
@@ -206,7 +210,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	private fun showMyEditorPreviewHint(e: MouseEvent): Boolean {
-		return if(config.showEditorToolTip && e.x > 10 && e.y < scrollState.drawHeight) {
+		return if(config.showEditorToolTip && e.x > 10 && e.y.alignedToY(glancePanel) < scrollState.drawHeight) {
 			if (myEditorFragmentRenderer.getEditorPreviewHint() == null) {
 				alarm.cancelAllRequests()
 				alarm.addRequest({
@@ -221,8 +225,8 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		val y = e.y.alignedToY(glancePanel) + myWheelAccumulator
 		val visualLine = fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(y + scrollState.visibleStart))
 		myLastVisualLine = visualLine
-		val point = SwingUtilities.convertPoint(glancePanel, 0, if (e.y > 0 && e.y < scrollState.drawHeight) e.y else if (e.y <= 0) 0 else scrollState.drawHeight,
-			editor.scrollPane.verticalScrollBar)
+		val maxDisplayY = (scrollState.drawHeight * glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)).roundToInt()
+		val point = SwingUtilities.convertPoint(glancePanel, 0, e.y.coerceIn(0, maxDisplayY), editor.scrollPane.verticalScrollBar)
 		val me = MouseEvent(editor.scrollPane.verticalScrollBar, e.id, e.`when`, e.modifiersEx, 1, point.y, e.clickCount, e.isPopupTrigger)
 		val highlighters = mutableListOf<RangeHighlighterEx>()
 		collectRangeHighlighters(editor.markupModel, visualLine, highlighters)
@@ -285,13 +289,14 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 
 	private fun jumpToLineAt(e: MouseEvent, action: () -> Unit) {
 		hideMyEditorPreviewHint()
+		val alignedY = e.y.alignedToY(glancePanel)
 		val visualLine = if(config.clickType == ClickTypeEnum.CODE_POSITION){
-			fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(e.y.alignedToY(glancePanel) + scrollState.visibleStart))
+			fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(alignedY + scrollState.visibleStart))
 		}else{
 			if(scrollState.drawHeight == scrollState.visibleHeight){
-				editor.yToVisualLine((e.y / scrollState.visibleHeight.toFloat() * editor.contentComponent.height).roundToInt())
+				editor.yToVisualLine((alignedY / scrollState.visibleHeight.toFloat() * editor.contentComponent.height).roundToInt())
 			}else{
-				fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(e.y + scrollState.visibleStart))
+				fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(alignedY + scrollState.visibleStart))
 			}
 		}
 		val visualPosition = VisualPosition(visualLine, e.x)

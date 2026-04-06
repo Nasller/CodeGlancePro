@@ -2,7 +2,7 @@ package com.nasller.codeglance.panel
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.colors.CodeInsightColors
 import com.intellij.openapi.editor.colors.EditorColors
@@ -83,7 +83,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	fun updateScrollState(visibleArea: Rectangle? = null, visibleChange: Boolean = true) = scrollState.run {
 		val visible = visibleArea ?: editor.scrollingModel.visibleArea
 		val repaint = computeDimensions(visible, visibleChange)
-		recomputeVisible(visible)
+		recomputeVisible(visible, scaleContext.getScale(DerivedScaleType.PIX_SCALE))
 		return@run repaint
 	}
 
@@ -95,7 +95,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		(SwingUtilities.getAncestorOfClass(EditorsSplitters::class.java, editor.component) as? EditorsSplitters)?.currentWindow?.run { inSplitter() } == true
 	}else false
 
-	fun lineCount() = runReadAction { editor.visibleLineCount }
+	fun lineCount() = runReadActionBlocking { editor.visibleLineCount }
 
 	fun setLineCount() {
 		lineCount = lineCount()
@@ -296,7 +296,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		with(gfx as Graphics2D){
 			val pixScale = scaleContext.getScale(DerivedScaleType.PIX_SCALE)
 			scale(1.0, pixScale)
-			if(hideScrollBarListener.isNotRunning()) runReadAction { paintSomething() }
+			if(hideScrollBarListener.isNotRunning()) runReadActionBlocking { paintSomething() }
 			minimap.getImageOrUpdate()?.let {
 				composite = srcOver0_8
 				if(pixScale != 1.0){

@@ -1,11 +1,11 @@
 package com.nasller.codeglance.render
 
-import com.intellij.ui.scale.DerivedScaleType
 import com.nasller.codeglance.config.enums.EditorSizeEnum
 import com.nasller.codeglance.panel.GlancePanel
 import java.awt.Rectangle
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 class ScrollState : Cloneable{
     var pixelsPerLine = 0.0
@@ -34,7 +34,7 @@ class ScrollState : Cloneable{
         val lineHeight = editor.lineHeight
         val contentHeight = editor.contentComponent.height
         val newScale = config.pixelsPerLine.toDouble() / lineHeight
-        val curDocumentHeight = (contentHeight * newScale * scaleContext.getScale(DerivedScaleType.PIX_SCALE)).toInt()
+        val curDocumentHeight = (contentHeight * newScale).roundToInt()
         if(config.editorSize == EditorSizeEnum.Fit && curDocumentHeight > visibleArea.height) {
             if(visibleArea.height < 1 && initialized) {
                 return true
@@ -69,15 +69,29 @@ class ScrollState : Cloneable{
         return true
     }
 
-    fun recomputeVisible(visibleArea: Rectangle) {
-        visibleHeight = visibleArea.height
-        drawHeight = min(visibleHeight, documentHeight)
+    fun recomputeVisible(visibleArea: Rectangle, pixScale: Double = 1.0) {
+        visibleHeight = (visibleArea.height / pixScale).toInt().coerceAtLeast(0)
+        drawHeight = min(visibleHeight, documentHeight).coerceAtLeast(0)
 
-        viewportStart = (visibleArea.y * scale).toInt()
-        viewportHeight = (visibleArea.height * scale).toInt()
+        // 视口矩形必须能完整落在当前可绘制窗口内，否则 HiDPI 取整后会在底部出现裁切。
+        val maxDrawableViewportHeight = min(documentHeight, drawHeight).coerceAtLeast(0)
+        viewportHeight = (visibleArea.height * scale).roundToInt().coerceIn(0, maxDrawableViewportHeight)
+        val maxViewportStart = (documentHeight - viewportHeight).coerceAtLeast(0)
+        viewportStart = (visibleArea.y * scale).roundToInt().coerceIn(0, maxViewportStart)
 
-        visibleStart = ((viewportStart.toFloat() / (documentHeight - viewportHeight + 1)) * (documentHeight - visibleHeight + 1)).toInt().coerceAtLeast(0)
-        visibleEnd = visibleStart + drawHeight
+        if (drawHeight !in 1..<documentHeight || viewportHeight <= 0 || maxViewportStart == 0) {
+            visibleStart = 0
+            visibleEnd = drawHeight
+            return
+        }
+
+        val maxVisibleStart = (documentHeight - drawHeight).coerceAtLeast(0)
+        val preferredVisibleStart = (viewportStart.toDouble() / maxViewportStart * maxVisibleStart).roundToInt()
+        val minVisibleStart = (viewportStart + viewportHeight - drawHeight).coerceAtLeast(0)
+        val maxVisibleStartForViewport = min(viewportStart, maxVisibleStart)
+
+        visibleStart = preferredVisibleStart.coerceIn(min(minVisibleStart, maxVisibleStartForViewport), maxVisibleStartForViewport)
+        visibleEnd = (visibleStart + drawHeight).coerceAtMost(documentHeight)
     }
 
     fun getRenderHeight() = max(1.0, pixelsPerLine).toInt()

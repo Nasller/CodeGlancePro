@@ -32,7 +32,7 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 		isOpaque = false
 	}
 
-	override fun paintComponent(gfx: Graphics) = glancePanel.run {
+	override fun paintComponent(gfx: Graphics): Unit = glancePanel.run {
 		super.paintComponent(gfx)
 		if(glancePanel.isReleased) return
 		with(gfx as Graphics2D){

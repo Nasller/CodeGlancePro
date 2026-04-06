@@ -6,7 +6,7 @@ import com.intellij.ide.bookmark.BookmarksListener
 import com.intellij.ide.bookmark.LineBookmark
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ModalityState
-import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.InlayModel
@@ -52,7 +52,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 	protected val modalityState
 		get() = if (editor.editorKind != EditorKind.MAIN_EDITOR) ModalityState.any() else ModalityState.defaultModalityState()
 	protected abstract val rangeList: MutableList<Pair<Int, Range<Double>>>
-	protected val virtualFile = editor.virtualFile ?: runReadAction { glancePanel.psiDocumentManager.getCachedPsiFile(glancePanel.editor.document)?.viewProvider?.virtualFile }
+	protected val virtualFile = editor.virtualFile ?: runReadActionBlocking { glancePanel.psiDocumentManager.getCachedPsiFile(glancePanel.editor.document)?.viewProvider?.virtualFile }
 	protected val isLogFile = virtualFile?.run { fileType::class.qualifiedName?.contains("ideolog") } == true
 	protected val lock = AtomicBoolean(false)
 	private val scaleBuffer = IntArray(4)
@@ -129,7 +129,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 			scrollState.documentHeight + (100 * scrollState.getRenderHeight()), BufferedImage.TYPE_INT_ARGB)
 
 	protected fun canUpdate() = glancePanel.checkVisible() && (editor.editorKind == EditorKind.CONSOLE || virtualFile == null
-			|| runReadAction { editor.highlighter !is EmptyEditorHighlighter })
+			|| runReadActionBlocking { editor.highlighter !is EmptyEditorHighlighter })
 
 	protected fun getHighlightColor(startOffset: Int, endOffset: Int): List<RangeHighlightColor>{
 		return if(config.syntaxHighlight && glancePanel.lineCount < 10000) runCatching {
@@ -249,7 +249,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 		return if(markCommentMap.isNotEmpty()) {
 			val lineCount = editor.document.lineCount
 			val map = mutableMapOf<Int, MarkCommentData>()
-			val file = runReadAction { glancePanel.psiDocumentManager.getCachedPsiFile(editor.document) }
+			val file = runReadActionBlocking { glancePanel.psiDocumentManager.getCachedPsiFile(editor.document) }
 			val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
 			for (rangeMarker in markCommentMap) {
 				val attributes = rangeMarker.getTextAttributes(editor.colorsScheme)!!
@@ -260,7 +260,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 					else -> EditorFontType.BOLD
 				}).deriveFont(config.markersScaleFactor * 3 / pixScale.toFloat())
 				val startOffset = rangeMarker.startOffset
-				runReadAction {
+				runReadActionBlocking {
 					file?.findElementAt(startOffset)?.let { comment ->
 						val textRange = if (rangeMarker is MarkState.BookmarkHighlightDelegate)
 							comment.nextSibling?.textRange ?: comment.textRange else comment.textRange

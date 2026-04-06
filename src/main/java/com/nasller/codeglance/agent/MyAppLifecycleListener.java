@@ -34,7 +34,7 @@ public class MyAppLifecycleListener implements AppLifecycleListener {
 
     private static void injectAgent() {
         try {
-            IdeaPluginDescriptor plugin = PluginManagerCore.getPlugin(PluginId.findId("com.nasller.CodeGlancePro"));
+            IdeaPluginDescriptor plugin = PluginManagerCore.getPlugin(PluginId.getId("com.nasller.CodeGlancePro"));
             if(plugin == null){
                 return;
             }

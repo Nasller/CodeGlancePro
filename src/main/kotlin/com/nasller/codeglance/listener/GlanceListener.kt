@@ -7,6 +7,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.impl.event.MarkupModelListener
+import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.ui.scale.UserScaleContext
 import com.nasller.codeglance.config.SettingsChangeListener
 import com.nasller.codeglance.config.enums.EditorSizeEnum
@@ -66,7 +67,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 				repaint()
 			}
 		}else {
-			glancePanel.scrollState.recomputeVisible(e.newRectangle)
+			glancePanel.scrollState.recomputeVisible(e.newRectangle, glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE))
 			repaint()
 		}
 	}
