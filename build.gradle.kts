@@ -20,6 +20,8 @@ else if(env.getOrDefault("PUBLISH_CHANNEL","") == "EAP") "-SNAPSHOT-" + LocalDat
 dependencies {
 	implementation("net.bytebuddy:byte-buddy:1.15.10")
 	implementation("net.bytebuddy:byte-buddy-agent:1.15.10")
+	testImplementation("junit:junit:4.13.2")
+	testImplementation("org.opentest4j:opentest4j:1.3.0")
 	intellijPlatform {
 		create(properties("platformType"), properties("platformVersion"))
 		pluginComposedModule(implementation(project(":core")))

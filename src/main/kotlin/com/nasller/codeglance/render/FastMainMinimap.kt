@@ -4,7 +4,6 @@ import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.application.*
 import com.intellij.openapi.diagnostic.Attachment
 import com.intellij.openapi.editor.*
-import com.intellij.openapi.editor.colors.EditorFontType
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.ex.FoldingListener
@@ -17,7 +16,6 @@ import com.intellij.openapi.editor.impl.HighlighterListener
 import com.intellij.openapi.editor.impl.softwrap.mapping.IncrementalCacheUpdateEvent
 import com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapApplianceManager
 import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.DocumentEventUtil
@@ -28,7 +26,6 @@ import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.containers.ContainerUtil
 import com.intellij.util.text.CharArrayUtil
 import com.intellij.util.ui.EdtInvocationManager
-import com.intellij.util.ui.UIUtil
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.util.MyVisualLinesIterator
 import com.nasller.codeglance.util.Util.isMarkAttributes
@@ -36,7 +33,6 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import org.jetbrains.concurrency.CancellablePromise
 import org.slf4j.LoggerFactory
 import java.awt.Color
-import java.awt.Font
 import java.awt.image.BufferedImage
 import java.beans.PropertyChangeEvent
 import java.lang.reflect.Proxy
@@ -44,7 +40,6 @@ import java.util.concurrent.CancellationException
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
 class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), HighlighterListener{
@@ -102,6 +97,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	private fun update(copyList: List<LineRenderData?>, myScrollState: ScrollState) {
 		val pixelsPerLine = myScrollState.pixelsPerLine
 		val scale = myScrollState.scale
+		val pixScale = getRasterScale()
 		val curImg = (if(glancePanel.checkVisible()) {
 			if(pixelsPerLine < 1){
 				getBufferedImage(myScrollState)
@@ -109,11 +105,18 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 				val height = copyList.filterNotNull().sumOf {
 					it.getLineHeight(pixelsPerLine, scale) + it.aboveBlockLine * scale
 				} + (5 * pixelsPerLine)
-				BufferedImage(glancePanel.getConfigSize().width, height.toInt(), BufferedImage.TYPE_INT_ARGB)
+				BufferedImage(
+					getRasterWidth(glancePanel.getLogicalWidth(), pixScale),
+					getRasterHeight(height, pixScale),
+					BufferedImage.TYPE_INT_ARGB
+				)
 			}
 		} else null) ?: return
 		val renderHeight = myScrollState.getRenderHeight()
-		val graphics = curImg.createGraphics().apply { EditorUIUtil.setupAntialiasing(this) }
+		val graphics = curImg.createGraphics().apply {
+			EditorUIUtil.setupAntialiasing(this)
+			scale(pixScale, pixScale)
+		}
 		val docCommentRgb by lazy(LazyThreadSafetyMode.NONE){
 			editor.colorsScheme.getAttributes(DefaultLanguageHighlighterColors.DOC_COMMENT).foregroundColor?.rgb
 		}
@@ -159,7 +162,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 									9 -> 4 //TAB
 									10 -> break@breakY
 									else -> {
-										curImg.renderImage(curX, curY, char.code, renderHeight)
+										curImg.renderImage(curX, curY, char.code, renderHeight, pixScale)
 										1
 									}
 								}
@@ -192,7 +195,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 								}
 								else -> {
 									if(preSetPixelY != renderY){
-										curImg.renderImage(curX, renderY, char.code, renderHeight)
+										curImg.renderImage(curX, renderY, char.code, renderHeight, pixScale)
 									}
 									curX += 1
 								}
@@ -202,22 +205,14 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 					LineType.MARK -> {
 						val markAttributes = it.commentHighlighterEx!!.getTextAttributes(editor.colorsScheme)
 						UISettings.setupAntialiasing(graphics)
-						val font = editor.colorsScheme.getFont(when (markAttributes!!.fontType) {
-							Font.BOLD -> EditorFontType.BOLD
-							Font.ITALIC -> EditorFontType.BOLD_ITALIC
-							Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
-							else -> EditorFontType.BOLD
-						}).deriveFont(config.markersScaleFactor * 3)
-						graphics.composite = GlancePanel.srcOver
+						val font = createMarkFont(markAttributes!!)
 						graphics.color = markAttributes.errorStripeColor
 						val commentText = it.commentHighlighterEx.getUserData(MarkState.BOOK_MARK_DESC_KEY) ?:
 						myDocument.getText(TextRange(it.commentHighlighterEx.startOffset, it.commentHighlighterEx.endOffset)).trim()
-						val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
-							UIUtil.getFontWithFallback(font).deriveFont(markAttributes.fontType, font.size2D)
-						} else font
+						val textFont = createMarkTextFont(commentText, font, markAttributes.fontType)
 						graphics.font = textFont
-						graphics.drawString(commentText, it.startX ?: 0,totalY.toInt() + (graphics.getFontMetrics(textFont).height / 1.5).roundToInt())
-						skipY = font.size - if(pixelsPerLine < 1) 0.0 else pixelsPerLine
+						graphics.drawString(commentText, it.startX ?: 0, computeMarkBaseline(totalY, textFont, pixelsPerLine, pixScale))
+						skipY = computeMarkOverflowHeight(textFont, pixelsPerLine, pixScale)
 					}
 				}
 			}
@@ -239,7 +234,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		val text = myDocument.immutableCharSequence
 		val markCommentMap = glancePanel.markState.getAllMarkHighlight()
 			.associateBy { DocumentUtil.getLineStartOffset(it.startOffset, myDocument) }
-		val limitWidth = glancePanel.getConfigSize().width
+		val limitWidth = glancePanel.getLogicalWidth()
 		while (!visLinesIterator.atEnd()) {
 			checkCanceled()
 			val start = visLinesIterator.getVisualLineStartOffset()

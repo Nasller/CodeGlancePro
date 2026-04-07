@@ -10,7 +10,9 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.HintHint
+import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.Alarm
+import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.MouseEventAdapter
 import com.nasller.codeglance.CURRENT_EDITOR_DIFF_VIEW
@@ -52,7 +54,8 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	private var hovering = false
 	//矩形y轴
 	private val vOffset: Int
-		get() = scrollState.viewportStart - scrollState.visibleStart
+		get() = (scrollState.viewportStart - scrollState.visibleStart)
+			.coerceIn(0, (scrollState.drawHeight - scrollState.viewportHeight).coerceAtLeast(0))
 	//视图滚动
 	private var myWheelAccumulator = 0
 	private var myLastVisualLine = 0
@@ -73,18 +76,21 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	fun paint(gfx: Graphics2D) {
+		val renderWidth = glancePanel.getLogicalWidth()
 		gfx.color = ColorUtil.fromHex(config.viewportColor)
 		gfx.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, visibleRectAlpha)
+		val gfxConfig = GraphicsUtil.setupAAPainting(gfx)
 		if(scrollState.viewportHeight > MIN_VIEWPORT_HEIGHT) {
-			gfx.fillRoundRect(0, vOffset, glancePanel.width, scrollState.viewportHeight,5, 5)
+			gfx.fillRoundRect(0, vOffset, renderWidth, scrollState.viewportHeight,5, 5)
 		}else {
-			gfx.fillRect(0, vOffset, glancePanel.width, scrollState.viewportHeight)
+			gfx.fillRect(0, vOffset, renderWidth, scrollState.viewportHeight)
 		}
-		getBorderShape(vOffset, glancePanel.width, scrollState.viewportHeight, config.viewportBorderThickness)?.let {
+		getBorderShape(vOffset, renderWidth, scrollState.viewportHeight, config.viewportBorderThickness)?.let {
 			gfx.composite = GlancePanel.srcOver
 			gfx.color = ColorUtil.fromHex(config.viewportBorderColor)
 			gfx.fill(it)
 		}
+		gfxConfig.restore()
 	}
 
 	fun clear() = myEditorFragmentRenderer.clearHint()
@@ -95,38 +101,45 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 
 	override fun mousePressed(e: MouseEvent) {
 		if (e.button != MouseEvent.BUTTON1) return
+		val alignedToY = e.y.alignedToY(glancePanel)
 		when {
 			isInResizeGutter(e.x) -> {
 				resizing = true
 				resizeStart = e.xOnScreen
-				widthStart = glancePanel.width
+				widthStart = glancePanel.getLogicalWidth()
 			}
-			isInRect(e.y) || MouseJumpEnum.NONE == config.jumpOnMouseDown -> dragMove(e.y)
+			isInRect(alignedToY) || MouseJumpEnum.NONE == config.jumpOnMouseDown -> dragMove(alignedToY)
 			MouseJumpEnum.MOUSE_DOWN == config.jumpOnMouseDown -> jumpToLineAt(e) {
 				visibleRectAlpha = DEFAULT_ALPHA
 				glancePanel.cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
-				dragMove(e.y)
+				dragMove(alignedToY)
 			}
 		}
 	}
 
 	override fun mouseDragged(e: MouseEvent) {
 		if (resizing) {
-			val newWidth = if(editor.getUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX) == GlancePanel.PlaceIndex.Left)
-				widthStart + e.xOnScreen - resizeStart
-			else widthStart + resizeStart - e.xOnScreen
+			val newWidth = calculateResizedLogicalWidth(
+				widthStart = widthStart,
+				screenDeltaX = e.xOnScreen - resizeStart,
+				pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE),
+				resizeFromLeft = editor.getUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX) == GlancePanel.PlaceIndex.Left
+			)
 			editor.editorKind.setWidth(newWidth.coerceIn(Util.MIN_WIDTH, Util.MAX_WIDTH))
 			resizeGlancePanel(false)
 		} else if (dragging) {
-			val delta = (dragStartDelta + (e.y - dragStart)).toFloat()
-			val newPos = if (scrollState.documentHeight < scrollState.visibleHeight)
+			val delta = (dragStartDelta + (e.y.alignedToY(glancePanel) - dragStart)).toFloat()
+			val newPos = if (scrollState.documentHeight <= scrollState.drawHeight)
 			// Full doc fits into minimap, use exact value
-				delta
+				delta.coerceAtLeast(0f)
 			else scrollState.run {
-				// Who says algebra is useless?
-				// delta = newPos - ((newPos / (documentHeight - viewportHeight + 1)) * (documentHeight - visibleHeight + 1))
-				// ...Solve for newPos...
-				delta * (documentHeight - viewportHeight + 1) / (visibleHeight - viewportHeight)
+				val maxViewportStart = (documentHeight - viewportHeight).coerceAtLeast(0)
+				val movableHeight = (drawHeight - viewportHeight).coerceAtLeast(0)
+				if (maxViewportStart == 0 || movableHeight == 0) {
+					delta
+				} else {
+					(delta * maxViewportStart / movableHeight).coerceIn(0f, maxViewportStart.toFloat())
+				}
 			}
 			editor.scrollPane.verticalScrollBar.value = (newPos / scrollState.scale).roundToInt()
 		} else if (MouseJumpEnum.MOUSE_UP == config.jumpOnMouseDown) showMyEditorPreviewHint(e)
@@ -135,7 +148,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	override fun mouseReleased(e: MouseEvent) {
 		val action = {
 			resizeGlancePanel(true)
-			updateAlpha(e.y)
+			updateAlpha(e.y.alignedToY(glancePanel))
 			dragging = false
 			resizing = false
 			hoveringOverAndHideScrollBar(e)
@@ -148,7 +161,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	override fun mouseMoved(e: MouseEvent) {
-		val isInRect = updateAlpha(e.y)
+		val isInRect = updateAlpha(e.y.alignedToY(glancePanel))
 		if (isInResizeGutter(e.x)) {
 			glancePanel.cursor = Cursor(Cursor.W_RESIZE_CURSOR)
 		} else if (!isInRect && !resizing && !dragging && showMyEditorPreviewHint(e)) {
@@ -201,7 +214,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	private fun showMyEditorPreviewHint(e: MouseEvent): Boolean {
-		return if(config.showEditorToolTip && e.x > 10 && e.y < scrollState.drawHeight) {
+		return if(config.showEditorToolTip && e.x > 10 && e.y.alignedToY(glancePanel) < scrollState.drawHeight) {
 			if (myEditorFragmentRenderer.getEditorPreviewHint() == null) {
 				alarm.cancelAllRequests()
 				alarm.addRequest({
@@ -213,11 +226,11 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	private fun showToolTipByMouseMove(e: MouseEvent) {
-		val y = e.y + myWheelAccumulator
+		val y = e.y.alignedToY(glancePanel) + myWheelAccumulator
 		val visualLine = fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(y + scrollState.visibleStart))
 		myLastVisualLine = visualLine
-		val point = SwingUtilities.convertPoint(glancePanel, 0, if (y > 0 && y < scrollState.drawHeight) y else if (y <= 0) 0 else scrollState.drawHeight,
-			editor.scrollPane.verticalScrollBar)
+		val maxDisplayY = (scrollState.drawHeight * glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)).roundToInt()
+		val point = SwingUtilities.convertPoint(glancePanel, 0, e.y.coerceIn(0, maxDisplayY), editor.scrollPane.verticalScrollBar)
 		val me = MouseEvent(editor.scrollPane.verticalScrollBar, e.id, e.`when`, e.modifiersEx, 1, point.y, e.clickCount, e.isPopupTrigger)
 		val highlighters = mutableListOf<RangeHighlighterEx>()
 		collectRangeHighlighters(editor.markupModel, visualLine, highlighters)
@@ -280,16 +293,17 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 
 	private fun jumpToLineAt(e: MouseEvent, action: () -> Unit) {
 		hideMyEditorPreviewHint()
+		val alignedY = e.y.alignedToY(glancePanel)
 		val visualLine = if(config.clickType == ClickTypeEnum.CODE_POSITION){
-			fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(e.y + scrollState.visibleStart))
+			fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(alignedY + scrollState.visibleStart))
 		}else{
 			if(scrollState.drawHeight == scrollState.visibleHeight){
-				editor.yToVisualLine((e.y / scrollState.visibleHeight.toFloat() * editor.contentComponent.height).roundToInt())
+				editor.yToVisualLine((alignedY / scrollState.visibleHeight.toFloat() * editor.contentComponent.height).roundToInt())
 			}else{
-				fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(e.y + scrollState.visibleStart))
+				fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(alignedY + scrollState.visibleStart))
 			}
 		}
-		val visualPosition = VisualPosition(visualLine, e.x)
+		val visualPosition = VisualPosition(visualLine, e.x.alignedToX(glancePanel))
 		if(e.isShiftDown){
 			editor.selectionModel.setSelection(editor.caretModel.offset, editor.visualPositionToOffset(visualPosition))
 		}
@@ -310,6 +324,19 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		private const val DRAG_ALPHA = 0.35f
 		private const val MIN_VIEWPORT_HEIGHT = 20
 		val PREVIEW_LINES = max(2, min(25, Integer.getInteger("preview.lines", 5)))
+
+		fun Int.alignedToY(glancePanel: GlancePanel) = (this / glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)).toInt()
+
+		fun Int.alignedToX(glancePanel: GlancePanel) = (this / glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)).toInt()
+
+		fun calculateResizedLogicalWidth(widthStart: Int, screenDeltaX: Int, pixScale: Double, resizeFromLeft: Boolean): Int {
+			val logicalDelta = (screenDeltaX / pixScale).roundToInt()
+			return if (resizeFromLeft) {
+				widthStart + logicalDelta
+			} else {
+				widthStart - logicalDelta
+			}
+		}
 
 		private fun createHint(me: MouseEvent): HintHint = HintHint(me.component, Point(0, me.y))
 			.setAwtTooltip(true)

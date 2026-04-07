@@ -8,6 +8,7 @@ import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
+import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.nasller.codeglance.panel.GlancePanel
@@ -16,7 +17,6 @@ import com.nasller.codeglance.util.Util.isMarkAttributes
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.beans.PropertyChangeEvent
-import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
 class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
@@ -54,12 +54,13 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 
 	private fun getMinimapImage(): BufferedImage? {
 		var curImg = imgReference.value.get()
-		if (curImg == null || curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
+		val rasterScale = getRasterScale()
+		if (shouldRecreateImage(curImg, scrollState.documentHeight, glancePanel.getLogicalWidth(), scrollState.getRenderHeight(), rasterScale)) {
 			curImg?.flush()
 			curImg = getBufferedImage(scrollState)
 			imgReference = lazyOf(MySoftReference.create(curImg, editor.editorKind != EditorKind.MAIN_EDITOR))
 		}
-		return if(editor.isDisposed) return null else curImg
+		return if(editor.isDisposed) null else curImg
 	}
 
 	private fun update() {
@@ -76,6 +77,7 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 			return
 		}
 		glancePanel.setLineCount()
+		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
 		val hlIter = editor.highlighter.createIterator(0).run {
 			if(isLogFile) IdeLogFileHighlightDelegate(editor.document,this) else this
 		}
@@ -116,7 +118,7 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 				if(commentData != null){
 					graphics.font = commentData.font
 					graphics.color = commentData.color
-					graphics.drawString(commentData.comment,2,y.toInt() + (graphics.getFontMetrics(commentData.font).height / 1.5).roundToInt())
+					graphics.drawString(commentData.comment, 2, computeMarkBaseline(y, commentData.font, scrollState.pixelsPerLine, pixScale))
 					if (softWrapEnable) {
 						val softWraps = editor.softWrapModel.getSoftWrapsForRange(start, commentData.jumpEndOffset)
 						softWraps.forEachIndexed { index, softWrap ->

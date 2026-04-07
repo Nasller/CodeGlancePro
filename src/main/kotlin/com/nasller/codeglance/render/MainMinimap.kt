@@ -10,6 +10,7 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.SingleAlarm
@@ -20,7 +21,6 @@ import com.nasller.codeglance.util.Util.isMarkAttributes
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.beans.PropertyChangeEvent
-import kotlin.math.roundToInt
 
 @Suppress("UnstableApiUsage")
 class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
@@ -61,12 +61,13 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 
 	private fun getMinimapImage(): BufferedImage? {
 		var curImg = imgReference.value.get()
-		if (curImg == null || curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
+		val rasterScale = getRasterScale()
+		if (shouldRecreateImage(curImg, scrollState.documentHeight, glancePanel.getLogicalWidth(), scrollState.getRenderHeight(), rasterScale)) {
 			curImg?.flush()
 			curImg = getBufferedImage(scrollState)
 			imgReference = lazyOf(MySoftReference.create(curImg, editor.editorKind != EditorKind.MAIN_EDITOR))
 		}
-		return if(editor.isDisposed) return null else curImg
+		return if(editor.isDisposed) null else curImg
 	}
 
 	private fun update() {
@@ -83,6 +84,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 			return
 		}
 		glancePanel.setLineCount()
+		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val hlIter = editor.highlighter.createIterator(0).run {
 			if(isLogFile) IdeLogFileHighlightDelegate(editor.document,this) else this
@@ -110,7 +112,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 			moveCharIndex(it.code, null)
 			val renderY = y.toInt()
 			if(renderY != preSetPixelY) {
-				curImg.renderImage(x, renderY, it.code, renderHeight)
+				curImg.renderImage(x, renderY, it.code, renderHeight, pixScale)
 			}
 		}
 		val highlight = makeMarkHighlight(text, graphics)
@@ -153,7 +155,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 				if(commentData != null){
 					graphics.font = commentData.font
 					graphics.color = commentData.color
-					graphics.drawString(commentData.comment,2,y.toInt() + (graphics.getFontMetrics(commentData.font).height / 1.5).roundToInt())
+					graphics.drawString(commentData.comment, 2, computeMarkBaseline(y, commentData.font, scrollState.pixelsPerLine, pixScale))
 					if (softWrapEnable) {
 						val softWraps = editor.softWrapModel.getSoftWrapsForRange(start, commentData.jumpEndOffset)
 						softWraps.forEachIndexed { index, softWrap ->
@@ -209,7 +211,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 						} }
 						val renderY = y.toInt()
 						if(renderY != preSetPixelY) {
-							curImg.renderImage(x, renderY, charCode, renderHeight) {
+							curImg.renderImage(x, renderY, charCode, renderHeight, pixScale) {
 								(highlightList.firstOrNull { offset >= it.startOffset && offset < it.endOffset }?.foregroundColor ?:
 								color ?: defaultColor).setColorRgb()
 							}

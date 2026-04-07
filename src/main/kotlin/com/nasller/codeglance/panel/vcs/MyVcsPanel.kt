@@ -3,10 +3,12 @@ package com.nasller.codeglance.panel.vcs
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.util.Disposer
+import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.ui.MouseEventAdapter
 import com.nasller.codeglance.listener.MyVcsListener
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
+import com.nasller.codeglance.panel.scroll.ScrollBar.Companion.alignedToY
 import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.Graphics
@@ -15,6 +17,7 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
 import javax.swing.JPanel
+import kotlin.math.roundToInt
 
 class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 	private val editor
@@ -26,14 +29,22 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 		addMouseWheelListener(mouseHandler)
 		addMouseMotionListener(mouseHandler)
 		addMouseListener(glancePanel.myPopHandler)
-		preferredSize = Dimension(8,0)
 		isOpaque = false
 	}
 
-	override fun paintComponent(gfx: Graphics) = glancePanel.run {
+	override fun getPreferredSize(): Dimension {
+		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
+		return Dimension((8 * pixScale).roundToInt(), 0)
+	}
+
+	override fun paintComponent(gfx: Graphics): Unit = glancePanel.run {
 		super.paintComponent(gfx)
 		if(glancePanel.isReleased) return
-		with(gfx as Graphics2D){ paintVcs(getVisibleRangeOffset(),this@MyVcsPanel.width) }
+		with(gfx as Graphics2D){
+			val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
+			scale(pixScale, pixScale)
+			paintVcs(getVisibleRangeOffset(),8)
+		}
 	}
 
 	private inner class MouseHandler : MouseAdapter() {
@@ -48,10 +59,11 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 
 		override fun mouseMoved(e: MouseEvent) {
 			if(glancePanel.config.showVcsHighlight.not()) return
+			val alignedToY = e.y.alignedToY(glancePanel)
 			val rangeOffset = glancePanel.getVisibleRangeOffset()
 			val process = editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from,rangeOffset.to) {
 				if (it.isThinErrorStripeMark) it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-					val visualLine = fitLineToEditor(editor,glancePanel.getMyRenderVisualLine(e.y + glancePanel.scrollState.visibleStart))
+					val visualLine = fitLineToEditor(editor,glancePanel.getMyRenderVisualLine(alignedToY + glancePanel.scrollState.visibleStart))
 					val startVisual = editor.offsetToVisualLine(it.startOffset)
 					if (visualLine in startVisual..editor.offsetToVisualLine(it.endOffset)) {
 						cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
