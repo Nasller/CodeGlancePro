@@ -76,15 +76,16 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 	}
 
 	fun paint(gfx: Graphics2D) {
+		val renderWidth = glancePanel.getLogicalWidth()
 		gfx.color = ColorUtil.fromHex(config.viewportColor)
 		gfx.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, visibleRectAlpha)
 		val gfxConfig = GraphicsUtil.setupAAPainting(gfx)
 		if(scrollState.viewportHeight > MIN_VIEWPORT_HEIGHT) {
-			gfx.fillRoundRect(0, vOffset, glancePanel.width, scrollState.viewportHeight,5, 5)
+			gfx.fillRoundRect(0, vOffset, renderWidth, scrollState.viewportHeight,5, 5)
 		}else {
-			gfx.fillRect(0, vOffset, glancePanel.width, scrollState.viewportHeight)
+			gfx.fillRect(0, vOffset, renderWidth, scrollState.viewportHeight)
 		}
-		getBorderShape(vOffset, glancePanel.width, scrollState.viewportHeight, config.viewportBorderThickness)?.let {
+		getBorderShape(vOffset, renderWidth, scrollState.viewportHeight, config.viewportBorderThickness)?.let {
 			gfx.composite = GlancePanel.srcOver
 			gfx.color = ColorUtil.fromHex(config.viewportBorderColor)
 			gfx.fill(it)
@@ -105,7 +106,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			isInResizeGutter(e.x) -> {
 				resizing = true
 				resizeStart = e.xOnScreen
-				widthStart = glancePanel.width
+				widthStart = glancePanel.getLogicalWidth()
 			}
 			isInRect(alignedToY) || MouseJumpEnum.NONE == config.jumpOnMouseDown -> dragMove(alignedToY)
 			MouseJumpEnum.MOUSE_DOWN == config.jumpOnMouseDown -> jumpToLineAt(e) {
@@ -118,9 +119,12 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 
 	override fun mouseDragged(e: MouseEvent) {
 		if (resizing) {
-			val newWidth = if(editor.getUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX) == GlancePanel.PlaceIndex.Left)
-				widthStart + e.xOnScreen - resizeStart
-			else widthStart + resizeStart - e.xOnScreen
+			val newWidth = calculateResizedLogicalWidth(
+				widthStart = widthStart,
+				screenDeltaX = e.xOnScreen - resizeStart,
+				pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE),
+				resizeFromLeft = editor.getUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX) == GlancePanel.PlaceIndex.Left
+			)
 			editor.editorKind.setWidth(newWidth.coerceIn(Util.MIN_WIDTH, Util.MAX_WIDTH))
 			resizeGlancePanel(false)
 		} else if (dragging) {
@@ -299,7 +303,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 				fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(alignedY + scrollState.visibleStart))
 			}
 		}
-		val visualPosition = VisualPosition(visualLine, e.x)
+		val visualPosition = VisualPosition(visualLine, e.x.alignedToX(glancePanel))
 		if(e.isShiftDown){
 			editor.selectionModel.setSelection(editor.caretModel.offset, editor.visualPositionToOffset(visualPosition))
 		}
@@ -322,6 +326,17 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		val PREVIEW_LINES = max(2, min(25, Integer.getInteger("preview.lines", 5)))
 
 		fun Int.alignedToY(glancePanel: GlancePanel) = (this / glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)).toInt()
+
+		fun Int.alignedToX(glancePanel: GlancePanel) = (this / glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)).toInt()
+
+		fun calculateResizedLogicalWidth(widthStart: Int, screenDeltaX: Int, pixScale: Double, resizeFromLeft: Boolean): Int {
+			val logicalDelta = (screenDeltaX / pixScale).roundToInt()
+			return if (resizeFromLeft) {
+				widthStart + logicalDelta
+			} else {
+				widthStart - logicalDelta
+			}
+		}
 
 		private fun createHint(me: MouseEvent): HintHint = HintHint(me.component, Point(0, me.y))
 			.setAwtTooltip(true)

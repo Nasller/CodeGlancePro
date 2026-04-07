@@ -34,6 +34,7 @@ import javax.swing.JPanel
 import javax.swing.SwingUtilities
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val editor = info.editor
@@ -160,6 +161,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	}
 
 	private fun Graphics2D.paintSelection(existLine: MutableSet<Int>) {
+		val renderWidth = getLogicalWidth()
 		for ((index, startByte) in editor.selectionModel.blockSelectionStarts.withIndex()) {
 			val endByte = editor.selectionModel.blockSelectionEnds[index]
 			val start = editor.offsetToVisualPosition(startByte)
@@ -178,12 +180,12 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 					fillRect(sX, sY.toInt(), eX - sX, height)
 				} else {
 					// Draw the line leading in
-					fillRect(sX, sY.toInt(), width - sX, height)
+					fillRect(sX, sY.toInt(), renderWidth - sX, height)
 					// Then the line at the end
 					fillRect(0, eY.toInt(), eX, height)
 					if (eY + height != sY) {
 						// And if there is anything in between, fill it in
-						fillRect(0, (sY + height).toInt(), width, (eY - sY - height).toInt())
+						fillRect(0, (sY + height).toInt(), renderWidth, (eY - sY - height).toInt())
 					}
 				}
 				existLine.addAll(start.line..end.line)
@@ -192,12 +194,13 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	}
 
 	private fun Graphics2D.paintCaretPosition() {
+		val renderWidth = getLogicalWidth()
 		setGraphics2DInfo(srcOver, editor.colorsScheme.getColor(EditorColors.SELECTION_BACKGROUND_COLOR))
 		editor.caretModel.allCarets.forEach {
 			val line = it.visualPosition.line
 			val documentLine = minimap.getMyRenderLine(line, line)
 			val start = line * scrollState.pixelsPerLine + documentLine.second - scrollState.visibleStart
-			if (start >= 0) fillRect(0, start.toInt(), width, scrollState.getRenderHeight())
+			if (start >= 0) fillRect(0, start.toInt(), renderWidth, scrollState.getRenderHeight())
 		}
 	}
 
@@ -233,19 +236,20 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	}
 
 	private fun Graphics2D.drawMarkupLine(it: RangeHighlightColor) {
+		val renderWidth = getLogicalWidth()
 		val start = it.startVis
 		val end = it.endVis
 		val documentLine = minimap.getMyRenderLine(start.line, end.line)
-		var sX = if (start.column > width - MIN_GAP) width - MIN_GAP else start.column
+		var sX = if (start.column > renderWidth - MIN_GAP) renderWidth - MIN_GAP else start.column
 		val sY = start.line * scrollState.pixelsPerLine + documentLine.first - scrollState.visibleStart
-		var eX = if (end.column > width - MIN_GAP) width else end.column
+		var eX = if (end.column > renderWidth - MIN_GAP) renderWidth else end.column
 		val eY = end.line * scrollState.pixelsPerLine + documentLine.second - scrollState.visibleStart
 		if (sY >= 0 || eY >= 0) {
 			setGraphics2DInfo(if (it.fullLine && it.fullLineWithActualHighlight) srcOver0_6 else srcOver, it.color)
 			val collapsed = editor.foldingModel.getCollapsedRegionAtOffset(it.startOffset)
 			if (sY == eY && collapsed == null) {
 				if (it.fullLineWithActualHighlight && eX - sX < MIN_GAP) {
-					if(eX == width) sX = width - MIN_GAP
+					if(eX == renderWidth) sX = renderWidth - MIN_GAP
 					else eX += MIN_GAP - (eX - sX)
 				}
 				drawMarkOneLine(it, sY.toInt(), sX, eX)
@@ -255,21 +259,22 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 				drawMarkOneLine(it, sY.toInt(), startVis.column, endVis.column)
 			} else {
 				val height = scrollState.getRenderHeight()
-				fillRect(if (it.fullLine) 0 else sX, sY.toInt(), if (it.fullLine) width else width - sX, height)
-				if (eY + height != sY) fillRect(0, (sY + scrollState.pixelsPerLine).toInt(), width, (eY - sY - scrollState.pixelsPerLine).toInt())
-				fillRect(0, eY.toInt(), if (it.fullLine) width else eX, height)
+				fillRect(if (it.fullLine) 0 else sX, sY.toInt(), if (it.fullLine) renderWidth else renderWidth - sX, height)
+				if (eY + height != sY) fillRect(0, (sY + scrollState.pixelsPerLine).toInt(), renderWidth, (eY - sY - scrollState.pixelsPerLine).toInt())
+				fillRect(0, eY.toInt(), if (it.fullLine) renderWidth else eX, height)
 			}
 		}
 	}
 
 	private fun Graphics2D.drawMarkOneLine(it: RangeHighlightColor, sY: Int, sX: Int, eX: Int) {
+		val renderWidth = getLogicalWidth()
 		val height = scrollState.getRenderHeight()
 		if (it.fullLine && it.fullLineWithActualHighlight) {
-			fillRect(0, sY, width, height)
+			fillRect(0, sY, renderWidth, height)
 			setGraphics2DInfo(srcOver, it.color.brighter())
 			fillRect(sX, sY, eX - sX, height)
 		} else if (it.fullLine) {
-			fillRect(0, sY, width, height)
+			fillRect(0, sY, renderWidth, height)
 		} else {
 			fillRect(sX, sY, eX - sX, height)
 		}
@@ -280,14 +285,19 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		color = col
 	}
 
-	fun getConfigSize(): Dimension{
+	fun getLogicalWidth(): Int{
 		val curWidth = editor.editorKind.getWidth()
-		return Dimension(if (config.autoCalWidthInSplitterMode && isInSplitter()) {
+		return if (config.autoCalWidthInSplitterMode && isInSplitter()) {
 			val calWidth = editor.component.width / 12
 			if (calWidth < curWidth) {
 				if (calWidth < 15) 15 else calWidth
 			} else curWidth
-		} else curWidth, 0)
+		} else curWidth
+	}
+
+	fun getConfigSize(): Dimension{
+		val pixScale = scaleContext.getScale(DerivedScaleType.PIX_SCALE)
+		return Dimension((getLogicalWidth() * pixScale).roundToInt(), 0)
 	}
 
 	override fun paintComponent(gfx: Graphics) {
@@ -295,15 +305,18 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		if(isReleased) return
 		with(gfx as Graphics2D){
 			val pixScale = scaleContext.getScale(DerivedScaleType.PIX_SCALE)
-			scale(1.0, pixScale)
+			val renderWidth = getLogicalWidth()
+			scale(pixScale, pixScale)
 			if(hideScrollBarListener.isNotRunning()) runReadActionBlocking { paintSomething() }
 			minimap.getImageOrUpdate()?.let {
 				composite = srcOver0_8
 				if(pixScale != 1.0){
 					gfx.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
 				}
-				drawImage(it, 0, 0, width, scrollState.drawHeight,
-					0, scrollState.visibleStart, width, scrollState.visibleEnd, null)
+				// 拖拽调整宽度时，缓存图像可能还是旧宽度，先避免横向拉伸导致内容被压缩。
+				val imagePaintWidth = min(renderWidth, it.width)
+				drawImage(it, 0, 0, imagePaintWidth, scrollState.drawHeight,
+					0, scrollState.visibleStart, imagePaintWidth, scrollState.visibleEnd, null)
 			}
 			scrollbar.paint(this)
 		}
@@ -311,7 +324,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 
 	private fun Graphics2D.paintSomething() {
 		val rangeOffset = getVisibleRangeOffset()
-		if (!config.hideOriginalScrollBar) paintVcs(rangeOffset,width)
+		if (!config.hideOriginalScrollBar) paintVcs(rangeOffset,getLogicalWidth())
 		val existLine by lazy((LazyThreadSafetyMode.NONE)) { mutableSetOf<Int>() }
 		if (editor.selectionModel.hasSelection()) paintSelection(existLine)
 		else paintCaretPosition()

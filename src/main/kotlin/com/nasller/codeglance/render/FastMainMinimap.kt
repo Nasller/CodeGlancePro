@@ -109,7 +109,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 				val height = copyList.filterNotNull().sumOf {
 					it.getLineHeight(pixelsPerLine, scale) + it.aboveBlockLine * scale
 				} + (5 * pixelsPerLine)
-				BufferedImage(glancePanel.getConfigSize().width, height.toInt(), BufferedImage.TYPE_INT_ARGB)
+				BufferedImage(glancePanel.getLogicalWidth(), height.toInt(), BufferedImage.TYPE_INT_ARGB)
 			}
 		} else null) ?: return
 		val renderHeight = myScrollState.getRenderHeight()
@@ -241,7 +241,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		val text = myDocument.immutableCharSequence
 		val markCommentMap = glancePanel.markState.getAllMarkHighlight()
 			.associateBy { DocumentUtil.getLineStartOffset(it.startOffset, myDocument) }
-		val limitWidth = glancePanel.getConfigSize().width
+		val limitWidth = glancePanel.getLogicalWidth()
 		while (!visLinesIterator.atEnd()) {
 			checkCanceled()
 			val start = visLinesIterator.getVisualLineStartOffset()

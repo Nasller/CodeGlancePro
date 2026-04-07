@@ -61,12 +61,12 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 
 	private fun getMinimapImage(): BufferedImage? {
 		var curImg = imgReference.value.get()
-		if (curImg == null || curImg.height < scrollState.documentHeight || curImg.width < glancePanel.width) {
+		if (shouldRecreateImage(curImg, scrollState.documentHeight, glancePanel.getLogicalWidth())) {
 			curImg?.flush()
 			curImg = getBufferedImage(scrollState)
 			imgReference = lazyOf(MySoftReference.create(curImg, editor.editorKind != EditorKind.MAIN_EDITOR))
 		}
-		return if(editor.isDisposed) return null else curImg
+		return if(editor.isDisposed) null else curImg
 	}
 
 	private fun update() {

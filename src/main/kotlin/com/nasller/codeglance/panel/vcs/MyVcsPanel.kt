@@ -17,6 +17,7 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
 import javax.swing.JPanel
+import kotlin.math.roundToInt
 
 class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 	private val editor
@@ -28,8 +29,12 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 		addMouseWheelListener(mouseHandler)
 		addMouseMotionListener(mouseHandler)
 		addMouseListener(glancePanel.myPopHandler)
-		preferredSize = Dimension(8,0)
 		isOpaque = false
+	}
+
+	override fun getPreferredSize(): Dimension {
+		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
+		return Dimension((8 * pixScale).roundToInt(), 0)
 	}
 
 	override fun paintComponent(gfx: Graphics): Unit = glancePanel.run {
@@ -37,8 +42,8 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 		if(glancePanel.isReleased) return
 		with(gfx as Graphics2D){
 			val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
-			scale(1.0, pixScale)
-			paintVcs(getVisibleRangeOffset(),this@MyVcsPanel.width)
+			scale(pixScale, pixScale)
+			paintVcs(getVisibleRangeOffset(),8)
 		}
 	}
 

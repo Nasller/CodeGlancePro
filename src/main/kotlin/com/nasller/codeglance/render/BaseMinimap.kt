@@ -125,7 +125,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 	}
 
 	@Suppress("UndesirableClassUsage")
-	protected fun getBufferedImage(scrollState: ScrollState) = BufferedImage(glancePanel.getConfigSize().width,
+	protected fun getBufferedImage(scrollState: ScrollState) = BufferedImage(glancePanel.getLogicalWidth(),
 			scrollState.documentHeight + (100 * scrollState.getRenderHeight()), BufferedImage.TYPE_INT_ARGB)
 
 	protected fun canUpdate() = glancePanel.checkVisible() && (editor.editorKind == EditorKind.CONSOLE || virtualFile == null
@@ -350,6 +350,10 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 	@Suppress("UNCHECKED_CAST", "UndesirableClassUsage")
 	companion object{
 		val EMPTY_IMG = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB)
+
+		internal fun shouldRecreateImage(curImg: BufferedImage?, documentHeight: Int, logicalWidth: Int): Boolean {
+			return curImg == null || curImg.height < documentHeight || curImg.width != logicalWidth
+		}
 
 		fun EditorKind.getMinimap(glancePanel: GlancePanel): BaseMinimap = glancePanel.run {
 			if(config.useEmptyMinimapStr.contains(this@getMinimap.name)) {
