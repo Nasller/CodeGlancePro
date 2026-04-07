@@ -61,7 +61,8 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 
 	private fun getMinimapImage(): BufferedImage? {
 		var curImg = imgReference.value.get()
-		if (shouldRecreateImage(curImg, scrollState.documentHeight, glancePanel.getLogicalWidth())) {
+		val rasterScale = getRasterScale()
+		if (shouldRecreateImage(curImg, scrollState.documentHeight, glancePanel.getLogicalWidth(), scrollState.getRenderHeight(), rasterScale)) {
 			curImg?.flush()
 			curImg = getBufferedImage(scrollState)
 			imgReference = lazyOf(MySoftReference.create(curImg, editor.editorKind != EditorKind.MAIN_EDITOR))
@@ -111,7 +112,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 			moveCharIndex(it.code, null)
 			val renderY = y.toInt()
 			if(renderY != preSetPixelY) {
-				curImg.renderImage(x, renderY, it.code, renderHeight)
+				curImg.renderImage(x, renderY, it.code, renderHeight, pixScale)
 			}
 		}
 		val highlight = makeMarkHighlight(text, graphics)
@@ -154,8 +155,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 				if(commentData != null){
 					graphics.font = commentData.font
 					graphics.color = commentData.color
-					graphics.drawString(commentData.comment,2, ((y + commentData.font.size * pixScale -
-							(if(pixScale != 1.0) scrollState.pixelsPerLine - 1 else 0.0)) / pixScale).toInt())
+					graphics.drawString(commentData.comment, 2, computeMarkBaseline(y, commentData.font, scrollState.pixelsPerLine, pixScale))
 					if (softWrapEnable) {
 						val softWraps = editor.softWrapModel.getSoftWrapsForRange(start, commentData.jumpEndOffset)
 						softWraps.forEachIndexed { index, softWrap ->
@@ -211,7 +211,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 						} }
 						val renderY = y.toInt()
 						if(renderY != preSetPixelY) {
-							curImg.renderImage(x, renderY, charCode, renderHeight) {
+							curImg.renderImage(x, renderY, charCode, renderHeight, pixScale) {
 								(highlightList.firstOrNull { offset >= it.startOffset && offset < it.endOffset }?.foregroundColor ?:
 								color ?: defaultColor).setColorRgb()
 							}

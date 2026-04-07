@@ -26,7 +26,10 @@ import com.nasller.codeglance.listener.HideScrollBarListener
 import com.nasller.codeglance.panel.scroll.CustomScrollBarPopup
 import com.nasller.codeglance.panel.scroll.ScrollBar
 import com.nasller.codeglance.panel.vcs.MyVcsPanel
+import com.nasller.codeglance.render.BaseMinimap.Companion.fromRasterSize
 import com.nasller.codeglance.render.BaseMinimap.Companion.getMinimap
+import com.nasller.codeglance.render.BaseMinimap.Companion.toRasterCoordinate
+import com.nasller.codeglance.render.BaseMinimap.Companion.toRasterSize
 import com.nasller.codeglance.render.MarkState
 import com.nasller.codeglance.render.ScrollState
 import java.awt.*
@@ -310,13 +313,14 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 			if(hideScrollBarListener.isNotRunning()) runReadActionBlocking { paintSomething() }
 			minimap.getImageOrUpdate()?.let {
 				composite = srcOver0_8
-				if(pixScale != 1.0){
-					gfx.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
-				}
-				// 拖拽调整宽度时，缓存图像可能还是旧宽度，先避免横向拉伸导致内容被压缩。
-				val imagePaintWidth = min(renderWidth, it.width)
+				gfx.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR)
+				// 拖拽调整宽度时，缓存图像可能还是旧宽度，保持源图和目标宽度同步，避免横向拉伸。
+				val imagePaintWidth = min(renderWidth, fromRasterSize(it.width, pixScale))
+				val imagePaintRasterWidth = min(it.width, toRasterSize(imagePaintWidth, pixScale))
+				val sourceStartY = toRasterCoordinate(scrollState.visibleStart, pixScale)
+				val sourceEndY = min(it.height, toRasterCoordinate(scrollState.visibleEnd, pixScale))
 				drawImage(it, 0, 0, imagePaintWidth, scrollState.drawHeight,
-					0, scrollState.visibleStart, imagePaintWidth, scrollState.visibleEnd, null)
+					0, sourceStartY, imagePaintRasterWidth, sourceEndY, null)
 			}
 			scrollbar.paint(this)
 		}

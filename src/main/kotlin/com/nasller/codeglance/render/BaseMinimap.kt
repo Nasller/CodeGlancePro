@@ -39,6 +39,8 @@ import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.beans.PropertyChangeListener
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.max
+import kotlin.math.roundToInt
 
 abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.Listener, PropertyChangeListener,
 	PrioritizedDocumentListener, FoldingListener, MarkupModelListener, SoftWrapChangeListener, BookmarksListener, Disposable {
@@ -125,8 +127,28 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 	}
 
 	@Suppress("UndesirableClassUsage")
-	protected fun getBufferedImage(scrollState: ScrollState) = BufferedImage(glancePanel.getLogicalWidth(),
-			scrollState.documentHeight + (100 * scrollState.getRenderHeight()), BufferedImage.TYPE_INT_ARGB)
+	protected fun getBufferedImage(scrollState: ScrollState) = BufferedImage(
+		getRasterWidth(glancePanel.getLogicalWidth()),
+		getRasterBufferHeight(scrollState.documentHeight, scrollState.getRenderHeight()),
+		BufferedImage.TYPE_INT_ARGB
+	)
+
+	protected fun getRasterScale(): Double = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
+
+	protected fun getRasterWidth(logicalWidth: Int, rasterScale: Double = getRasterScale()) =
+		toRasterSize(logicalWidth, rasterScale)
+
+	protected fun getRasterHeight(logicalHeight: Double, rasterScale: Double = getRasterScale()) =
+		toRasterSize(logicalHeight, rasterScale)
+
+	protected fun getRasterBufferHeight(documentHeight: Int, renderHeight: Int, rasterScale: Double = getRasterScale()) =
+		toRasterBufferHeight(documentHeight, renderHeight, rasterScale)
+
+	protected fun toRasterX(logicalX: Int, rasterScale: Double = getRasterScale()) =
+		toRasterCoordinate(logicalX, rasterScale)
+
+	protected fun toRasterY(logicalY: Int, rasterScale: Double = getRasterScale()) =
+		toRasterCoordinate(logicalY, rasterScale)
 
 	protected fun canUpdate() = glancePanel.checkVisible() && (editor.editorKind == EditorKind.CONSOLE || virtualFile == null
 			|| runReadActionBlocking { editor.highlighter !is EmptyEditorHighlighter })
@@ -158,67 +180,83 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 		scaleBuffer[2] = (this shr 0) and 0xFF //BLUE
 	}
 
-	protected fun BufferedImage.renderImage(x: Int, y: Int, char: Int,pixelsPerLine: Int, consumer: (() -> Unit)? = null) {
-		if (char !in 0..32 && x in 0 until width && 0 <= y && y + pixelsPerLine < height) {
+	protected fun BufferedImage.renderImage(
+		x: Int,
+		y: Int,
+		char: Int,
+		pixelsPerLine: Int,
+		rasterScale: Double = getRasterScale(),
+		consumer: (() -> Unit)? = null
+	) {
+		val rasterXStart = toRasterX(x, rasterScale)
+		val rasterXEnd = max(rasterXStart + 1, toRasterX(x + 1, rasterScale))
+		val rasterYStart = toRasterY(y, rasterScale)
+		val rasterYEnd = max(rasterYStart + 1, toRasterY(y + pixelsPerLine, rasterScale))
+		if (char !in 0..32 && rasterXStart < width && rasterXEnd > 0 && rasterYStart >= 0 && rasterYEnd <= height) {
 			consumer?.invoke()
 			if (config.clean) {
-				renderClean(x, y, char, pixelsPerLine)
+				renderClean(rasterXStart, rasterXEnd, rasterYStart, rasterYEnd, char, pixelsPerLine)
 			} else {
-				renderAccurate(x, y, char, pixelsPerLine)
+				renderAccurate(rasterXStart, rasterXEnd, rasterYStart, rasterYEnd, char, pixelsPerLine)
 			}
 		}
 	}
 
-	private fun BufferedImage.renderClean(x: Int, y: Int, char: Int, pixelsPerLine: Int) {
+	private fun BufferedImage.renderClean(
+		xStart: Int,
+		xEnd: Int,
+		yStart: Int,
+		yEnd: Int,
+		char: Int,
+		pixelsPerLine: Int
+	) {
 		val weight = when (char) {
 			in 33..126 -> 0.8f
 			else -> 0.4f
 		}
-		when (pixelsPerLine) {
-			// Can't show space between lines anymore. This looks rather ugly...
-			1 -> setPixel(x, y + 1, weight * 0.6f)
-			// Two lines we make the top line a little lighter to give the illusion of space between lines.
-			2 -> {
-				setPixel(x, y, weight * 0.3f)
-				setPixel(x, y + 1, weight * 0.6f)
-			}
-			// Three lines we make the top nearly empty, and fade the bottom a little too
-			3 -> {
-				setPixel(x, y, weight * 0.1f)
-				setPixel(x, y + 1, weight * 0.6f)
-				setPixel(x, y + 2, weight * 0.6f)
-			}
-			// Empty top line, Nice blend for everything else
-			4 -> {
-				setPixel(x, y + 1, weight * 0.6f)
-				setPixel(x, y + 2, weight * 0.6f)
-				setPixel(x, y + 3, weight * 0.6f)
-			}
+		val weights = when (pixelsPerLine.coerceIn(1, 4)) {
+			1 -> floatArrayOf(weight * 0.6f)
+			2 -> floatArrayOf(weight * 0.3f, weight * 0.6f)
+			3 -> floatArrayOf(weight * 0.1f, weight * 0.6f, weight * 0.6f)
+			else -> floatArrayOf(0f, weight * 0.6f, weight * 0.6f, weight * 0.6f)
 		}
+		fillRasterizedPixels(xStart, xEnd, yStart, yEnd, weights)
 	}
 
-	private fun BufferedImage.renderAccurate(x: Int, y: Int, char: Int, pixelsPerLine: Int) {
+	private fun BufferedImage.renderAccurate(
+		xStart: Int,
+		xEnd: Int,
+		yStart: Int,
+		yEnd: Int,
+		char: Int,
+		pixelsPerLine: Int
+	) {
 		val topWeight = getTopWeight(char)
 		val bottomWeight = getBottomWeight(char)
-		when (pixelsPerLine) {
-			// Can't show space between lines anymore. This looks rather ugly...
-			1 -> setPixel(x, y + 1, (topWeight + bottomWeight) / 2)
-			// Two lines we make the top line a little lighter to give the illusion of space between lines.
-			2 -> {
-				setPixel(x, y, topWeight * 0.5f)
-				setPixel(x, y + 1, bottomWeight)
-			}
-			// Three lines we make the top nearly empty, and fade the bottom a little too
-			3 -> {
-				setPixel(x, y, topWeight * 0.3f)
-				setPixel(x, y + 1, (topWeight + bottomWeight) / 2)
-				setPixel(x, y + 2, bottomWeight * 0.7f)
-			}
-			// Empty top line, Nice blend for everything else
-			4 -> {
-				setPixel(x, y + 1, topWeight)
-				setPixel(x, y + 2, (topWeight + bottomWeight) / 2)
-				setPixel(x, y + 3, bottomWeight)
+		val weights = when (pixelsPerLine.coerceIn(1, 4)) {
+			1 -> floatArrayOf((topWeight + bottomWeight) / 2)
+			2 -> floatArrayOf(topWeight * 0.5f, bottomWeight)
+			3 -> floatArrayOf(topWeight * 0.3f, (topWeight + bottomWeight) / 2, bottomWeight * 0.7f)
+			else -> floatArrayOf(0f, topWeight, (topWeight + bottomWeight) / 2, bottomWeight)
+		}
+		fillRasterizedPixels(xStart, xEnd, yStart, yEnd, weights)
+	}
+
+	private fun BufferedImage.fillRasterizedPixels(
+		xStart: Int,
+		xEnd: Int,
+		yStart: Int,
+		yEnd: Int,
+		baseWeights: FloatArray
+	) {
+		val rasterHeight = yEnd - yStart
+		if (rasterHeight <= 0 || xEnd <= xStart) return
+		for (row in 0 until rasterHeight) {
+			val weightIndex = (((row + 0.5) * baseWeights.size) / rasterHeight).toInt().coerceIn(0, baseWeights.lastIndex)
+			val alpha = baseWeights[weightIndex]
+			if (alpha <= 0f) continue
+			for (col in xStart until xEnd) {
+				setPixel(col, yStart + row, alpha)
 			}
 		}
 	}
@@ -231,6 +269,48 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 	private fun BufferedImage.setPixel(x: Int, y: Int, alpha: Float) {
 		scaleBuffer[3] = (alpha * 0xFF).toInt()
 		raster.setPixel(x, y, scaleBuffer)
+	}
+
+	protected fun createMarkFont(attributes: TextAttributes): Font {
+		return editor.colorsScheme.getFont(when (attributes.fontType) {
+			Font.BOLD -> EditorFontType.BOLD
+			Font.ITALIC -> EditorFontType.BOLD_ITALIC
+			Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
+			else -> EditorFontType.BOLD
+		}).deriveFont(config.markersScaleFactor * 3)
+	}
+
+	protected fun createMarkTextFont(commentText: String, baseFont: Font, fontType: Int): Font {
+		return if (!SystemInfoRt.isMac && baseFont.canDisplayUpTo(commentText) != -1) {
+			UIUtil.getFontWithFallback(baseFont).deriveFont(fontType, baseFont.size2D)
+		} else {
+			baseFont
+		}
+	}
+
+	protected fun configureMarkGraphics(graphics: Graphics2D, pixScale: Double, scaleGraphics: Boolean = true) {
+		graphics.composite = GlancePanel.srcOver
+		EditorUIUtil.setupAntialiasing(graphics)
+		if (scaleGraphics) {
+			graphics.scale(pixScale, pixScale)
+		}
+	}
+
+	protected fun computeMarkBaseline(logicalY: Double, font: Font, pixelsPerLine: Double, pixScale: Double): Int {
+		return computeMarkBaseline(logicalY, font.size, pixelsPerLine, pixScale)
+	}
+
+	protected fun computeMarkOccupiedHeight(font: Font, pixScale: Double): Double {
+		return computeMarkOccupiedHeight(font.size, pixScale)
+	}
+
+	protected fun computeMarkOverflowHeight(font: Font, pixelsPerLine: Double, pixScale: Double): Double {
+		val currentLineHeight = if (pixelsPerLine < 1) 0.0 else pixelsPerLine
+		return (computeMarkOccupiedHeight(font, pixScale) - currentLineHeight).coerceAtLeast(0.0)
+	}
+
+	protected fun computeMarkEndLine(startLine: Int, font: Font, pixelsPerLine: Double, pixScale: Double): Int {
+		return startLine + (computeMarkOccupiedHeight(font, pixScale) / pixelsPerLine).toInt()
 	}
 
 	protected fun makeListener(){
@@ -253,30 +333,21 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 			val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
 			for (rangeMarker in markCommentMap) {
 				val attributes = rangeMarker.getTextAttributes(editor.colorsScheme)!!
-				val font = editor.colorsScheme.getFont(when (attributes.fontType) {
-					Font.BOLD -> EditorFontType.BOLD
-					Font.ITALIC -> EditorFontType.BOLD_ITALIC
-					Font.ITALIC or Font.BOLD -> EditorFontType.BOLD_ITALIC
-					else -> EditorFontType.BOLD
-				}).deriveFont(config.markersScaleFactor * 3 / pixScale.toFloat())
+				val font = createMarkFont(attributes)
 				val startOffset = rangeMarker.startOffset
 				runReadActionBlocking {
 					file?.findElementAt(startOffset)?.let { comment ->
 						val textRange = if (rangeMarker is MarkState.BookmarkHighlightDelegate)
 							comment.nextSibling?.textRange ?: comment.textRange else comment.textRange
 						val commentText = rangeMarker.getUserData(MarkState.BOOK_MARK_DESC_KEY) ?: text.substring(startOffset, rangeMarker.endOffset).trim()
-						val textFont = if (!SystemInfoRt.isMac && font.canDisplayUpTo(commentText) != -1) {
-							UIUtil.getFontWithFallback(font).deriveFont(attributes.fontType, font.size2D)
-						} else font
-					val line = editor.document.getLineNumber(textRange.startOffset) + (font.size / scrollState.pixelsPerLine * pixScale).toInt()
+						val textFont = createMarkTextFont(commentText, font, attributes.fontType)
+						val line = computeMarkEndLine(editor.document.getLineNumber(textRange.startOffset), textFont, scrollState.pixelsPerLine, pixScale)
 						val jumpEndOffset = if (lineCount <= line) text.length else editor.document.getLineEndOffset(line)
 						map[textRange.startOffset] = MarkCommentData(jumpEndOffset, commentText, textFont, attributes.errorStripeColor)
 					}
 				}
 			}
-			graphics.composite = GlancePanel.srcOver
-			EditorUIUtil.setupAntialiasing(graphics)
-			graphics.scale(pixScale, pixScale)
+			configureMarkGraphics(graphics, pixScale)
 			map
 		} else emptyMap()
 	}
@@ -347,12 +418,50 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 
 	protected data class MarkCommentData(var jumpEndOffset: Int, val comment: String, val font: Font, val color: Color)
 
-	@Suppress("UNCHECKED_CAST", "UndesirableClassUsage")
+	@Suppress("UndesirableClassUsage")
 	companion object{
 		val EMPTY_IMG = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB)
 
-		internal fun shouldRecreateImage(curImg: BufferedImage?, documentHeight: Int, logicalWidth: Int): Boolean {
-			return curImg == null || curImg.height < documentHeight || curImg.width != logicalWidth
+		internal fun toRasterSize(logicalSize: Int, rasterScale: Double): Int {
+			return max(1, (logicalSize * rasterScale).roundToInt())
+		}
+
+		internal fun toRasterSize(logicalSize: Double, rasterScale: Double): Int {
+			return max(1, (logicalSize * rasterScale).roundToInt())
+		}
+
+		internal fun toRasterCoordinate(logicalCoordinate: Int, rasterScale: Double): Int {
+			return (logicalCoordinate * rasterScale).roundToInt()
+		}
+
+		internal fun fromRasterSize(rasterSize: Int, rasterScale: Double): Int {
+			return max(1, (rasterSize / rasterScale).roundToInt())
+		}
+
+		internal fun toRasterBufferHeight(documentHeight: Int, renderHeight: Int, rasterScale: Double): Int {
+			return toRasterSize(documentHeight + (100 * renderHeight), rasterScale)
+		}
+
+		@Suppress("UNUSED_PARAMETER")
+		internal fun computeMarkBaseline(logicalY: Double, fontSize: Int, pixelsPerLine: Double, pixScale: Double): Int {
+			return (logicalY + computeMarkOccupiedHeight(fontSize, pixScale)).toInt()
+		}
+
+		@Suppress("UNUSED_PARAMETER")
+		internal fun computeMarkOccupiedHeight(fontSize: Int, pixScale: Double): Double {
+			return fontSize.toDouble()
+		}
+
+		internal fun shouldRecreateImage(
+			curImg: BufferedImage?,
+			documentHeight: Int,
+			logicalWidth: Int,
+			renderHeight: Int,
+			rasterScale: Double
+		): Boolean {
+			return curImg == null ||
+				curImg.height < toRasterBufferHeight(documentHeight, renderHeight, rasterScale) ||
+				curImg.width != toRasterSize(logicalWidth, rasterScale)
 		}
 
 		fun EditorKind.getMinimap(glancePanel: GlancePanel): BaseMinimap = glancePanel.run {

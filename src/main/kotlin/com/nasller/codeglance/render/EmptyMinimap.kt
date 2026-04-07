@@ -54,7 +54,8 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 
 	private fun getMinimapImage(): BufferedImage? {
 		var curImg = imgReference.value.get()
-		if (shouldRecreateImage(curImg, scrollState.documentHeight, glancePanel.getLogicalWidth())) {
+		val rasterScale = getRasterScale()
+		if (shouldRecreateImage(curImg, scrollState.documentHeight, glancePanel.getLogicalWidth(), scrollState.getRenderHeight(), rasterScale)) {
 			curImg?.flush()
 			curImg = getBufferedImage(scrollState)
 			imgReference = lazyOf(MySoftReference.create(curImg, editor.editorKind != EditorKind.MAIN_EDITOR))
@@ -117,8 +118,7 @@ class EmptyMinimap (glancePanel: GlancePanel) : BaseMinimap(glancePanel) {
 				if(commentData != null){
 					graphics.font = commentData.font
 					graphics.color = commentData.color
-					graphics.drawString(commentData.comment,2, ((y + commentData.font.size * pixScale -
-							(if(pixScale != 1.0) scrollState.pixelsPerLine - 1 else 0.0)) / pixScale).toInt())
+					graphics.drawString(commentData.comment, 2, computeMarkBaseline(y, commentData.font, scrollState.pixelsPerLine, pixScale))
 					if (softWrapEnable) {
 						val softWraps = editor.softWrapModel.getSoftWrapsForRange(start, commentData.jumpEndOffset)
 						softWraps.forEachIndexed { index, softWrap ->
