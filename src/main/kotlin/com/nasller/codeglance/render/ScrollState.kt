@@ -32,7 +32,12 @@ class ScrollState : Cloneable{
 
     fun GlancePanel.computeDimensions(visibleArea: Rectangle, visibleChange: Boolean): Boolean {
         val lineHeight = editor.lineHeight
-        val contentHeight = editor.contentComponent.height
+        val contentHeight = resolveContentHeight(
+            layoutHeight = editor.contentComponent.height,
+            visibleAreaHeight = visibleArea.height,
+            lineHeight = lineHeight,
+            visibleLineCount = editor.visibleLineCount
+        )
         val newScale = config.pixelsPerLine.toDouble() / lineHeight
         val curDocumentHeight = (contentHeight * newScale).roundToInt()
         if(config.editorSize == EditorSizeEnum.Fit && curDocumentHeight > visibleArea.height) {
@@ -98,5 +103,24 @@ class ScrollState : Cloneable{
 
     public override fun clone(): ScrollState {
         return super.clone() as ScrollState
+    }
+
+    companion object {
+        internal fun resolveContentHeight(
+            layoutHeight: Int,
+            visibleAreaHeight: Int,
+            lineHeight: Int,
+            visibleLineCount: Int
+        ): Int {
+            if (layoutHeight <= 0 || visibleAreaHeight <= 0 || lineHeight <= 0 || visibleLineCount <= 0) {
+                return layoutHeight
+            }
+            val lineBasedHeight = visibleLineCount * lineHeight
+            return if (lineBasedHeight <= visibleAreaHeight && layoutHeight > lineBasedHeight) {
+                lineBasedHeight
+            } else {
+                layoutHeight
+            }
+        }
     }
 }

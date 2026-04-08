@@ -22,6 +22,7 @@ import com.nasller.codeglance.config.enums.ClickTypeEnum
 import com.nasller.codeglance.config.enums.MouseJumpEnum
 import com.nasller.codeglance.panel.GlancePanel
 import com.nasller.codeglance.panel.GlancePanel.Companion.fitLineToEditor
+import com.nasller.codeglance.render.ScrollState
 import com.nasller.codeglance.util.Util
 import java.awt.*
 import java.awt.event.MouseAdapter
@@ -298,7 +299,17 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(alignedY + scrollState.visibleStart))
 		}else{
 			if(scrollState.drawHeight == scrollState.visibleHeight){
-				editor.yToVisualLine((alignedY / scrollState.visibleHeight.toFloat() * editor.contentComponent.height).roundToInt())
+				val contentHeight = if (scrollState.scale > 0) {
+					(scrollState.documentHeight / scrollState.scale).roundToInt()
+				} else {
+					ScrollState.resolveContentHeight(
+						layoutHeight = editor.contentComponent.height,
+						visibleAreaHeight = editor.scrollingModel.visibleArea.height,
+						lineHeight = editor.lineHeight,
+						visibleLineCount = editor.visibleLineCount
+					)
+				}
+				editor.yToVisualLine((alignedY / scrollState.visibleHeight.toFloat() * contentHeight).roundToInt())
 			}else{
 				fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(alignedY + scrollState.visibleStart))
 			}
