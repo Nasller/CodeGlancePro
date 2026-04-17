@@ -201,17 +201,16 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(message("plugins"),"c
                 }
 			}
 			group(message("settings.option")) {
-				twoColumnsRow({
+				threeColumnsRow({
 					checkBox(message("settings.disabled"))
 						.bindSelected(config::disabled)
 				}, {
 					checkBox(message("settings.hide.original.scrollbar"))
 						.bindSelected(config::hideOriginalScrollBar)
-				})
-				row {
+				}, {
 					checkBox(message("settings.enable.hidpi"))
 						.bindSelected(config::enableHiDpi)
-				}
+				})
 				threeColumnsRow({
 					checkBox(message("settings.highlight.vcs"))
 						.bindSelected(config::showVcsHighlight)
