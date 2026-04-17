@@ -37,7 +37,6 @@ import javax.swing.JPanel
 import javax.swing.SwingUtilities
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.roundToInt
 
 class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val editor = info.editor
@@ -87,7 +86,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	fun updateScrollState(visibleArea: Rectangle? = null, visibleChange: Boolean = true) = scrollState.run {
 		val visible = visibleArea ?: editor.scrollingModel.visibleArea
 		val repaint = computeDimensions(visible, visibleChange)
-		recomputeVisible(visible, scaleContext.getScale(DerivedScaleType.PIX_SCALE))
+		recomputeVisible(visible, getPixScale())
 		return@run repaint
 	}
 
@@ -298,16 +297,18 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		} else curWidth
 	}
 
+	fun getPixScale() = if (config.enableHiDpi) scaleContext.getScale(DerivedScaleType.PIX_SCALE) else 1.0
+
 	fun getConfigSize(): Dimension{
-		val pixScale = scaleContext.getScale(DerivedScaleType.PIX_SCALE)
-		return Dimension((getLogicalWidth() * pixScale).roundToInt(), 0)
+		// 组件布局宽度应保持逻辑宽度，HiDPI 仅影响绘制，不应重复放大面板占位。
+		return Dimension(getLogicalWidth(), 0)
 	}
 
 	override fun paintComponent(gfx: Graphics) {
 		super.paintComponent(gfx)
 		if(isReleased) return
 		with(gfx as Graphics2D){
-			val pixScale = scaleContext.getScale(DerivedScaleType.PIX_SCALE)
+			val pixScale = getPixScale()
 			val renderWidth = getLogicalWidth()
 			scale(pixScale, pixScale)
 			if(hideScrollBarListener.isNotRunning()) runReadActionBlocking { paintSomething() }

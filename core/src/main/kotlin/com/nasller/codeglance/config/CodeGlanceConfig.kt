@@ -16,6 +16,7 @@ class CodeGlanceConfig : BaseState() {
 	var disabled by property(false)
 	var singleFileVisibleButton by property(true)
 	var hideOriginalScrollBar by property(false)
+	var enableHiDpi by property(true)
 	var autoCalWidthInSplitterMode by property(true)
 	var showEditorToolTip by property(true)
 	var mouseWheelMoveEditorToolTip by property(false)

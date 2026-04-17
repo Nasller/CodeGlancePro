@@ -3,7 +3,6 @@ package com.nasller.codeglance.panel.vcs
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.editor.VisualPosition
 import com.intellij.openapi.util.Disposer
-import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.ui.MouseEventAdapter
 import com.nasller.codeglance.listener.MyVcsListener
 import com.nasller.codeglance.panel.GlancePanel
@@ -17,7 +16,6 @@ import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
 import javax.swing.JPanel
-import kotlin.math.roundToInt
 
 class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 	private val editor
@@ -33,15 +31,14 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 	}
 
 	override fun getPreferredSize(): Dimension {
-		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
-		return Dimension((8 * pixScale).roundToInt(), 0)
+		return Dimension(8, 0)
 	}
 
 	override fun paintComponent(gfx: Graphics): Unit = glancePanel.run {
 		super.paintComponent(gfx)
 		if(glancePanel.isReleased) return
 		with(gfx as Graphics2D){
-			val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
+			val pixScale = glancePanel.getPixScale()
 			scale(pixScale, pixScale)
 			paintVcs(getVisibleRangeOffset(),8)
 		}

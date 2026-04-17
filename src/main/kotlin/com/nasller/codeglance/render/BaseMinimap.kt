@@ -26,7 +26,6 @@ import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfoRt
 import com.intellij.psi.tree.IElementType
-import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.containers.ContainerUtil
@@ -133,7 +132,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 		BufferedImage.TYPE_INT_ARGB
 	)
 
-	protected fun getRasterScale(): Double = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
+	protected fun getRasterScale(): Double = glancePanel.getPixScale()
 
 	protected fun getRasterWidth(logicalWidth: Int, rasterScale: Double = getRasterScale()) =
 		toRasterSize(logicalWidth, rasterScale)
@@ -330,7 +329,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 			val lineCount = editor.document.lineCount
 			val map = mutableMapOf<Int, MarkCommentData>()
 			val file = runReadActionBlocking { glancePanel.psiDocumentManager.getCachedPsiFile(editor.document) }
-			val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
+			val pixScale = glancePanel.getPixScale()
 			for (rangeMarker in markCommentMap) {
 				val attributes = rangeMarker.getTextAttributes(editor.colorsScheme)!!
 				val font = createMarkFont(attributes)

@@ -10,7 +10,6 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.ui.ColorUtil
 import com.intellij.ui.HintHint
-import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.Alarm
 import com.intellij.util.ui.GraphicsUtil
 import com.intellij.util.ui.JBUI
@@ -123,7 +122,6 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 			val newWidth = calculateResizedLogicalWidth(
 				widthStart = widthStart,
 				screenDeltaX = e.xOnScreen - resizeStart,
-				pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE),
 				resizeFromLeft = editor.getUserData(GlancePanel.CURRENT_GLANCE_PLACE_INDEX) == GlancePanel.PlaceIndex.Left
 			)
 			editor.editorKind.setWidth(newWidth.coerceIn(Util.MIN_WIDTH, Util.MAX_WIDTH))
@@ -230,7 +228,7 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		val y = e.y.alignedToY(glancePanel) + myWheelAccumulator
 		val visualLine = fitLineToEditor(editor, glancePanel.getMyRenderVisualLine(y + scrollState.visibleStart))
 		myLastVisualLine = visualLine
-		val maxDisplayY = (scrollState.drawHeight * glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)).roundToInt()
+		val maxDisplayY = (scrollState.drawHeight * glancePanel.getPixScale()).roundToInt()
 		val point = SwingUtilities.convertPoint(glancePanel, 0, e.y.coerceIn(0, maxDisplayY), editor.scrollPane.verticalScrollBar)
 		val me = MouseEvent(editor.scrollPane.verticalScrollBar, e.id, e.`when`, e.modifiersEx, 1, point.y, e.clickCount, e.isPopupTrigger)
 		val highlighters = mutableListOf<RangeHighlighterEx>()
@@ -336,16 +334,15 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 		private const val MIN_VIEWPORT_HEIGHT = 20
 		val PREVIEW_LINES = max(2, min(25, Integer.getInteger("preview.lines", 5)))
 
-		fun Int.alignedToY(glancePanel: GlancePanel) = (this / glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)).toInt()
+		fun Int.alignedToY(glancePanel: GlancePanel) = (this / glancePanel.getPixScale()).toInt()
 
-		fun Int.alignedToX(glancePanel: GlancePanel) = (this / glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)).toInt()
+		fun Int.alignedToX(glancePanel: GlancePanel) = (this / glancePanel.getPixScale()).toInt()
 
-		fun calculateResizedLogicalWidth(widthStart: Int, screenDeltaX: Int, pixScale: Double, resizeFromLeft: Boolean): Int {
-			val logicalDelta = (screenDeltaX / pixScale).roundToInt()
+		fun calculateResizedLogicalWidth(widthStart: Int, screenDeltaX: Int, resizeFromLeft: Boolean): Int {
 			return if (resizeFromLeft) {
-				widthStart + logicalDelta
+				widthStart + screenDeltaX
 			} else {
-				widthStart - logicalDelta
+				widthStart - screenDeltaX
 			}
 		}
 

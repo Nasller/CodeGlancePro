@@ -10,7 +10,6 @@ import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.util.text.StringUtil
-import com.intellij.ui.scale.DerivedScaleType
 import com.intellij.util.DocumentUtil
 import com.intellij.util.Range
 import com.intellij.util.SingleAlarm
@@ -84,7 +83,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 			return
 		}
 		glancePanel.setLineCount()
-		val pixScale = glancePanel.scaleContext.getScale(DerivedScaleType.PIX_SCALE)
+		val pixScale = glancePanel.getPixScale()
 		val defaultColor = editor.colorsScheme.defaultForeground
 		val hlIter = editor.highlighter.createIterator(0).run {
 			if(isLogFile) IdeLogFileHighlightDelegate(editor.document,this) else this
