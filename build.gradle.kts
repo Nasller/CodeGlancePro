@@ -62,7 +62,14 @@ intellijPlatform {
 			untilBuild = properties("pluginUntilBuild")
 		}
 	}
+
 	sandboxContainer = layout.projectDirectory.dir(properties("sandboxDir").get())
+	
+	pluginVerification {
+    	ides {
+	        recommended()
+    	}
+	}
 
 	val passwordFile = File(env.getOrDefault("PRIVATE_KEY_PASSWORD", "$dir/pluginCert/password.txt"))
 	if (passwordFile.exists()) {
