@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -33,3 +34,10 @@ jobs:
 
       - name: Build
         run: ./gradlew build --no-daemon
+
+      - name: Upload plugin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CodeGlancePro-plugin
+          path: build/distributions/*.zip
+          if-no-files-found: error
