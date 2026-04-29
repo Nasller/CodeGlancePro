@@ -36,7 +36,8 @@ class ScrollState : Cloneable{
             layoutHeight = editor.contentComponent.height,
             visibleAreaHeight = visibleArea.height,
             lineHeight = lineHeight,
-            visibleLineCount = editor.visibleLineCount
+            visibleLineCount = editor.visibleLineCount,
+            additionalPageAtBottom = editor.settings.isAdditionalPageAtBottom
         )
         val newScale = config.pixelsPerLine.toDouble() / lineHeight
         val curDocumentHeight = (contentHeight * newScale).roundToInt()
@@ -110,8 +111,12 @@ class ScrollState : Cloneable{
             layoutHeight: Int,
             visibleAreaHeight: Int,
             lineHeight: Int,
-            visibleLineCount: Int
+            visibleLineCount: Int,
+            additionalPageAtBottom: Boolean = false
         ): Int {
+            if (additionalPageAtBottom) {
+                return layoutHeight
+            }
             if (layoutHeight <= 0 || visibleAreaHeight <= 0 || lineHeight <= 0 || visibleLineCount <= 0) {
                 return layoutHeight
             }

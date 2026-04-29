@@ -304,7 +304,8 @@ class ScrollBar(private val glancePanel: GlancePanel) : MouseAdapter() {
 						layoutHeight = editor.contentComponent.height,
 						visibleAreaHeight = editor.scrollingModel.visibleArea.height,
 						lineHeight = editor.lineHeight,
-						visibleLineCount = editor.visibleLineCount
+						visibleLineCount = editor.visibleLineCount,
+						additionalPageAtBottom = editor.settings.isAdditionalPageAtBottom
 					)
 				}
 				editor.yToVisualLine((alignedY / scrollState.visibleHeight.toFloat() * contentHeight).roundToInt())

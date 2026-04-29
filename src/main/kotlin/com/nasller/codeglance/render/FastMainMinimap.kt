@@ -102,9 +102,9 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 			if(pixelsPerLine < 1){
 				getBufferedImage(myScrollState)
 			}else {
-				val height = copyList.filterNotNull().sumOf {
+				val height = max(myScrollState.documentHeight.toDouble(), copyList.filterNotNull().sumOf {
 					it.getLineHeight(pixelsPerLine, scale) + it.aboveBlockLine * scale
-				} + (5 * pixelsPerLine)
+				} + (5 * pixelsPerLine))
 				BufferedImage(
 					getRasterWidth(glancePanel.getLogicalWidth(), pixScale),
 					getRasterHeight(height, pixScale),
