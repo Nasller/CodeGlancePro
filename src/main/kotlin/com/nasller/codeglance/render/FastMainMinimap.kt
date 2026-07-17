@@ -49,9 +49,12 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		it.addAll(ObjectArrayList.wrap(arrayOfNulls(editor.visibleLineCount)))
 	}
 	private val mySoftWrapChangeListener = Proxy.newProxyInstance(platformClassLoader, arrayOf(softWrapListenerClass)) { _, method, args ->
-		return@newProxyInstance if(HOOK_ON_REGION_REPARSE_END_METHOD == method.name && args?.size == 1){
-			 onSoftWrapRecalculationEnd(args[0] as IncrementalCacheUpdateEvent)
-		}else null
+		return@newProxyInstance when (method.name) {
+			HOOK_ON_REGION_REPARSE_END_METHOD if args?.size == 1 -> onSoftWrapRecalculationEnd(args[0] as IncrementalCacheUpdateEvent)
+			HOOK_ON_ALL_DIRTY_REGIONS_REPARSED_METHOD if args == null -> onAllDirtySoftWrapRegionsReparsed()
+			HOOK_RESET_METHOD if args == null -> onSoftWrapReset()
+			else -> null
+		}
 	}.also { editor.softWrapModel.addSoftWrapListener(it) }
 	private var previewImg = EMPTY_IMG
 	private val myRenderDirty = AtomicBoolean(false)
@@ -498,6 +501,20 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		}
 	}
 
+	private fun onAllDirtySoftWrapRegionsReparsed() {
+		if (myDocument.isInBulkUpdate) return
+		if (myDirty) {
+			myDirty = false
+			resetMinimapData()
+		}else {
+			assertValidState()
+		}
+	}
+
+	private fun onSoftWrapReset() {
+		myDirty = true
+	}
+
 	/** MarkupModelListener & BookmarksListener */
 	override fun updateRangeHighlight(highlighter: RangeMarker) {
 		EdtInvocationManager.invokeLaterIfNeeded {
@@ -721,6 +738,8 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	companion object{
 		private val LOG = LoggerFactory.getLogger(FastMainMinimap::class.java)
 		private const val HOOK_ON_REGION_REPARSE_END_METHOD = "onRegionReparseEnd"
+		private const val HOOK_ON_ALL_DIRTY_REGIONS_REPARSED_METHOD = "onAllDirtyRegionsReparsed"
+		private const val HOOK_RESET_METHOD = "reset"
 		private val platformClassLoader = EditorImpl::class.java.classLoader
 		private val softWrapListenerClass = Class.forName("com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapParsingListener")
 		private val addSoftWrapParsingListener = SoftWrapModelImpl::class.java.getDeclaredMethod("addSoftWrapParsingListener", softWrapListenerClass).apply {
