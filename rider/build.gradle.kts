@@ -15,6 +15,7 @@ dependencies {
 	intellijPlatform {
 		rider(providers.gradleProperty("riderPlatformVersion"))
 		pluginComposedModule(implementation(project(":core")))
+		bundledModule("intellij.rider.languages")
 		javaCompiler("243.21565.192")
 	}
 }

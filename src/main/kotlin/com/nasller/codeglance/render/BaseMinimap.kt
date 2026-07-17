@@ -38,6 +38,7 @@ import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.beans.PropertyChangeListener
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -250,9 +251,19 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 	) {
 		val rasterHeight = yEnd - yStart
 		if (rasterHeight <= 0 || xEnd <= xStart) return
+		val lastWeightIndex = baseWeights.lastIndex
 		for (row in 0 until rasterHeight) {
-			val weightIndex = (((row + 0.5) * baseWeights.size) / rasterHeight).toInt().coerceIn(0, baseWeights.lastIndex)
-			val alpha = baseWeights[weightIndex]
+			// 物理行映射回逻辑权重坐标后做线性插值，避免整数索引把每个权重阶梯式复制成 pixScale 行（块状/最近邻放大）。
+			val weightPos = ((row + 0.5) / rasterHeight) * baseWeights.size - 0.5
+			val alpha = if (lastWeightIndex <= 0) {
+				baseWeights[0]
+			} else {
+				val clamped = weightPos.coerceIn(0.0, lastWeightIndex.toDouble())
+				val lower = floor(clamped).toInt()
+				val upper = (lower + 1).coerceAtMost(lastWeightIndex)
+				val fraction = (clamped - lower).toFloat()
+				baseWeights[lower] + (baseWeights[upper] - baseWeights[lower]) * fraction
+			}
 			if (alpha <= 0f) continue
 			for (col in xStart until xEnd) {
 				setPixel(col, yStart + row, alpha)

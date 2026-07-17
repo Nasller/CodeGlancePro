@@ -15,6 +15,7 @@ dependencies {
 	intellijPlatform {
 		clion(providers.gradleProperty("clionPlatformVersion"))
 		pluginComposedModule(implementation(project(":core")))
-		bundledPlugins("com.intellij.cidr.lang", "org.jetbrains.plugins.clion.radler")
+		bundledPlugins("org.jetbrains.plugins.clion.radler")
+		plugins(providers.gradleProperty("clionPlugins").map { it.split(',') })
 	}
 }

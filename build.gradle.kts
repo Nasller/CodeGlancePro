@@ -1,3 +1,4 @@
+
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import java.time.LocalDateTime
@@ -18,10 +19,10 @@ version = properties("pluginVersion").get() + if(env.getOrDefault("snapshots",""
 else if(env.getOrDefault("PUBLISH_CHANNEL","") == "EAP") "-SNAPSHOT-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm")) else ""
 
 dependencies {
-	implementation("net.bytebuddy:byte-buddy:1.15.10")
-	implementation("net.bytebuddy:byte-buddy-agent:1.15.10")
-	testImplementation("junit:junit:4.13.2")
-	testImplementation("org.opentest4j:opentest4j:1.3.0")
+	implementation(libs.byteBuddy)
+	implementation(libs.byteBuddyAgent)
+	testImplementation(libs.junit)
+	testImplementation(libs.opentest4j)
 	intellijPlatform {
 		create(properties("platformType"), properties("platformVersion"))
 		pluginComposedModule(implementation(project(":core")))

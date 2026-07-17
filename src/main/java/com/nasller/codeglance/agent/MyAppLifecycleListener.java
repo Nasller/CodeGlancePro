@@ -1,10 +1,8 @@
 package com.nasller.codeglance.agent;
 
 import com.intellij.ide.AppLifecycleListener;
-import com.intellij.ide.plugins.IdeaPluginDescriptor;
-import com.intellij.ide.plugins.PluginManagerCore;
+import com.intellij.openapi.application.PluginPathManager;
 import com.intellij.openapi.editor.impl.EditorImpl;
-import com.intellij.openapi.extensions.PluginId;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.ClassFileVersion;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -21,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -34,11 +33,11 @@ public class MyAppLifecycleListener implements AppLifecycleListener {
 
     private static void injectAgent() {
         try {
-            IdeaPluginDescriptor plugin = PluginManagerCore.getPlugin(PluginId.getId("com.nasller.CodeGlancePro"));
+            Path plugin = PluginPathManager.getPluginDistPath(MyAppLifecycleListener.class, "");
             if(plugin == null){
                 return;
             }
-            File[] files = plugin.getPluginPath().resolve("lib").toFile().listFiles(pathname -> {
+            File[] files = plugin.resolve("lib").toFile().listFiles(pathname -> {
                 String name = pathname.getName();
                 return !name.contains("searchableOptions") && name.contains("CodeGlancePro") && name.endsWith(".jar");
             });

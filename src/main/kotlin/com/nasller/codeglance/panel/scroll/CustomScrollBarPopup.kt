@@ -6,7 +6,6 @@ import com.intellij.codeInsight.daemon.DaemonCodeAnalyzerSettings
 import com.intellij.codeInsight.daemon.impl.getConfigureHighlightingLevelPopup
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.runReadActionBlocking
-import com.intellij.openapi.editor.EditorBundle
 import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
@@ -76,7 +75,7 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
                 actionGroup.addSeparator()
                 actionGroup.add(createGotoGroup())
                 actionGroup.addSeparator()
-                actionGroup.add(object : DumbAwareAction(EditorBundle.messagePointer("customize.highlighting.level.menu.item")) {
+                actionGroup.add(object : DumbAwareAction(message("customize.highlighting.level.menu.item")) {
                     override fun actionPerformed(e: AnActionEvent) {
                         val popup = getConfigureHighlightingLevelPopup(e.dataContext)
                         popup?.show(RelativePoint(comp!!, Point(x, y)))
@@ -122,7 +121,7 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
             val gotoGroup = DefaultActionGroup.createPopupGroup {
                 CodeInsightBundle.message("popup.title.next.error.action.0.goes.through", shortcutText)
             }
-            gotoGroup.add(object : ToggleAction(EditorBundle.message("errors.panel.go.to.errors.first.radio")) {
+            gotoGroup.add(object : ToggleAction(message("errors.panel.go.to.errors.first.radio")) {
                 override fun isSelected(e: AnActionEvent): Boolean =
                     DaemonCodeAnalyzerSettings.getInstance().isNextErrorActionGoesToErrorsFirst
                 override fun setSelected(e: AnActionEvent, state: Boolean) {
@@ -132,7 +131,7 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
 
                 override fun isDumbAware(): Boolean = true
             })
-            gotoGroup.add(object : ToggleAction(EditorBundle.message("errors.panel.go.to.next.error.warning.radio")) {
+            gotoGroup.add(object : ToggleAction(message("errors.panel.go.to.next.error.warning.radio")) {
                 override fun isSelected(e: AnActionEvent): Boolean =
                     !DaemonCodeAnalyzerSettings.getInstance().isNextErrorActionGoesToErrorsFirst
                 override fun setSelected(e: AnActionEvent, state: Boolean) {

@@ -24,6 +24,10 @@
 	]]></description>
 
 	<change-notes><![CDATA[
+		<h3>2.0.7</h3>
+		<ul>
+			<li>Support 2026.2-EAP</li>
+		</ul>
 		<h3>2.0.6</h3>
 		<ul>
 			<li>Fix minimap stretching when "show virtual space at the bottom of the file" is enabled.</li>

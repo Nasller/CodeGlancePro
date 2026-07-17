@@ -13,8 +13,8 @@ import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.impl.HighlighterListener
+import com.intellij.openapi.editor.impl.SoftWrapModelImpl
 import com.intellij.openapi.editor.impl.softwrap.mapping.IncrementalCacheUpdateEvent
-import com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapApplianceManager
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
@@ -48,11 +48,11 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	private val renderDataList = ObjectArrayList<LineRenderData>().also {
 		it.addAll(ObjectArrayList.wrap(arrayOfNulls(editor.visibleLineCount)))
 	}
-	private val mySoftWrapChangeListener = Proxy.newProxyInstance(platformClassLoader, softWrapListenerClass) { _, method, args ->
-		return@newProxyInstance if(HOOK_ON_RECALCULATION_END_METHOD == method.name && args?.size == 1){
+	private val mySoftWrapChangeListener = Proxy.newProxyInstance(platformClassLoader, arrayOf(softWrapListenerClass)) { _, method, args ->
+		return@newProxyInstance if(HOOK_ON_REGION_REPARSE_END_METHOD == method.name && args?.size == 1){
 			 onSoftWrapRecalculationEnd(args[0] as IncrementalCacheUpdateEvent)
 		}else null
-	}.also { editor.softWrapModel.applianceManager.addSoftWrapListener(it) }
+	}.also { editor.softWrapModel.addSoftWrapListener(it) }
 	private var previewImg = EMPTY_IMG
 	private val myRenderDirty = AtomicBoolean(false)
 	init {
@@ -657,7 +657,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 
 	override fun dispose() {
 		rangeList.clear()
-		editor.softWrapModel.applianceManager.removeSoftWrapListener(mySoftWrapChangeListener)
+		editor.softWrapModel.removeSoftWrapListener(mySoftWrapChangeListener)
 		previewImg.flush()
 	}
 
@@ -720,21 +720,24 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	@Suppress("UNCHECKED_CAST")
 	companion object{
 		private val LOG = LoggerFactory.getLogger(FastMainMinimap::class.java)
-		private const val HOOK_ON_RECALCULATION_END_METHOD = "onRecalculationEnd"
+		private const val HOOK_ON_REGION_REPARSE_END_METHOD = "onRegionReparseEnd"
 		private val platformClassLoader = EditorImpl::class.java.classLoader
-		private val softWrapListenerClass = arrayOf(Class.forName("com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapAwareDocumentParsingListener"))
-		private val softWrapListeners = SoftWrapApplianceManager::class.java.getDeclaredField("myListeners").apply {
+		private val softWrapListenerClass = Class.forName("com.intellij.openapi.editor.impl.softwrap.mapping.SoftWrapParsingListener")
+		private val addSoftWrapParsingListener = SoftWrapModelImpl::class.java.getDeclaredMethod("addSoftWrapParsingListener", softWrapListenerClass).apply {
+			isAccessible = true
+		}
+		private val removeSoftWrapParsingListener = SoftWrapModelImpl::class.java.getDeclaredMethod("removeSoftWrapParsingListener", softWrapListenerClass).apply {
 			isAccessible = true
 		}
 		private val DefaultLineRenderData = LineRenderData(emptyArray(), null, 0)
 		private val fastMinimapBackendExecutor = AppExecutorUtil.createBoundedApplicationPoolExecutor("FastMinimapBackendExecutor", 1)
 
-		private fun SoftWrapApplianceManager.addSoftWrapListener(listener: Any) {
-			(softWrapListeners.get(this) as MutableList<Any>).add(listener)
+		private fun SoftWrapModelImpl.addSoftWrapListener(listener: Any) {
+			addSoftWrapParsingListener.invoke(this, listener)
 		}
 
-		private fun SoftWrapApplianceManager.removeSoftWrapListener(listener: Any) {
-			(softWrapListeners.get(this) as MutableList<Any>).remove(listener)
+		private fun SoftWrapModelImpl.removeSoftWrapListener(listener: Any) {
+			removeSoftWrapParsingListener.invoke(this, listener)
 		}
 
 		private fun CharArray.firstLine(): CharArray{
