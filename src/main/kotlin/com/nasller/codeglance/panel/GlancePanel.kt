@@ -7,6 +7,7 @@ import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.colors.CodeInsightColors
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
+import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.editor.markup.HighlighterLayer
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
@@ -57,7 +58,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	val scaleContext = ScaleContext.create(this)
 	private val minimap = updateScrollState().run { editor.editorKind.getMinimap(this@GlancePanel) }
 	init {
-		Disposer.register(editor.disposable, this)
+		EditorUtil.disposeWithEditor(editor, this)
 		Disposer.register(this, GlanceListener(this))
 		isOpaque = false
 		isVisible = !isDefaultDisable
