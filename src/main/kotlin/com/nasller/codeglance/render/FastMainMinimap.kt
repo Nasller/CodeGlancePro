@@ -506,8 +506,6 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		if (myDirty) {
 			myDirty = false
 			resetMinimapData()
-		}else {
-			assertValidState()
 		}
 	}
 
