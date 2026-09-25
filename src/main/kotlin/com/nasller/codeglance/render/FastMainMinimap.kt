@@ -242,6 +242,18 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		}
 	}
 
+	private fun createHighlighterIterator(text: CharSequence, start: Int, end: Int) = editor.highlighter.run {
+		if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(text, start, end)
+		else{
+			val highlighterIterator = createIterator(start)
+			if(isLogFile){
+				if(highlighterIterator::class.java.name.contains("EmptyEditorHighlighter")){
+					OneLineHighlightDelegate(text, start, end)
+				}else IdeLogFileHighlightDelegate(myDocument, highlighterIterator)
+			}else highlighterIterator
+		}
+	}
+
 	private fun updateMinimapData(visLinesIterator: MyVisualLinesIterator, endVisualLine: Int?){
 		val text = myDocument.immutableCharSequence
 		val markCommentMap = glancePanel.markState.getAllMarkHighlight()
@@ -268,17 +280,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 					renderDataList[visualLine] = LineRenderData(emptyArray(), 2, aboveBlockLine,
 						LineType.MARK, commentHighlighterEx = markCommentMap[start])
 				}else if(start < text.length && start < end){
-					val hlIter = editor.highlighter.run {
-						if(this is EmptyEditorHighlighter) OneLineHighlightDelegate(text, start, end)
-						else{
-							val highlighterIterator = createIterator(start)
-							if(isLogFile){
-								if(highlighterIterator::class.java.name.contains("EmptyEditorHighlighter")){
-									OneLineHighlightDelegate(text, start, end)
-								}else IdeLogFileHighlightDelegate(myDocument, highlighterIterator)
-							}else highlighterIterator
-						}
-					}
+					var hlIter = createHighlighterIterator(text, start, end)
 					if(hlIter is OneLineHighlightDelegate || !hlIter.atEnd()){
 						val renderList = mutableListOf<RenderData>()
 						val resolvedHighlightRanges = resolveHighlightRanges(start, end, getHighlightColor(start, end))
@@ -304,7 +306,9 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 								if(foldEndOffset < curEnd){
 									curStart = foldEndOffset
 								}else {
-									do hlIter.advance() while (!hlIter.atEnd() && hlIter.start < foldEndOffset)
+									//A fold (e.g. collapsed unchanged diff fragment) may span thousands of lines: seek past it instead of walking its tokens
+									if(hlIter !is OneLineHighlightDelegate) hlIter = createHighlighterIterator(text, foldEndOffset, end)
+									while (!hlIter.atEnd() && hlIter.start < foldEndOffset) hlIter.advance()
 									continue
 								}
 							}
