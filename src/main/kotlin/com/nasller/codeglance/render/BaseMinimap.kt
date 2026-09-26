@@ -127,12 +127,22 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 		return startAdd to endAdd
 	}
 
-	@Suppress("UndesirableClassUsage")
-	protected fun getBufferedImage(scrollState: ScrollState) = BufferedImage(
+	protected fun getBufferedImage(scrollState: ScrollState) = createMinimapImage(
 		getRasterWidth(glancePanel.getLogicalWidth()),
-		getRasterBufferHeight(scrollState.documentHeight, scrollState.getRenderHeight()),
-		BufferedImage.TYPE_INT_ARGB
+		getRasterBufferHeight(scrollState.documentHeight, scrollState.getRenderHeight())
 	)
+
+	@Suppress("UndesirableClassUsage")
+	protected fun createMinimapImage(width: Int, height: Int) = BufferedImage(
+		width,
+		height,
+		BufferedImage.TYPE_INT_ARGB
+	).apply {
+		// issue #215 在约 10k 行的大文件上触发；栅格高度达到该保守阈值后避免 GPU 离屏表面。
+		if (height >= MAX_ACCELERATED_IMAGE_HEIGHT) {
+			setAccelerationPriority(0.0f)
+		}
+	}
 
 	protected fun getRasterScale(): Double = glancePanel.getPixScale()
 
@@ -447,6 +457,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 
 	@Suppress("UndesirableClassUsage")
 	companion object{
+		private const val MAX_ACCELERATED_IMAGE_HEIGHT = 10_000
 		val EMPTY_IMG = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB)
 
 		internal fun toRasterSize(logicalSize: Int, rasterScale: Double): Int {

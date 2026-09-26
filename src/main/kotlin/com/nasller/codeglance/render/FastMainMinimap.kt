@@ -31,7 +31,6 @@ import com.nasller.codeglance.util.Util.isMarkAttributes
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import org.jetbrains.concurrency.CancellablePromise
 import org.slf4j.LoggerFactory
-import java.awt.image.BufferedImage
 import java.beans.PropertyChangeEvent
 import java.lang.reflect.Proxy
 import java.util.*
@@ -117,10 +116,9 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 					}
 				}
 				val height = max(myScrollState.documentHeight.toDouble(), contentHeight)
-				BufferedImage(
+				createMinimapImage(
 					getRasterWidth(glancePanel.getLogicalWidth(), pixScale),
-					getRasterHeight(height, pixScale),
-					BufferedImage.TYPE_INT_ARGB
+					getRasterHeight(height, pixScale)
 				)
 			}
 		} else null) ?: return
