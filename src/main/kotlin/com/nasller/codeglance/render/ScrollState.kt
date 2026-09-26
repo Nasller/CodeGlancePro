@@ -85,8 +85,9 @@ class ScrollState : Cloneable{
         return true
     }
 
-    fun recomputeVisible(visibleArea: Rectangle, pixScale: Double = 1.0) {
-        visibleHeight = (visibleArea.height / pixScale).toInt().coerceAtLeast(0)
+    fun recomputeVisible(visibleArea: Rectangle) {
+        // Swing 的可见区域使用逻辑像素；HiDPI 缩放只应在位图坐标转换时应用。
+        visibleHeight = visibleArea.height.coerceAtLeast(0)
         drawHeight = min(visibleHeight, documentHeight).coerceAtLeast(0)
 
         // 视口矩形必须能完整落在当前可绘制窗口内，否则 HiDPI 取整后会在底部出现裁切。

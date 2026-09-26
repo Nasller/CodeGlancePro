@@ -66,7 +66,7 @@ class GlanceListener(private val glancePanel: GlancePanel) : ComponentAdapter(),
 				repaint()
 			}
 		}else {
-			glancePanel.scrollState.recomputeVisible(e.newRectangle, glancePanel.getPixScale())
+			glancePanel.scrollState.recomputeVisible(e.newRectangle)
 			repaint()
 		}
 	}

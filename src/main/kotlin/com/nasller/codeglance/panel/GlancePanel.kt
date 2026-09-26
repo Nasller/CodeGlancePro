@@ -90,7 +90,7 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		syncAdditionalPageAtBottom()
 		val visible = visibleArea ?: editor.scrollingModel.visibleArea
 		val repaint = computeDimensions(visible, visibleChange)
-		recomputeVisible(visible, getPixScale())
+		recomputeVisible(visible)
 		return@run repaint
 	}
 
