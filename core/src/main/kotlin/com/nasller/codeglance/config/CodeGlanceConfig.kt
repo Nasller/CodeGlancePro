@@ -47,7 +47,8 @@ class CodeGlanceConfig : BaseState() {
 	var enableBookmarksMark by property(true)
 	var markRegex by nonNullString("\\bMARK:(?: -)?(?=\\s|$)|#?region\\b")
 	var markersScaleFactor by property(3.0f)
-    var markMethodAnnotation by nonNullString("androidx.compose.runtime.Composable")
+	var markMethodNames by nonNullString("")
+	var markMethodAnnotation by nonNullString("androidx.compose.runtime.Composable")
 
 	var diffTwoSide by property(true)
 	var diffThreeSide by property(true)

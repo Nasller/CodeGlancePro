@@ -47,9 +47,12 @@ abstract class MyRainbowVisitor : HighlightVisitor {
 			.range(start,end).create()
 	}
 
-	protected fun visitPsiNameIdentifier(element: PsiNameIdentifierOwner) {
+	protected fun visitPsiNameIdentifier(
+		element: PsiNameIdentifierOwner,
+		textAttributesKey: TextAttributesKey = Util.MARK_CLASS_ATTRIBUTES,
+	) {
 		val psiIdentifier = element.nameIdentifier ?: return
-		visitText(psiIdentifier.text, psiIdentifier.textRange, Util.MARK_CLASS_ATTRIBUTES)
+		visitText(psiIdentifier.text, psiIdentifier.textRange, textAttributesKey)
 	}
 
 	protected fun visitText(text: String, textRange: TextRange, textAttributesKey: TextAttributesKey) {

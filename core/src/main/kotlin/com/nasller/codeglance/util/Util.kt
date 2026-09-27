@@ -10,6 +10,7 @@ object Util {
 	const val MAX_WIDTH = 250
 	val MARK_COMMENT_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_COMMENT_ATTRIBUTES")
 	val MARK_CLASS_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_CLASS_ATTRIBUTES")
+	val MARK_METHOD_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_METHOD_ATTRIBUTES")
 	val MARK_CSHARP_REGION_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_CSHARP_REGION_ATTRIBUTES")
 	val MARK_CLION_REGION_ATTRIBUTES = TextAttributesKey.createTextAttributesKey("MARK_CLION_REGION_ATTRIBUTES")
 
@@ -21,21 +22,42 @@ object Util {
 		}
 	}
 
-	fun TextAttributesKey.isMarkAttributes() = this == MARK_COMMENT_ATTRIBUTES || this == MARK_CLASS_ATTRIBUTES
-			|| this == MARK_CSHARP_REGION_ATTRIBUTES || this == MARK_CLION_REGION_ATTRIBUTES
+	fun TextAttributesKey.isMarkAttributes() = this == MARK_COMMENT_ATTRIBUTES ||
+			this == MARK_CLASS_ATTRIBUTES ||
+			this == MARK_METHOD_ATTRIBUTES ||
+			this == MARK_CSHARP_REGION_ATTRIBUTES ||
+			this == MARK_CLION_REGION_ATTRIBUTES
 }
 
 var MARK_REGEX = CodeGlanceConfigService.Config.markRegex.run {
     if(isNotBlank()) Regex(this) else null
 }
 
-var METHOD_ANNOTATION = CodeGlanceConfigService.Config.markMethodAnnotation.run {
-    if(isNotBlank()) split("\n").map { it.trim() }.filter { it.isNotBlank() }.toSet() else setOf()
+internal fun parseConfiguredNames(value: String): Set<String> = value.lineSequence()
+	.map(String::trim)
+	.filter(String::isNotBlank)
+	.toSet()
+
+fun Set<String>.matchesConfiguredName(name: String?): Boolean {
+	if (name == null) return false
+	return "*" in this || name in this || name.substringAfterLast('.') in this
 }
 
-var METHOD_ANNOTATION_SUFFIX = CodeGlanceConfigService.Config.markMethodAnnotation.run {
-    if(isNotBlank()) split("\n").map {
-        val lastIndexOf = it.lastIndexOf(".")
-        if(lastIndexOf == -1) it.trim() else it.substring(lastIndexOf + 1).trim()
-    }.filter { it.isNotBlank() }.toSet() else setOf()
+fun Set<String>.containsMethodAnnotation(fqName: String?): Boolean =
+	"*" in this || matchesConfiguredName(fqName)
+
+@Volatile
+var METHOD_NAMES = parseConfiguredNames(CodeGlanceConfigService.Config.markMethodNames)
+	private set
+
+@Volatile
+var METHOD_ANNOTATIONS = parseConfiguredNames(CodeGlanceConfigService.Config.markMethodAnnotation)
+	private set
+
+internal fun updateMethodNames(value: String) {
+	METHOD_NAMES = parseConfiguredNames(value)
+}
+
+internal fun updateMethodAnnotations(value: String) {
+	METHOD_ANNOTATIONS = parseConfiguredNames(value)
 }

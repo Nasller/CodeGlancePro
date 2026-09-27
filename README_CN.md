@@ -72,7 +72,8 @@ CodeGlance Pro 为 JetBrains IDE 编辑器增加交互式代码缩略图。它�
 | Enable Bookmarks Marker render | `true` | 将书签描述显示为缩略图标记。 | 给 IDE 书签添加描述后，可把缩略图当作可视索引使用。 |
 | Markers regex | `\bMARK:(?: -)?(?=\s|$)|#?region\b` | 使用正则表达式识别注释标记。 | 可以按项目约定改成 `TODO:`、`SECTION:` 或其他自定义标签。 |
 | Markers font scale | `3.0` | 控制标记标签字体大小。 | 需要更清晰时调大；标记重叠太多时调小。 |
-| Markers method annotation | `androidx.compose.runtime.Composable` | 换行分隔的方法注解名称，被匹配的方法会显示标记。内部同时支持全限定名和简单名。 | 每行写一个注解，例如 `org.junit.Test` 或 `Composable`。 |
+| Markers method names | 空 | 高亮 Java、Kotlin、Scala、Dart、C#、C 和 C++ 中配置的方法或函数声明名称。 | 每行填写一个名称；填写 `*` 可高亮所有支持的声明。使用语言 PSI 识别，不会匹配调用和任意同名标识符。 |
+| Markers method annotation | `androidx.compose.runtime.Composable` | 换行分隔的方法注解名称，被识别的方法声明会显示标记。 | 每行填写一个注解；填写 `*` 可高亮所有带注解的方法声明。建议使用全限定名，也支持简单名称。 |
 
 ### 选项设置
 

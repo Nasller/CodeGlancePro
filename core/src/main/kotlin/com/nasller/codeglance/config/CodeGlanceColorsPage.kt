@@ -13,6 +13,7 @@ import javax.swing.Icon
 class CodeGlanceColorsPage : ColorSettingsPage, DisplayPrioritySortable {
 	override fun getAttributeDescriptors() = arrayOf(
 		AttributesDescriptor("Class name", Util.MARK_CLASS_ATTRIBUTES),
+		AttributesDescriptor("Method name", Util.MARK_METHOD_ATTRIBUTES),
 		AttributesDescriptor("Mark comment", Util.MARK_COMMENT_ATTRIBUTES),
 		AttributesDescriptor("Region C#", Util.MARK_CSHARP_REGION_ATTRIBUTES),
 		AttributesDescriptor("Clion region", Util.MARK_CLION_REGION_ATTRIBUTES),
@@ -28,6 +29,7 @@ class CodeGlanceColorsPage : ColorSettingsPage, DisplayPrioritySortable {
 
 	override fun getDemoText() = """
 		class <class>MyClass</class> {}
+		fun <method>myMethod</method>() {}
 		//<mark>This is a comment</mark>
 		#region <region_csharp>C#</region_csharp>
 		#pragma region <clion>Clion</clion>
@@ -35,6 +37,7 @@ class CodeGlanceColorsPage : ColorSettingsPage, DisplayPrioritySortable {
 
 	override fun getAdditionalHighlightingTagToDescriptorMap() = mapOf(
 		Pair("class", Util.MARK_CLASS_ATTRIBUTES),
+		Pair("method", Util.MARK_METHOD_ATTRIBUTES),
 		Pair("mark", Util.MARK_COMMENT_ATTRIBUTES),
 		Pair("region_csharp", Util.MARK_CSHARP_REGION_ATTRIBUTES),
 		Pair("clion", Util.MARK_CLION_REGION_ATTRIBUTES),

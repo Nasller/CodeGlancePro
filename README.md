@@ -72,7 +72,8 @@ Markers render important comments, regions, method annotations, and bookmarks as
 | Enable Bookmarks Marker render | `true` | Shows bookmark descriptions as minimap markers. | Add IDE bookmarks with descriptions, then use the minimap as a visual index. |
 | Markers regex | `\bMARK:(?: -)?(?=\s|$)|#?region\b` | Detects comment markers by regular expression. | Customize it for conventions such as `TODO:`, `SECTION:`, or project-specific tags. |
 | Markers font scale | `3.0` | Controls marker label size. | Increase for readability; decrease if labels overlap too much. |
-| Markers method annotation | `androidx.compose.runtime.Composable` | Newline-separated annotation names whose methods should be marked. Fully qualified names and simple names are both supported internally. | Add one annotation per line, for example `org.junit.Test` or `Composable`. |
+| Markers method names | empty | Highlights configured function and method declaration names in Java, Kotlin, Scala, Dart, C#, C, and C++. | Add one name per line; use `*` to mark all supported declarations. Language PSI is used so calls and arbitrary identifiers are not matched. |
+| Markers method annotation | `androidx.compose.runtime.Composable` | Newline-separated annotation names whose recognized method declarations should be marked. | Add one annotation per line; use `*` to mark all recognized annotated methods. Fully qualified names are preferred, and simple names are also accepted. |
 
 ### Options
 

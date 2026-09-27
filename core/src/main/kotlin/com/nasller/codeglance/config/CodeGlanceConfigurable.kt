@@ -195,10 +195,14 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(message("plugins"),"c
 							}
 						}
 				}).bottomGap(BottomGap.SMALL)
-                row {
-                    textArea().label(message("settings.markers.annotation.method"))
-                        .bindText(config::markMethodAnnotation).columns(COLUMNS_MEDIUM).rows(3)
-                }
+				row {
+					textArea().label(message("settings.markers.method.names"))
+							.bindText(config::markMethodNames).columns(COLUMNS_MEDIUM).rows(3)
+				}
+				row {
+					textArea().label(message("settings.markers.annotation.method"))
+						.bindText(config::markMethodAnnotation).columns(COLUMNS_MEDIUM).rows(3)
+				}
 			}
 			group(message("settings.option")) {
 				threeColumnsRow({
@@ -264,13 +268,8 @@ class CodeGlanceConfigurable : BoundSearchableConfigurable(message("plugins"),"c
 			useEmptyMinimapStr = this@CodeGlanceConfigurable.useEmptyMinimap.joinToString(",")
 			if((!isRightAligned || disabled) && hoveringToShowScrollBar) hoveringToShowScrollBar = false
 			MARK_REGEX = if(markRegex.isNotBlank()) Regex(markRegex) else null
-            METHOD_ANNOTATION = if(markMethodAnnotation.isNotBlank()) markMethodAnnotation.split("\n")
-                .map { it.trim() }.filter { it.isNotBlank() }.toSet() else setOf()
-            METHOD_ANNOTATION_SUFFIX = if(markMethodAnnotation.isNotBlank()) markMethodAnnotation.split("\n")
-                .map {
-                    val lastIndexOf = it.lastIndexOf(".")
-                    if(lastIndexOf == -1) it.trim() else it.substring(lastIndexOf + 1).trim()
-                }.filter { it.isNotBlank() }.toSet() else setOf()
+			updateMethodNames(markMethodNames)
+			updateMethodAnnotations(markMethodAnnotation)
 		}
 		invokeLater{ SettingsChangePublisher.onGlobalChanged() }
 	}
