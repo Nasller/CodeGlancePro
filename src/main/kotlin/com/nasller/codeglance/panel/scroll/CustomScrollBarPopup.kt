@@ -5,7 +5,7 @@ import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzerSettings
 import com.intellij.codeInsight.daemon.impl.getConfigureHighlightingLevelPopup
 import com.intellij.openapi.actionSystem.*
-import com.intellij.openapi.application.runReadActionBlocking
+import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
@@ -70,18 +70,22 @@ class CustomScrollBarPopup(private val glancePanel: GlancePanel) : PopupHandler(
                 }
             })
         ){}
-        runReadActionBlocking { glancePanel.psiDocumentManager.getCachedPsiFile(glancePanel.editor.document) }?.let {
-            if (DaemonCodeAnalyzer.getInstance(glancePanel.project).isHighlightingAvailable(it)) {
-                actionGroup.addSeparator()
-                actionGroup.add(createGotoGroup())
-                actionGroup.addSeparator()
-                actionGroup.add(object : DumbAwareAction(message("customize.highlighting.level.menu.item")) {
-                    override fun actionPerformed(e: AnActionEvent) {
-                        val popup = getConfigureHighlightingLevelPopup(e.dataContext)
-                        popup?.show(RelativePoint(comp!!, Point(x, y)))
-                    }
-                })
-            }
+        var highlightingAvailable = false
+        ApplicationManagerEx.getApplicationEx().tryRunReadAction {
+            val file = glancePanel.psiDocumentManager.getCachedPsiFile(glancePanel.editor.document)
+            highlightingAvailable = file != null && file.isValid &&
+                DaemonCodeAnalyzer.getInstance(glancePanel.project).isHighlightingAvailable(file)
+        }
+        if (highlightingAvailable) {
+            actionGroup.addSeparator()
+            actionGroup.add(createGotoGroup())
+            actionGroup.addSeparator()
+            actionGroup.add(object : DumbAwareAction(message("customize.highlighting.level.menu.item")) {
+                override fun actionPerformed(e: AnActionEvent) {
+                    val popup = getConfigureHighlightingLevelPopup(e.dataContext)
+                    popup?.show(RelativePoint(comp!!, Point(x, y)))
+                }
+            })
         }
         actionGroup.addSeparator()
         actionGroup.add(object : DumbAwareToggleAction(message("glance.mouse.wheel.editor.preview")) {
