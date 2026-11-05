@@ -2,7 +2,6 @@ package com.nasller.codeglance.panel
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.colors.CodeInsightColors
 import com.intellij.openapi.editor.colors.EditorColors
@@ -338,9 +337,8 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 			val pixScale = getPixScale()
 			val renderWidth = getLogicalWidth()
 			scale(pixScale, pixScale)
-			if(hideScrollBarListener.isNotRunning()) {
-				ApplicationManagerEx.getApplicationEx().tryRunReadAction { paintSomething() }
-			}
+			// 绘制仅访问编辑器的 UI 状态；263 平台禁止在 paint 中获取读锁。
+			if(hideScrollBarListener.isNotRunning()) paintSomething()
 			minimap.getImageOrUpdate()?.let {
 				composite = srcOver0_8
 				gfx.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR)
