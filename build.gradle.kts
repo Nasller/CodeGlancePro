@@ -32,7 +32,7 @@ dependencies {
 		// Plugin Dependencies. Uses `platformBundledPlugins` property from the gradle.properties file for bundled IntelliJ Platform plugins.
 		bundledPlugins(properties("platformBundledPlugins").map { it.split(',') })
 		// Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file for plugin from JetBrains Marketplace.
-		plugins(properties("platformPlugins").map { it.split(',') })
+		compatiblePlugins(properties("platformPlugins").map { it.split(',') })
         // Module Dependencies. Uses `platformBundledModules` property from the gradle.properties file for bundled IntelliJ Platform modules.
         bundledModules(properties("platformBundledModules").map { it.split(',') })
 
@@ -87,7 +87,7 @@ intellijPlatformTesting {
 			version = properties("riderPlatformVersion")
 			sandboxDirectory = project.layout.projectDirectory.dir(properties("riderSandboxDir").get())
 			plugins {
-				plugins(properties("defaultPlugins").map { it.split(',') })
+				compatiblePlugins(properties("defaultPlugins").map { it.split(',') })
 			}
 			task {
 				systemProperties["idea.is.internal"] = true
@@ -101,7 +101,7 @@ intellijPlatformTesting {
 			version = properties("clionPlatformVersion")
 			sandboxDirectory = project.layout.projectDirectory.dir(properties("clionSandboxDir").get())
 			plugins {
-				plugins(properties("defaultPlugins").map { it.split(',') })
+				compatiblePlugins(properties("defaultPlugins").map { it.split(',') })
 			}
 			task {
 				systemProperties["idea.is.internal"] = true
