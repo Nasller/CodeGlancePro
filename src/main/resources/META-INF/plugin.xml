@@ -26,10 +26,11 @@
 	<change-notes><![CDATA[
 		<h3>2.0.9</h3>
 		<ul>
-			<li>Improve FastMainMinimap rendering performance by writing ARGB pixels directly and reducing temporary allocations.</li>
-			<li>Optimize fast minimap line data merging and whitespace handling for long lines and frequent editor updates.</li>
-			<li>Resolve markup highlight ranges once per visual line to speed up syntax, inspection, search, and caret highlight rendering.</li>
-			<li>Fix minimap refresh during initial scroll state calculation to avoid premature image refresh errors.</li>
+			<li>Add a Fill minimap sizing mode.</li>
+			<li>Add configurable method markers for Java, Kotlin, Scala, Dart, C#, and C/C++.</li>
+			<li>Improve minimap rendering, highlighting, and folded-code performance.</li>
+			<li>Fix HiDPI viewport sizing and large-file rendering issues.</li>
+			<li>Reduce blocking read actions on the UI thread.</li>
 		</ul>
 		<h3>2.0.8</h3>
 		<ul>

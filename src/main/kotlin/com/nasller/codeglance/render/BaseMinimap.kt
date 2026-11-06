@@ -460,6 +460,7 @@ abstract class BaseMinimap(protected val glancePanel: GlancePanel): InlayModel.L
 	companion object{
 		private const val MAX_ACCELERATED_IMAGE_HEIGHT = 10_000
 		val EMPTY_IMG = BufferedImage(1,1,BufferedImage.TYPE_INT_ARGB)
+		val HEIGHT_CHANGED = 0x2
 
 		internal fun toRasterSize(logicalSize: Int, rasterScale: Double): Int {
 			return max(1, (logicalSize * rasterScale).roundToInt())

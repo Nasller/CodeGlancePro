@@ -16,6 +16,6 @@ dependencies {
 		clion(providers.gradleProperty("clionPlatformVersion"))
 		pluginComposedModule(implementation(project(":core")))
 		bundledPlugins("org.jetbrains.plugins.clion.radler")
-		plugins(providers.gradleProperty("clionPlugins").map { it.split(',') })
+		compatiblePlugins(providers.gradleProperty("clionPlugins").map { it.split(',') })
 	}
 }

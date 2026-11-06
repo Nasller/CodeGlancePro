@@ -7,7 +7,6 @@ import com.intellij.openapi.diagnostic.Attachment
 import com.intellij.openapi.editor.*
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.ex.EditorEx
-import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUIUtil
 import com.intellij.openapi.editor.ex.util.EditorUtil
@@ -519,7 +518,7 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 	}
 
 	override fun onCustomFoldRegionPropertiesChange(region: CustomFoldRegion, flags: Int) {
-		if (flags and FoldingListener.ChangeFlags.HEIGHT_CHANGED == 0 || myDocument.isInBulkUpdate || checkDirty()) return
+		if (flags and HEIGHT_CHANGED == 0 || myDocument.isInBulkUpdate || checkDirty()) return
 		val startOffset = region.startOffset
 		if (editor.foldingModel.getCollapsedRegionAtOffset(startOffset) !== region) return
 		doInvalidateRange(startOffset, startOffset)

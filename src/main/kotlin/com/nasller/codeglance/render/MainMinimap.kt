@@ -5,7 +5,6 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.*
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.ex.EditorEx
-import com.intellij.openapi.editor.ex.FoldingListener
 import com.intellij.openapi.editor.ex.RangeHighlighterEx
 import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.ex.util.EmptyEditorHighlighter
@@ -230,7 +229,7 @@ class MainMinimap(glancePanel: GlancePanel): BaseMinimap(glancePanel){
 	}
 
 	override fun onCustomFoldRegionPropertiesChange(region: CustomFoldRegion, flags: Int) {
-		if (flags and FoldingListener.ChangeFlags.HEIGHT_CHANGED == 0 || editor.document.isInBulkUpdate) return
+		if (flags and HEIGHT_CHANGED == 0 || editor.document.isInBulkUpdate) return
 		repaintOrRequest()
 	}
 
