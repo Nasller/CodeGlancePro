@@ -2,7 +2,6 @@ package com.nasller.codeglance.panel
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.colors.CodeInsightColors
 import com.intellij.openapi.editor.colors.EditorColors
@@ -166,26 +165,30 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	fun Graphics2D.paintVcs(rangeOffset: Range<Int>,width:Int) {
 		if(config.showVcsHighlight.not()) return
 		composite = if (config.hideOriginalScrollBar) srcOver else srcOver0_4
+		val highlights = mutableListOf<VcsHighlightSnapshot>()
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
-			if (it.isThinErrorStripeMark) it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-				val start = editor.offsetToVisualLine(it.startOffset)
-				val end = editor.offsetToVisualLine(it.endOffset)
-				val documentLine = minimap.getMyRenderLine(start, end)
-				val sY = start * scrollState.pixelsPerLine + documentLine.first - scrollState.visibleStart
-				val eY = end * scrollState.pixelsPerLine + documentLine.second - scrollState.visibleStart
-				if (sY >= 0 || eY >= 0) {
-					color = this
-					val height = scrollState.getRenderHeight()
-					if (sY == eY) {
-						fillRect(0, sY.toInt(), width, height)
-					} else {
-						fillRect(0, sY.toInt(), width, height)
-						if (eY + height != sY) fillRect(0, (sY + height).toInt(), width, (eY - sY - height).toInt())
-						fillRect(0, eY.toInt(), width, height)
-					}
-				}
+			if (it.isThinErrorStripeMark) it.getErrorStripeMarkColor(editor.colorsScheme)?.let { color ->
+				highlights.add(VcsHighlightSnapshot(it.startOffset, it.endOffset, color))
 			}
 			return@processRangeHighlightersOverlappingWith true
+		}
+		for ((startOffset, endOffset, color1) in highlights) {
+			val start = editor.offsetToVisualLine(startOffset)
+			val end = editor.offsetToVisualLine(endOffset)
+			val documentLine = minimap.getMyRenderLine(start, end)
+			val sY = start * scrollState.pixelsPerLine + documentLine.first - scrollState.visibleStart
+			val eY = end * scrollState.pixelsPerLine + documentLine.second - scrollState.visibleStart
+			if (sY >= 0 || eY >= 0) {
+				color = color1
+				val height = scrollState.getRenderHeight()
+				if (sY == eY) {
+					fillRect(0, sY.toInt(), width, height)
+				} else {
+					fillRect(0, sY.toInt(), width, height)
+					if (eY + height != sY) fillRect(0, (sY + height).toInt(), width, (eY - sY - height).toInt())
+					fillRect(0, eY.toInt(), width, height)
+				}
+			}
 		}
 	}
 
@@ -234,33 +237,50 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 	}
 
 	private fun Graphics2D.paintEditorFilterMarkupModel(rangeOffset: Range<Int>,existLine: MutableSet<Int>) {
+		val highlights = mutableListOf<RangeHighlightColor>()
 		editor.filteredDocumentMarkupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
 			if(markState.contains(it) || it.isThinErrorStripeMark || it.layer < HighlighterLayer.CARET_ROW) {
 				return@processRangeHighlightersOverlappingWith true
 			}
-			it.getErrorStripeMarkColor(editor.colorsScheme)?.apply {
-				val highlightColor = RangeHighlightColor(it, this, config.showErrorStripesFullLineHighlight &&
-						(config.hideOriginalScrollBar || HighlightInfo.fromRangeHighlighter(it) == null), existLine)
-				drawMarkupLine(highlightColor)
+			it.getErrorStripeMarkColor(editor.colorsScheme)?.let { color ->
+				highlights.add(RangeHighlightColor(
+					it.startOffset,
+					it.endOffset,
+					color,
+					config.showErrorStripesFullLineHighlight &&
+						(config.hideOriginalScrollBar || HighlightInfo.fromRangeHighlighter(it) == null),
+					it.targetArea == HighlighterTargetArea.EXACT_RANGE
+				))
 			}
 			return@processRangeHighlightersOverlappingWith true
+		}
+		for (highlight in highlights) {
+			drawMarkupLine(highlight.reserveFullLine(existLine))
 		}
 	}
 
 	private fun Graphics2D.paintEditorMarkupModel(rangeOffset: Range<Int>,existLine: MutableSet<Int>) {
-		val map by lazy((LazyThreadSafetyMode.NONE)){ hashMapOf<String, Int>() }
+		val maxLayerByRange = hashMapOf<Pair<Int, Int>, Int>()
+		val highlights = mutableListOf<RangeHighlightColor>()
 		editor.markupModel.processRangeHighlightersOverlappingWith(rangeOffset.from, rangeOffset.to) {
-			it.getMarkupColor()?.apply {
-				val highlightColor = RangeHighlightColor(it, this, config.showOtherFullLineHighlight, existLine)
-				map.compute("${highlightColor.startOffset}-${highlightColor.endOffset}") { _, layer ->
-					if (layer == null || layer < it.layer) {
-						drawMarkupLine(highlightColor)
-						return@compute it.layer
-					}
-					return@compute layer
+			it.getMarkupColor()?.let { color ->
+				val key = it.startOffset to it.endOffset
+				val previousLayer = maxLayerByRange[key]
+				if (previousLayer == null || previousLayer < it.layer) {
+					highlights.add(RangeHighlightColor(
+						it.startOffset,
+						it.endOffset,
+						color,
+						config.showOtherFullLineHighlight,
+						it.targetArea == HighlighterTargetArea.EXACT_RANGE
+					))
+					maxLayerByRange[key] = it.layer
 				}
 			}
 			return@processRangeHighlightersOverlappingWith true
+		}
+		for (highlight in highlights) {
+			drawMarkupLine(highlight.reserveFullLine(existLine))
 		}
 	}
 
@@ -333,26 +353,31 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 
 	override fun paintComponent(gfx: Graphics) {
 		super.paintComponent(gfx)
-		if(isReleased) return
-		with(gfx as Graphics2D){
-			val pixScale = getPixScale()
-			val renderWidth = getLogicalWidth()
-			scale(pixScale, pixScale)
-			if(hideScrollBarListener.isNotRunning()) {
-				ApplicationManagerEx.getApplicationEx().tryRunReadAction { paintSomething() }
+		if(isReleased || editor.isDisposed) return
+		val graphics = gfx.create() as Graphics2D
+		try {
+			with(graphics){
+				val pixScale = getPixScale()
+				val renderWidth = getLogicalWidth()
+				scale(pixScale, pixScale)
+				if(hideScrollBarListener.isNotRunning()) {
+					paintSomething()
+				}
+				minimap.getImageOrUpdate()?.let {
+					composite = srcOver0_8
+					setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR)
+					// 拖拽调整宽度时，缓存图像可能还是旧宽度，保持源图和目标宽度同步，避免横向拉伸。
+					val imagePaintWidth = min(renderWidth, fromRasterSize(it.width, pixScale))
+					val imagePaintRasterWidth = min(it.width, toRasterSize(imagePaintWidth, pixScale))
+					val sourceStartY = toRasterCoordinate(scrollState.visibleStart, pixScale)
+					val sourceEndY = min(it.height, toRasterCoordinate(scrollState.visibleEnd, pixScale))
+					drawImage(it, 0, 0, imagePaintWidth, scrollState.drawHeight,
+						0, sourceStartY, imagePaintRasterWidth, sourceEndY, null)
+				}
+				scrollbar.paint(this)
 			}
-			minimap.getImageOrUpdate()?.let {
-				composite = srcOver0_8
-				gfx.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR)
-				// 拖拽调整宽度时，缓存图像可能还是旧宽度，保持源图和目标宽度同步，避免横向拉伸。
-				val imagePaintWidth = min(renderWidth, fromRasterSize(it.width, pixScale))
-				val imagePaintRasterWidth = min(it.width, toRasterSize(imagePaintWidth, pixScale))
-				val sourceStartY = toRasterCoordinate(scrollState.visibleStart, pixScale)
-				val sourceEndY = min(it.height, toRasterCoordinate(scrollState.visibleEnd, pixScale))
-				drawImage(it, 0, 0, imagePaintWidth, scrollState.drawHeight,
-					0, sourceStartY, imagePaintRasterWidth, sourceEndY, null)
-			}
-			scrollbar.paint(this)
+		} finally {
+			graphics.dispose()
 		}
 	}
 
@@ -378,19 +403,23 @@ class GlancePanel(info: EditorInfo) : JPanel(), Disposable {
 		markState.clear()
 	}
 
-	private inner class RangeHighlightColor(val startOffset: Int, val endOffset: Int, val color: Color, var fullLine: Boolean, val fullLineWithActualHighlight: Boolean) {
-		constructor(it: RangeHighlighterEx, color: Color, fullLine: Boolean,existLine: MutableSet<Int>) :
-				this(it.startOffset, it.endOffset, color, fullLine, it.targetArea == HighlighterTargetArea.EXACT_RANGE) {
-			if (fullLine) {
-				val elements = startVis.line..startVis.line
-				if (elements.any { existLine.contains(it) }) this@RangeHighlightColor.fullLine = false
-				else existLine.addAll(elements)
+	private inner class RangeHighlightColor(val startOffset: Int, val endOffset: Int, val color: Color, val fullLine: Boolean, val fullLineWithActualHighlight: Boolean) {
+		fun reserveFullLine(existLine: MutableSet<Int>): RangeHighlightColor {
+			if (!fullLine) return this
+			val elements = startVis.line..startVis.line
+			return if (elements.any { existLine.contains(it) }) {
+				RangeHighlightColor(startOffset, endOffset, color, false, fullLineWithActualHighlight)
+			} else {
+				existLine.addAll(elements)
+				this
 			}
 		}
 
 		val startVis by lazy(LazyThreadSafetyMode.NONE) { editor.offsetToVisualPosition(startOffset) }
 		val endVis by lazy(LazyThreadSafetyMode.NONE) { editor.offsetToVisualPosition(endOffset,false,true) }
 	}
+
+	private data class VcsHighlightSnapshot(val startOffset: Int, val endOffset: Int, val color: Color)
 
 	companion object {
 		const val MIN_GAP = 15

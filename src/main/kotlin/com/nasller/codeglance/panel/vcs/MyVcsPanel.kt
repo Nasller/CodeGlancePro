@@ -36,11 +36,16 @@ class MyVcsPanel(val glancePanel: GlancePanel) : JPanel(){
 
 	override fun paintComponent(gfx: Graphics): Unit = glancePanel.run {
 		super.paintComponent(gfx)
-		if(glancePanel.isReleased) return
-		with(gfx as Graphics2D){
-			val pixScale = glancePanel.getPixScale()
-			scale(pixScale, pixScale)
-			paintVcs(getVisibleRangeOffset(),8)
+		if(glancePanel.isReleased || editor.isDisposed) return
+		val graphics = gfx.create() as Graphics2D
+		try {
+			with(graphics){
+				val pixScale = glancePanel.getPixScale()
+				scale(pixScale, pixScale)
+				paintVcs(getVisibleRangeOffset(),8)
+			}
+		} finally {
+			graphics.dispose()
 		}
 	}
 
