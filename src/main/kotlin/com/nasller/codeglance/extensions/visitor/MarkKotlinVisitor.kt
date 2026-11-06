@@ -12,8 +12,8 @@ import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.stubs.elements.KtStubElementTypes
 
-
 class MarkKotlinVisitor : MyRainbowVisitor() {
+	@OptIn(KtImplementationDetail::class)
 	override fun visit(element: PsiElement) {
 		when (element) {
 			is KtClass if PsiUtilCore.getElementType(element) == KtStubElementTypes.CLASS -> {
