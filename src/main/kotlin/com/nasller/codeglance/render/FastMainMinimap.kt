@@ -631,11 +631,15 @@ class FastMainMinimap(glancePanel: GlancePanel) : BaseMinimap(glancePanel), High
 		val start = MathUtil.clamp(startOffset, 0, textLength)
 		val end = MathUtil.clamp(endOffset, start, textLength)
 		if (start == end) return
-		synchronized(rangeHighlightUpdateLock) {
+		val flushAlreadyScheduled = synchronized(rangeHighlightUpdateLock) {
+			val hadPendingRange = pendingRangeHighlightStartOffset <= pendingRangeHighlightEndOffset
 			pendingRangeHighlightStartOffset = min(pendingRangeHighlightStartOffset, start)
 			pendingRangeHighlightEndOffset = max(pendingRangeHighlightEndOffset, end)
+			hadPendingRange
 		}
-		rangeHighlightUpdateAlarm.cancelAndRequest()
+		// Rescheduling per highlighter launches a coroutine each time, which floods the EDT when an editor
+		// adds thousands of highlighters at once (e.g. a unified diff of a large file).
+		if (!flushAlreadyScheduled) rangeHighlightUpdateAlarm.cancelAndRequest()
 	}
 
 	private fun flushRangeHighlightUpdates() {
